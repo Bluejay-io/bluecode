@@ -49,7 +49,14 @@ if [[ "${1:-}" == "--continue" ]]; then
 fi
 
 git fetch --no-tags origin main
-git fetch --no-tags upstream main
+# A blobless clone holds upstream's commits without their files. The merge needs
+# them, and fetching them on demand mid-merge fails, so fetch them up front.
+git fetch --no-tags --no-filter upstream main
+missing="$(GIT_NO_LAZY_FETCH=1 git rev-list --objects --missing=print origin/main..upstream/main | sed -n 's/^?//p')"
+if [[ -n "$missing" ]]; then
+  git -c fetch.negotiationAlgorithm=noop fetch upstream --no-tags --no-write-fetch-head \
+    --recurse-submodules=no --stdin <<<"$missing"
+fi
 
 if git merge-base --is-ancestor upstream/main origin/main; then
   echo "BlueCode already contains upstream main."
@@ -73,9 +80,17 @@ if git -C "$worktree" merge --no-ff --no-edit upstream/main; then
   exit 0
 fi
 
+conflicts="$(git -C "$worktree" diff --name-only --diff-filter=U)"
+if [[ -z "$conflicts" ]]; then
+  git -C "$worktree" merge --abort 2>/dev/null || true
+  git worktree remove --force "$worktree"
+  echo "The merge failed for a reason other than conflicts; see the output above." >&2
+  exit 1
+fi
+
 echo
 echo "Upstream conflicts with BlueCode in:"
-git -C "$worktree" diff --name-only --diff-filter=U | sed 's/^/  /'
+echo "$conflicts" | sed 's/^/  /'
 echo
 echo "Resolve them in $worktree, commit the merge, then run: $0 --continue"
 exit 2
