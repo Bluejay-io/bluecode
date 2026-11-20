@@ -1404,11 +1404,12 @@ ${associatedDomains}
 }
 
 /**
- * BlueCode: signs macOS with our own certificate. Without an Apple team the hardened runtime
- * would refuse to load the app's own frameworks, and there is nothing to notarize with.
+ * BlueCode: signs macOS with our own certificate. electron-builder only signs with identities
+ * macOS trusts, so its signing is switched off and scripts/bluecode-mac-after-pack.cjs signs.
  */
 function withMacSignIdentity(
   buildConfig: Record<string, unknown>,
+  repoRoot: string,
   identity: string | undefined,
 ): Record<string, unknown> {
   if (!identity || typeof buildConfig.mac !== "object" || buildConfig.mac === null) {
@@ -1416,13 +1417,8 @@ function withMacSignIdentity(
   }
   return {
     ...buildConfig,
-    mac: {
-      ...buildConfig.mac,
-      identity,
-      hardenedRuntime: false,
-      notarize: false,
-      gatekeeperAssess: false,
-    },
+    afterPack: `${repoRoot}/scripts/bluecode-mac-after-pack.cjs`,
+    mac: { ...buildConfig.mac, identity: null },
   };
 }
 
@@ -3975,6 +3971,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
         bundlesWslRuntime({ platform: options.platform, runtimeArchivePath: options.wslRuntime }),
         options.arch,
       ),
+      repoRoot,
       macSignIdentity,
     ),
     dependencies: stageDependencies,
@@ -4070,7 +4067,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     delete buildEnv.CSC_KEY_PASSWORD;
   }
   if (!options.signed) {
-    if (!macSignIdentity) buildEnv.CSC_IDENTITY_AUTO_DISCOVERY = "false";
+    buildEnv.CSC_IDENTITY_AUTO_DISCOVERY = "false";
     delete buildEnv.CSC_LINK;
     delete buildEnv.CSC_KEY_PASSWORD;
     delete buildEnv.APPLE_API_KEY;

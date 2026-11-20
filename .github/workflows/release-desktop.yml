@@ -587,8 +587,8 @@ jobs:
       # BlueCode: releases are signed with our own certificate rather than an
       # Apple Developer ID. Keeping one identity across releases is what lets
       # Squirrel.Mac accept the next version as an update of the installed one.
-      # electron-builder only signs with identities macOS lists as valid, and a
-      # self-signed certificate is valid only once trusted for code signing.
+      # The runner cannot trust a self-signed certificate, so electron-builder
+      # would not pick it up; scripts/bluecode-mac-after-pack.cjs signs with it.
       - name: Import BlueCode signing certificate
         if: inputs.platform == 'mac'
         shell: bash
@@ -605,7 +605,6 @@ jobs:
           keychain_password="$(openssl rand -hex 16)"
           echo "::add-mask::$keychain_password"
           p12="$RUNNER_TEMP/bluecode-signing.p12"
-          pem="$RUNNER_TEMP/bluecode-signing.pem"
           printf '%s' "$CERT_P12" | base64 --decode > "$p12"
           security create-keychain -p "$keychain_password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
@@ -614,16 +613,15 @@ jobs:
           rm "$p12"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" >/dev/null
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
-          security find-certificate -a -p "$keychain" > "$pem"
-          sudo security authorizationdb write com.apple.trust-settings.admin allow
-          sudo security add-trusted-cert -d -r trustRoot -p codeSign -k "$keychain" "$pem"
-          identity="$(security find-identity -v -p codesigning "$keychain" | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\) ".*/\1/p' | head -n 1)"
+          identity="$(security find-identity -p codesigning "$keychain" | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\) ".*/\1/p' | head -n 1)"
           if [[ -z "$identity" ]]; then
-            security find-identity -p codesigning "$keychain" >&2
-            echo "The BlueCode certificate is not a valid code signing identity on this runner." >&2
+            echo "No code signing identity found in BLUECODE_MAC_CERT_P12." >&2
             exit 1
           fi
-          echo "BLUECODE_MAC_SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+          {
+            echo "BLUECODE_MAC_SIGN_IDENTITY=$identity"
+            echo "BLUECODE_MAC_SIGN_KEYCHAIN=$keychain"
+          } >> "$GITHUB_ENV"
           echo "BlueCode signing enabled ($identity)."
 
       - name: Build desktop artifact
