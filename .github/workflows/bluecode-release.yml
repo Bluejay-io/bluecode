@@ -12,6 +12,7 @@ on:
       - "docs/**"
       - "**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 # release-desktop.yml reads this run's artifact list, and a called workflow
