@@ -1,4 +1,28 @@
 <p align="center">
+  <img src="./assets/bluecode/macos-1024.png" width="112" height="112" alt="BlueCode icon" />
+</p>
+
+<h1 align="center">BlueCode</h1>
+
+<p align="center">A calm, minimal desktop app for coding agents. A fork of <a href="https://github.com/pingdotgg/t3code">T3 Code</a>.</p>
+
+## Install on macOS
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Bluejay-io/bluecode/main/scripts/install-bluecode.sh | sh
+```
+
+This installs the latest release into Applications and opens it. BlueCode then updates itself.
+
+You can also download the `.dmg` from the [latest release](https://github.com/Bluejay-io/bluecode/releases/latest) (`arm64` for Apple Silicon, `x64` for Intel). BlueCode is signed with its own certificate and is not notarized by Apple, so macOS blocks a copy downloaded in a browser the first time: open System Settings, go to Privacy & Security, and choose Open Anyway. The command above avoids that.
+
+BlueCode keeps its data in `~/.bluecode` and runs alongside T3 Code. On first launch it offers to import your T3 Code projects, threads and settings; see [Import from T3 Code](./docs/user/install.md).
+
+The rest of this page is T3 Code's own README. Everything in it applies to BlueCode unless it names a T3 Code download, mobile app, or hosted service.
+
+---
+
+<p align="center">
   <a href="https://t3.codes">
     <img src="./assets/prod/t3-black-web-icon-192x192.png" width="80" height="80" alt="T3 Code logo" />
   </a>
