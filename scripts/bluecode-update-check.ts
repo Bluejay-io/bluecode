@@ -63,6 +63,8 @@ const startVersion = installedVersion();
 const home = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "bluecode-update-check-"));
 let step = "launching the installed app";
 let app: ElectronApplication | undefined;
+// Read at launch: Playwright drops the process handle once the app quits to install.
+let child: NodeChildProcess.ChildProcess | undefined;
 
 const pageWithBridge = async (launched: ElectronApplication): Promise<Page> => {
   for (let poll = 0; poll < STEP_TIMEOUT_MS / 500; poll++) {
@@ -82,6 +84,7 @@ try {
     env: { ...process.env, BLUECODE_HOME: home, T3CODE_TELEMETRY_ENABLED: "false" },
     timeout: STEP_TIMEOUT_MS,
   });
+  child = app.process();
   step = "waiting for a window";
   const page = await pageWithBridge(app);
 
@@ -149,9 +152,8 @@ try {
   process.exitCode = 1;
 } finally {
   if (app) {
-    const child = app.process();
     const closed = app.close().catch(() => {});
     await Promise.race([closed, NodeTimersPromises.setTimeout(10_000, undefined, { ref: false })]);
-    child.kill("SIGKILL");
+    child?.kill("SIGKILL");
   }
 }

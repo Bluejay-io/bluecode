@@ -11,6 +11,7 @@
 #   BLUECODE_VERSION      exact version to install (default: the latest release)
 #   BLUECODE_INSTALL_DIR  where BlueCode.app goes (default: /Applications, or
 #                         ~/Applications when that is not writable)
+#   BLUECODE_NO_OPEN      set to 1 to install without opening the app
 set -eu
 
 repo="Bluejay-io/bluecode"
@@ -77,4 +78,4 @@ ditto "$app" "$install_dir/BlueCode.app"
 xattr -dr com.apple.quarantine "$install_dir/BlueCode.app" 2>/dev/null || true
 
 printf 'Installed BlueCode %s in %s. It updates itself from now on.\n' "$version" "$install_dir"
-open "$install_dir/BlueCode.app"
+[ "${BLUECODE_NO_OPEN:-}" = 1 ] || open "$install_dir/BlueCode.app"

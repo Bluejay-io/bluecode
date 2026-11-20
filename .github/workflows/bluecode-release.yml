@@ -300,14 +300,12 @@ jobs:
 
       - name: Update the previous release to this one
         env:
-          GH_REPO: ${{ github.repository }}
           PREVIOUS_TAG: ${{ needs.version.outputs.previous_tag }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
           dir="$RUNNER_TEMP/bluecode-update-check"
-          mkdir -p "$dir"
-          curl -fsSL --retry 3 -o "$dir/previous.zip" \
-            "https://github.com/$GH_REPO/releases/download/$PREVIOUS_TAG/BlueCode-${PREVIOUS_TAG#v}-arm64.zip"
-          ditto -x -k "$dir/previous.zip" "$dir"
+          # Installed the way users install it, so the installer is checked too.
+          BLUECODE_VERSION="${PREVIOUS_TAG#v}" BLUECODE_INSTALL_DIR="$dir" BLUECODE_NO_OPEN=1 \
+            sh scripts/install-bluecode.sh
           node scripts/bluecode-update-check.ts --app "$dir/BlueCode.app" --expect-version "$VERSION"
