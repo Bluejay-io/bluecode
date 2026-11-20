@@ -23,8 +23,9 @@ keychain entry that encrypts saved connections, and every existing install depen
 
 ## Keeping upstream mergeable
 
-T3 Code is merged in regularly (`scripts/bluecode-sync-upstream.sh`, run daily by a scheduled
-task), so keep the diff against upstream small and easy to re-apply.
+T3 Code is merged in every day: a scheduled task runs `scripts/bluecode-sync-upstream.sh`, and
+the pull request it opens merges itself when CI passes. Keep the diff against upstream small and
+easy to re-apply, and never squash a sync pull request.
 
 - Put fork-only code in its own files (`apps/web/src/bluecode/`, `scripts/bluecode-*`,
   `.github/workflows/bluecode-*`). Where you must edit an upstream file, keep the edit small and

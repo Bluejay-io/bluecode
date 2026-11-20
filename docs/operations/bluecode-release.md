@@ -56,12 +56,22 @@ marked `BlueCode:`.
 ## Pulling in T3 Code
 
 [scripts/bluecode-sync-upstream.sh](../../scripts/bluecode-sync-upstream.sh)
-merges upstream `main` into the `sync/upstream` branch and opens or updates a
-pull request. It runs from a checkout with a signed-in `gh` rather than in
-Actions: the organization does not let Actions open pull requests, and an
-Actions token may not push the workflow changes upstream merges contain. When
-the merge conflicts, it leaves a worktree to resolve and finish with
-`--continue`.
+merges upstream `main` into the `sync/upstream` branch, opens or updates its
+pull request, and sets it to merge itself. `main` requires CI's `Check` job, so
+GitHub merges the pull request when CI passes, as a merge commit, and that
+merge publishes a release. Nobody has to look at a green sync.
+
+A scheduled task runs the script every day and steps in only when something
+needs a decision: a merge conflict, a failed check, or a release that did not
+publish. Conflict resolutions and fixes are commits on the sync branch, which
+later runs build on until it merges.
+
+The script runs from a checkout with a signed-in `gh` rather than in Actions:
+the organization does not let Actions open pull requests, and an Actions token
+may not push the workflow changes upstream merges contain.
+
+Do not squash a sync pull request. Upstream's commits must stay ancestors of
+`main`, or the next sync replays all of them.
 
 BlueCode must not add database migrations with ids in upstream's sequence. The
 server skips migrations by number, so a fork migration would both collide with
