@@ -75,17 +75,27 @@ if [[ -d "$worktree" ]]; then
 fi
 git worktree add --force -B "$branch" "$worktree" origin/main
 
+# Until a sync is merged, each run redoes the merge from main. rerere replays
+# conflict resolutions already made, so only new conflicts need a person.
+git config rerere.enabled true
+git config rerere.autoUpdate true
+
 if git -C "$worktree" merge --no-ff --no-edit upstream/main; then
   publish
   exit 0
 fi
 
-conflicts="$(git -C "$worktree" diff --name-only --diff-filter=U)"
-if [[ -z "$conflicts" ]]; then
-  git -C "$worktree" merge --abort 2>/dev/null || true
+if ! git -C "$worktree" rev-parse --quiet --verify MERGE_HEAD >/dev/null; then
   git worktree remove --force "$worktree"
   echo "The merge failed for a reason other than conflicts; see the output above." >&2
   exit 1
+fi
+conflicts="$(git -C "$worktree" diff --name-only --diff-filter=U)"
+if [[ -z "$conflicts" ]]; then
+  echo "Every conflict was resolved the way it was last time."
+  git -C "$worktree" -c core.hooksPath=/dev/null commit --no-edit
+  publish
+  exit 0
 fi
 
 echo
