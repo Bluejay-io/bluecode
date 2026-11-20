@@ -5961,6 +5961,24 @@
   "9a50b20569f2c9e7": "Impossible de charger vos paramètres enregistrés.",
   "0d22cd9e3b9d94f0": "T3 Code n’a pas pu confirmer cet espace de travail.",
   "573a9e6b17f4e9e3": "Recharger",
+  "60d817971062f842": "Vérification de vos données T3 Code…",
+  "7903934c42944cdf": "Copie de la base de données T3 Code…",
+  "a17b313e6aea7567": "Mise à jour de la copie pour BlueCode…",
+  "f4305168cee44909": "Arrêt du travail en cours dans la copie…",
+  "220c44b3c1fff23d": "Copie des réglages, secrets et pièces jointes…",
+  "ad66bb096a893a71": "Mise en place de l’import…",
+  "f070ba24dcb63dcf": "Ce T3 Code est plus récent que BlueCode. Mettez BlueCode à jour pour importer depuis celui-ci.",
+  "37e6707a2dccf725": "Ces données T3 Code ne peuvent pas être importées.",
+  "1bfc1eb0ccdb8b1c": "Arrêt du serveur de BlueCode…",
+  "63a01cd3f1296f5e": "Redémarrage de BlueCode…",
+  "6f568598011f16b1": "{projects, plural, one {{projects} projet} other {{projects} projets}}, {threads, plural, one {{threads} fil} other {{threads} fils}}",
+  "fd8f75f97a5c0e6d": "Import…",
+  "382dcc85d648b2df": "Importer",
+  "4795cb6232da239c": "BlueCode a déjà des projets ou des fils, rien n’a donc été importé. Pour importer par-dessus, quittez BlueCode et exécutez `t3 import-t3-code --replace`.",
+  "9f71dfc7cb9dd88c": "L’import n’a pas abouti.",
+  "516d7b82d1b587a9": "Importer depuis T3 Code",
+  "09344d4ac05e76a1": "BlueCode redémarre avec vos projets, fils, réglages et pièces jointes. Les appareils associés, les connexions distantes enregistrées et la connexion T3 Connect restent dans T3 Code. Les tâches planifiées arrivent en pause et les messages en file d’attente sont retenus.",
+  "dd4e2d1474d5caab": "T3 Code peut rester ouvert. Le travail en cours là-bas arrive arrêté.",
   "d6c31ff9bb97570e": "Limite d’analyse atteinte. Certains projets ou certaines conversations peuvent manquer.",
   "da6f86321113fb7b": "Cette connexion ne peut pas importer de projets ni d’historique de fils.",
   "1cdf16e5edb6bd99": "cet ordinateur",
@@ -5971,7 +5989,6 @@
   "b923ddc935ea2555": "Impossible de terminer la configuration",
   "152184c4aefef5d1": "Impossible d’enregistrer vos paramètres. Réessayez.",
   "23ec0110d2170502": "Bienvenue",
-  "fd8f75f97a5c0e6d": "Import…",
   "cd609620fafff02b": "{count, plural, one {Importer {count} projet et commencer} other {Importer {count} projets et commencer}}",
   "99decfb4ea686b61": "Importer les fils et commencer",
   "88ddebac4d96eb62": "Commencer",
@@ -6011,7 +6028,7 @@
   "a0fd24f965eb070b": "Impossible d’importer l’historique des fils.",
   "a506c135c2183ac3": "{count, plural, one {{count} dossier} other {{count} dossiers}}",
   "efc48b9736a534bc": "maintenant",
-  "edf393ff951b533a": "Bienvenue dans T3 Code",
+  "d60731b4992335a7": "Bienvenue dans BlueCode",
   "3cc77f9daa7eeafd": [
     "Configuration de",
     " ",
@@ -6028,26 +6045,6 @@
   ],
   "216ab7514aea1d61": "Commencer sans agent",
   "501ce2d99da8bfd1": "Configurez un agent pour commencer.",
-  "71f3822326109c8e": [
-    "T3 Code collecte des données d’utilisation anonymes pour améliorer l’app. Pour vous désinscrire, consultez la",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "politique de confidentialité"
-    },
-    "."
-  ],
-  "b33f35083757b42c": [
-    "Consultez la",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "politique de confidentialité"
-    },
-    "."
-  ],
   "f77d000c0710f066": "Activer",
   "4ed27bf946e504db": "Configurer",
   "7a26eaacff0607f7": [

@@ -577,6 +577,66 @@ export const DesktopWslStateSchema = Schema.Struct({
   preflightError: Schema.NullOr(Schema.String),
 });
 
+/** What `import-t3-code --probe` found in the T3 Code home on this computer. */
+export const DesktopT3CodeImportProbeSchema = Schema.Struct({
+  sourceBaseDir: Schema.String,
+  found: Schema.Boolean,
+  databaseKind: Schema.NullOr(Schema.Literals(["v2", "v1"])),
+  databaseBytes: Schema.Number,
+  migrationHead: Schema.NullOr(Schema.Number),
+  buildMigrationHead: Schema.Number,
+  importable: Schema.Boolean,
+  blockedReason: Schema.NullOr(Schema.String),
+  projects: Schema.NullOr(Schema.Number),
+  threads: Schema.NullOr(Schema.Number),
+  serverRunning: Schema.Boolean,
+});
+export type DesktopT3CodeImportProbe = typeof DesktopT3CodeImportProbeSchema.Type;
+
+export const DesktopT3CodeImportUnavailableReasonSchema = Schema.Literals([
+  "local-environment-disabled",
+  // The WSL primary keeps its data inside the distro, not in the desktop's home.
+  "wsl-primary",
+  // Development desktop servers keep state in `<home>/dev`, which the import never writes.
+  "development-home",
+  "probe-failed",
+]);
+export type DesktopT3CodeImportUnavailableReason =
+  typeof DesktopT3CodeImportUnavailableReasonSchema.Type;
+
+export const DesktopT3CodeImportProbeResultSchema = Schema.Union([
+  Schema.TaggedStruct("Probed", { probe: DesktopT3CodeImportProbeSchema }),
+  Schema.TaggedStruct("Unavailable", {
+    reason: DesktopT3CodeImportUnavailableReasonSchema,
+    message: Schema.NullOr(Schema.String),
+  }),
+]);
+export type DesktopT3CodeImportProbeResult = typeof DesktopT3CodeImportProbeResultSchema.Type;
+
+export const DesktopT3CodeImportPhaseSchema = Schema.Literals([
+  "preflight",
+  "snapshot",
+  "migrate",
+  "scrub",
+  "stage",
+  "publish",
+]);
+export type DesktopT3CodeImportPhase = typeof DesktopT3CodeImportPhaseSchema.Type;
+
+export const DesktopT3CodeImportProgressSchema = Schema.Struct({
+  phase: DesktopT3CodeImportPhaseSchema,
+  message: Schema.String,
+});
+export type DesktopT3CodeImportProgress = typeof DesktopT3CodeImportProgressSchema.Type;
+
+/** `Imported` means the app is relaunching onto the imported data. */
+export const DesktopT3CodeImportRunResultSchema = Schema.Union([
+  Schema.TaggedStruct("Imported", { projects: Schema.Number, threads: Schema.Number }),
+  Schema.TaggedStruct("Busy", {}),
+  Schema.TaggedStruct("Failed", { error: Schema.String, message: Schema.String }),
+]);
+export type DesktopT3CodeImportRunResult = typeof DesktopT3CodeImportRunResultSchema.Type;
+
 export type DesktopPreviewNavStatus =
   | { kind: "Idle" }
   | { kind: "Loading"; url: string; title: string }
@@ -1168,6 +1228,12 @@ export interface DesktopBridge {
   setWslBackendEnabled: (enabled: boolean) => Promise<DesktopWslState>;
   setWslDistro: (distro: string | null) => Promise<DesktopWslState>;
   setWslOnly: (enabled: boolean) => Promise<DesktopWslState>;
+  t3CodeImport: {
+    probe: () => Promise<DesktopT3CodeImportProbeResult>;
+    /** Stops the local backend while it runs; on success the app relaunches. */
+    run: () => Promise<DesktopT3CodeImportRunResult>;
+    onProgress: (listener: (progress: DesktopT3CodeImportProgress) => void) => () => void;
+  };
   pickFolder: (options?: PickFolderOptions) => Promise<string | null>;
   /** Maps a Windows path to the one a local backend (`primary` or `wsl:…`) sees; null when it cannot. */
   toLocalBackendPath: (backendId: string, windowsPath: string) => Promise<string | null>;

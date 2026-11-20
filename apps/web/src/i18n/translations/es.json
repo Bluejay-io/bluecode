@@ -5960,6 +5960,24 @@
   "9a50b20569f2c9e7": "No se pudieron cargar tus ajustes guardados.",
   "0d22cd9e3b9d94f0": "T3 Code no pudo confirmar este espacio de trabajo.",
   "573a9e6b17f4e9e3": "Recargar",
+  "60d817971062f842": "Revisando tus datos de T3 Code…",
+  "7903934c42944cdf": "Copiando la base de datos de T3 Code…",
+  "a17b313e6aea7567": "Actualizando la copia para BlueCode…",
+  "f4305168cee44909": "Deteniendo el trabajo en ejecución en la copia…",
+  "220c44b3c1fff23d": "Copiando ajustes, secretos y adjuntos…",
+  "ad66bb096a893a71": "Colocando la importación en su sitio…",
+  "f070ba24dcb63dcf": "Este T3 Code es más reciente que BlueCode. Actualiza BlueCode para importar desde él.",
+  "37e6707a2dccf725": "Estos datos de T3 Code no se pueden importar.",
+  "1bfc1eb0ccdb8b1c": "Deteniendo el servidor de BlueCode…",
+  "63a01cd3f1296f5e": "Reiniciando BlueCode…",
+  "6f568598011f16b1": "{projects, plural, one {{projects} proyecto} other {{projects} proyectos}}, {threads, plural, one {{threads} hilo} other {{threads} hilos}}",
+  "fd8f75f97a5c0e6d": "Importando…",
+  "382dcc85d648b2df": "Importar",
+  "4795cb6232da239c": "BlueCode ya tiene proyectos o hilos, así que no se importó nada. Para importar sobre ellos, cierra BlueCode y ejecuta `t3 import-t3-code --replace`.",
+  "9f71dfc7cb9dd88c": "La importación no terminó.",
+  "516d7b82d1b587a9": "Importar desde T3 Code",
+  "09344d4ac05e76a1": "BlueCode se reinicia con tus proyectos, hilos, ajustes y adjuntos. Los dispositivos emparejados, las conexiones remotas guardadas y la sesión de T3 Connect se quedan en T3 Code. Las tareas programadas llegan en pausa y los mensajes en cola quedan retenidos.",
+  "dd4e2d1474d5caab": "T3 Code puede seguir abierto. Lo que esté en ejecución allí llega detenido.",
   "d6c31ff9bb97570e": "Se alcanzó el límite de escaneo. Puede que falten algunos proyectos o conversaciones.",
   "da6f86321113fb7b": "Esta conexión no puede importar proyectos ni historial de hilos.",
   "1cdf16e5edb6bd99": "este equipo",
@@ -5970,7 +5988,6 @@
   "b923ddc935ea2555": "No se pudo terminar la configuración",
   "152184c4aefef5d1": "No se pudieron guardar tus ajustes. Vuelve a intentarlo.",
   "23ec0110d2170502": "Te damos la bienvenida",
-  "fd8f75f97a5c0e6d": "Importando…",
   "cd609620fafff02b": "{count, plural, one {Importar {count} proyecto y empezar} other {Importar {count} proyectos y empezar}}",
   "99decfb4ea686b61": "Importar hilos y empezar",
   "88ddebac4d96eb62": "Empezar",
@@ -6010,7 +6027,7 @@
   "a0fd24f965eb070b": "No se pudo importar el historial de hilos.",
   "a506c135c2183ac3": "{count, plural, one {{count} carpeta} other {{count} carpetas}}",
   "efc48b9736a534bc": "ahora",
-  "edf393ff951b533a": "Te damos la bienvenida a T3 Code",
+  "d60731b4992335a7": "Te damos la bienvenida a BlueCode",
   "3cc77f9daa7eeafd": [
     "Configurando",
     " ",
@@ -6027,26 +6044,6 @@
   ],
   "216ab7514aea1d61": "Empezar sin agente",
   "501ce2d99da8bfd1": "Configura un agente para empezar.",
-  "71f3822326109c8e": [
-    "T3 Code recopila datos de uso anónimos para mejorar la app. Para desactivarlo, consulta la",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "política de privacidad"
-    },
-    "."
-  ],
-  "b33f35083757b42c": [
-    "Consulta la",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "política de privacidad"
-    },
-    "."
-  ],
   "f77d000c0710f066": "Activar",
   "4ed27bf946e504db": "Configurar",
   "7a26eaacff0607f7": [

@@ -5961,6 +5961,24 @@
   "9a50b20569f2c9e7": "Dina sparade inställningar kunde inte läsas in.",
   "0d22cd9e3b9d94f0": "T3 Code kunde inte bekräfta den här arbetsytan.",
   "573a9e6b17f4e9e3": "Läs in igen",
+  "60d817971062f842": "Kontrollerar din T3 Code-data…",
+  "7903934c42944cdf": "Kopierar T3 Code-databasen…",
+  "a17b313e6aea7567": "Uppdaterar kopian för BlueCode…",
+  "f4305168cee44909": "Stoppar arbete som pågick i kopian…",
+  "220c44b3c1fff23d": "Kopierar inställningar, hemligheter och bilagor…",
+  "ad66bb096a893a71": "Flyttar importen på plats…",
+  "f070ba24dcb63dcf": "Den här T3 Code är nyare än BlueCode. Uppdatera BlueCode för att importera från den.",
+  "37e6707a2dccf725": "Den här T3 Code-datan kan inte importeras.",
+  "1bfc1eb0ccdb8b1c": "Stoppar BlueCodes server…",
+  "63a01cd3f1296f5e": "Startar om BlueCode…",
+  "6f568598011f16b1": "{projects, plural, one {{projects} projekt} other {{projects} projekt}}, {threads, plural, one {{threads} tråd} other {{threads} trådar}}",
+  "fd8f75f97a5c0e6d": "Importerar…",
+  "382dcc85d648b2df": "Importera",
+  "4795cb6232da239c": "BlueCode har redan projekt eller trådar, så inget importerades. Avsluta BlueCode och kör `t3 import-t3-code --replace` för att importera ovanpå dem.",
+  "9f71dfc7cb9dd88c": "Importen slutfördes inte.",
+  "516d7b82d1b587a9": "Importera från T3 Code",
+  "09344d4ac05e76a1": "BlueCode startar om med dina projekt, trådar, inställningar och bilagor. Parkopplade enheter, sparade fjärranslutningar och inloggningen i T3 Connect stannar i T3 Code. Schemalagda uppgifter kommer pausade, och köade meddelanden hålls kvar.",
+  "dd4e2d1474d5caab": "T3 Code kan vara öppet. Arbete som körs där kommer fram stoppat.",
   "d6c31ff9bb97570e": "Sökgränsen nåddes. Vissa projekt eller konversationer kan saknas.",
   "da6f86321113fb7b": "Den här anslutningen kan inte importera projekt eller trådhistorik.",
   "1cdf16e5edb6bd99": "den här datorn",
@@ -5971,7 +5989,6 @@
   "b923ddc935ea2555": "Kunde inte slutföra konfigurationen",
   "152184c4aefef5d1": "Dina inställningar kunde inte sparas. Försök igen.",
   "23ec0110d2170502": "Välkommen",
-  "fd8f75f97a5c0e6d": "Importerar…",
   "cd609620fafff02b": "{count, plural, one {Importera {count} projekt och starta} other {Importera {count} projekt och starta}}",
   "99decfb4ea686b61": "Importera trådar och starta",
   "88ddebac4d96eb62": "Starta",
@@ -6011,7 +6028,7 @@
   "a0fd24f965eb070b": "Kunde inte importera trådhistorik.",
   "a506c135c2183ac3": "{count, plural, one {{count} mapp} other {{count} mappar}}",
   "efc48b9736a534bc": "nu",
-  "edf393ff951b533a": "Välkommen till T3 Code",
+  "d60731b4992335a7": "Välkommen till BlueCode",
   "3cc77f9daa7eeafd": [
     "Konfigurerar",
     " ",
@@ -6028,26 +6045,6 @@
   ],
   "216ab7514aea1d61": "Starta utan agent",
   "501ce2d99da8bfd1": "Konfigurera en agent för att starta.",
-  "71f3822326109c8e": [
-    "T3 Code samlar in anonym användningsdata för att förbättra appen. Se",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "integritetspolicyn"
-    },
-    " för att välja bort det."
-  ],
-  "b33f35083757b42c": [
-    "Se",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "integritetspolicyn"
-    },
-    "."
-  ],
   "f77d000c0710f066": "Aktivera",
   "4ed27bf946e504db": "Konfigurera",
   "7a26eaacff0607f7": [

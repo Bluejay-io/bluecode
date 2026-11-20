@@ -5962,6 +5962,24 @@
   "9a50b20569f2c9e7": "Your saved settings could not be loaded.",
   "0d22cd9e3b9d94f0": "T3 Code could not confirm this workspace.",
   "573a9e6b17f4e9e3": "Reload",
+  "60d817971062f842": "Checking your T3 Code data…",
+  "7903934c42944cdf": "Copying the T3 Code database…",
+  "a17b313e6aea7567": "Updating the copy for BlueCode…",
+  "f4305168cee44909": "Stopping work that was running in the copy…",
+  "220c44b3c1fff23d": "Copying settings, secrets and attachments…",
+  "ad66bb096a893a71": "Moving the import into place…",
+  "f070ba24dcb63dcf": "This T3 Code is newer than BlueCode. Update BlueCode to import from it.",
+  "37e6707a2dccf725": "This T3 Code data cannot be imported.",
+  "1bfc1eb0ccdb8b1c": "Stopping BlueCode's server…",
+  "63a01cd3f1296f5e": "Restarting BlueCode…",
+  "6f568598011f16b1": "{projects, plural, one {{projects} project} other {{projects} projects}}, {threads, plural, one {{threads} thread} other {{threads} threads}}",
+  "fd8f75f97a5c0e6d": "Importing…",
+  "382dcc85d648b2df": "Import",
+  "4795cb6232da239c": "BlueCode already has projects or threads, so nothing was imported. To import over them, quit BlueCode and run `t3 import-t3-code --replace`.",
+  "9f71dfc7cb9dd88c": "The import did not finish.",
+  "516d7b82d1b587a9": "Import from T3 Code",
+  "09344d4ac05e76a1": "BlueCode restarts with your projects, threads, settings and attachments. Paired devices, saved remote connections and the T3 Connect sign-in stay in T3 Code. Scheduled tasks arrive paused, and queued messages are held.",
+  "dd4e2d1474d5caab": "T3 Code can stay open. Work running there arrives stopped.",
   "d6c31ff9bb97570e": "Scan limit reached. Some projects or conversations may be missing.",
   "da6f86321113fb7b": "This connection cannot import projects or thread history.",
   "1cdf16e5edb6bd99": "this computer",
@@ -5972,7 +5990,6 @@
   "b923ddc935ea2555": "Could not finish setup",
   "152184c4aefef5d1": "Your settings could not be saved. Try again.",
   "23ec0110d2170502": "Welcome",
-  "fd8f75f97a5c0e6d": "Importing…",
   "cd609620fafff02b": "{count, plural, one {Import {count} project and start} other {Import {count} projects and start}}",
   "99decfb4ea686b61": "Import threads and start",
   "88ddebac4d96eb62": "Start",
@@ -6012,7 +6029,7 @@
   "a0fd24f965eb070b": "Could not import thread history.",
   "a506c135c2183ac3": "{count, plural, one {{count} folder} other {{count} folders}}",
   "efc48b9736a534bc": "now",
-  "edf393ff951b533a": "Welcome to T3 Code",
+  "d60731b4992335a7": "Welcome to BlueCode",
   "3cc77f9daa7eeafd": [
     "Setting up",
     " ",
@@ -6029,26 +6046,6 @@
   ],
   "216ab7514aea1d61": "Start without an agent",
   "501ce2d99da8bfd1": "Set up one agent to start.",
-  "71f3822326109c8e": [
-    "T3 Code collects anonymous usage data to improve the app. To opt out, see the",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "privacy policy"
-    },
-    "."
-  ],
-  "b33f35083757b42c": [
-    "See the",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "privacy policy"
-    },
-    "."
-  ],
   "f77d000c0710f066": "Turn on",
   "4ed27bf946e504db": "Set up",
   "7a26eaacff0607f7": [

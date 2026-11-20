@@ -47,7 +47,6 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { usePersistEnvironmentProviderInstanceMutation } from "../../hooks/useSettings";
 import { useCloudLinkState } from "../../cloud/cloudLinkState";
 import { hasCloudPublicConfig } from "../../cloud/publicConfig";
-import { PRIVACY_POLICY_URL } from "../../legalLinks";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { retryClerkLoad, useClerkLoadFailed } from "../clerk/clerkLoadFailure";
 import { useT3ConnectAuthPrompt } from "../clerk/useT3ConnectAuthPrompt";
@@ -85,7 +84,7 @@ import { newProjectId, randomUUID } from "../../lib/utils";
 import { agentSessionImport } from "../../state/agentSessions";
 import { readProjects, useProjects, waitForProject } from "../../state/entities";
 import { useEnvironments, usePrimaryEnvironmentId } from "../../state/environments";
-import { managedTelemetryOffMessage, useManagedPolicy } from "../../state/managedPolicy";
+import { useManagedPolicy } from "../../state/managedPolicy";
 import { useProjectScans } from "../../onboarding/useProjectScans";
 import { projectEnvironment } from "../../state/projects";
 import { serverEnvironment } from "../../state/server";
@@ -116,6 +115,8 @@ import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { cn } from "../../lib/utils";
 import { formatRelativeTime } from "../../timestampFormat";
+import { T3CodeImportSection, useT3CodeImport } from "./T3CodeImportSection";
+import { RowIcon, WelcomeSection } from "./welcomeLayout";
 
 const AGENT_ONBOARDING_THREAD_ID = ThreadId.make("onboarding-agent-setup");
 const SCAN_LIMIT_MESSAGE = msg(
@@ -179,6 +180,7 @@ export function WelcomePage({
     // Electron cancels a quit silently when unload is blocked. A later visit resumes the import.
     enableBeforeUnload: false,
   });
+  const t3CodeImport = useT3CodeImport({ enabled: isPrimary, holdPageRef });
   const finishingPromiseRef = useRef<Promise<boolean> | null>(null);
   // Starting before the project list loads keeps saved picks, such as an import a quit cut short.
   const keepChoicesRef = useRef(false);
@@ -280,7 +282,7 @@ export function WelcomePage({
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-gutter-both">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-6 pt-12 pb-8 sm:pt-20">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              <T>Welcome to T3 Code</T>
+              <T>Welcome to BlueCode</T>
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               <T>
@@ -292,6 +294,7 @@ export function WelcomePage({
               </T>
             </p>
             <div className="mt-10 border-t border-border/60">
+              <T3CodeImportSection t3CodeImport={t3CodeImport} />
               <AgentsSection
                 environmentId={environmentId}
                 label={label}
@@ -301,7 +304,7 @@ export function WelcomePage({
               <ProjectsSection
                 scan={scans[0]}
                 projectImport={projectImport}
-                isImporting={isImporting}
+                isImporting={isImporting || t3CodeImport.busy}
               />
               {showPhone ? <PhoneSection environmentId={environmentId} /> : null}
             </div>
@@ -309,7 +312,11 @@ export function WelcomePage({
               {agentReady ? (
                 <span />
               ) : (
-                <Button variant="ghost-muted" disabled={isImporting} onClick={start}>
+                <Button
+                  variant="ghost-muted"
+                  disabled={isImporting || t3CodeImport.busy}
+                  onClick={start}
+                >
                   <T>Start without an agent</T>
                 </Button>
               )}
@@ -319,7 +326,7 @@ export function WelcomePage({
                     <T>Set up one agent to start.</T>
                   </span>
                 )}
-                <Button disabled={!agentReady || isImporting} onClick={start}>
+                <Button disabled={!agentReady || isImporting || t3CodeImport.busy} onClick={start}>
                   {isImporting
                     ? selected.length > 0
                       ? gt("Importing…")
@@ -335,75 +342,10 @@ export function WelcomePage({
                 </Button>
               </div>
             </div>
-            <TelemetryNotice environmentId={environmentId} />
           </div>
         </div>
       </div>
     </SidebarInset>
-  );
-}
-
-function TelemetryNotice({ environmentId }: { readonly environmentId: EnvironmentId }) {
-  const messages = useMessages();
-  const telemetryOff = managedTelemetryOffMessage(useManagedPolicy(environmentId), messages);
-  return (
-    <p className="mt-auto pt-12 text-2xs leading-relaxed text-muted-foreground/70">
-      {telemetryOff === undefined ? (
-        <T>
-          T3 Code collects anonymous usage data to improve the app. To opt out, see the{" "}
-          <a
-            className="underline decoration-current/40 underline-offset-2 hover:text-muted-foreground"
-            href={PRIVACY_POLICY_URL}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            privacy policy
-          </a>
-          .
-        </T>
-      ) : (
-        <>
-          {telemetryOff}{" "}
-          <T>
-            See the{" "}
-            <a
-              className="underline decoration-current/40 underline-offset-2 hover:text-muted-foreground"
-              href={PRIVACY_POLICY_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              privacy policy
-            </a>
-            .
-          </T>
-        </>
-      )}
-    </p>
-  );
-}
-
-// Each part of the page is one band: its label on the left, its rows on the right.
-function WelcomeSection({
-  title,
-  children,
-}: {
-  readonly title: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <section className="grid gap-x-10 border-b border-border/60 py-4 sm:grid-cols-[6rem_minmax(0,1fr)]">
-      <h2 className="text-sm leading-10 text-muted-foreground">{title}</h2>
-      <div className="min-w-0">{children}</div>
-    </section>
-  );
-}
-
-// Rows share one icon column, so names, checkboxes, and steps line up down the page.
-function RowIcon({ children }: { readonly children: ReactNode }) {
-  return (
-    <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
-      {children}
-    </span>
   );
 }
 

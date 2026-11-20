@@ -40,6 +40,7 @@ import * as DesktopAppIdentity from "./app/DesktopAppIdentity.ts";
 import * as DesktopConnectionCatalogStore from "./app/DesktopConnectionCatalogStore.ts";
 import * as DesktopClerk from "./app/DesktopClerk.ts";
 import * as DesktopCliCommand from "./app/DesktopCliCommand.ts";
+import * as DesktopT3CodeImport from "./backend/DesktopT3CodeImport.ts";
 import * as DesktopApplicationMenu from "./window/DesktopApplicationMenu.ts";
 import * as DesktopAssets from "./app/DesktopAssets.ts";
 import * as DesktopPrimaryPaste from "./app/DesktopPrimaryPaste.ts";
@@ -215,6 +216,8 @@ const layerDesktopApplication = Layer.mergeAll(
   DesktopApplicationMenu.layer,
   DesktopLinuxUrlHandler.layer,
   DesktopCliCommand.layer,
+  // Lifecycle is a sibling above, so the import gets its own copy of that stateless layer.
+  DesktopT3CodeImport.layer.pipe(Layer.provide(DesktopLifecycle.layer)),
 ).pipe(
   Layer.provideMerge(layerDesktopSnapShot),
   Layer.provideMerge(

@@ -81,6 +81,7 @@ import {
   takeLegacyLocalStorage,
 } from "./methods/legacyLocalStorage.ts";
 import { getWslState, setWslBackendEnabled, setWslDistro, setWslOnly } from "./methods/wsl.ts";
+import { probeT3CodeImport, runT3CodeImport } from "./methods/t3CodeImport.ts";
 import {
   getCliCommandState,
   installCliCommand,
@@ -148,6 +149,9 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(setWslBackendEnabled);
   yield* ipc.handle(setWslDistro);
   yield* ipc.handle(setWslOnly);
+
+  yield* ipc.handle(probeT3CodeImport);
+  yield* ipc.handle(runT3CodeImport);
 
   yield* ipc.handle(pickFolder);
   yield* ipc.handle(toLocalBackendPath);

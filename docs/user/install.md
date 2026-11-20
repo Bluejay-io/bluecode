@@ -58,7 +58,10 @@ the nightly train, run your installed `t3` (for example `t3 connect`), not
 ### Import from T3 Code
 
 BlueCode keeps its data apart from T3 Code, so the two can run side by side.
-To start from your T3 Code projects and threads, quit BlueCode and run:
+When the desktop app first opens and finds T3 Code data on this computer, its
+Welcome page offers **Import from T3 Code** and restarts on the imported data.
+To import later, or on a server, quit BlueCode and run the
+[`t3` command](#the-t3-command) the desktop app installs:
 
 ```bash
 t3 import-t3-code

@@ -55,6 +55,7 @@ import * as DesktopWslBackend from "../wsl/DesktopWslBackend.ts";
 import * as BrowserImport from "../preview/BrowserImport/BrowserImport.ts";
 import * as DesktopBackendConfiguration from "../backend/DesktopBackendConfiguration.ts";
 import * as DesktopCliCommand from "./DesktopCliCommand.ts";
+import * as DesktopT3CodeImport from "../backend/DesktopT3CodeImport.ts";
 import * as DesktopCliShim from "./DesktopCliShim.ts";
 import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
 import * as DesktopConnectionCatalogStore from "./DesktopConnectionCatalogStore.ts";
@@ -225,6 +226,7 @@ const runStubbedDesktop = (stub: StubbedDesktop) =>
           Layer.succeed(DesktopPrimaryPaste.DesktopPrimaryPaste, { enabled: true }),
           Layer.mock(DesktopSshEnvironment.DesktopSshEnvironment, {}),
           Layer.mock(DesktopSshPasswordPrompts.DesktopSshPasswordPrompts, {}),
+          Layer.mock(DesktopT3CodeImport.DesktopT3CodeImport, {}),
           Layer.mock(DesktopTelemetryPublisher.DesktopTelemetryPublisher, {}),
           Layer.mock(DesktopWebLinks.DesktopWebLinks, {}),
           Layer.mock(DesktopWslEnvironment.DesktopWslEnvironment, {}),

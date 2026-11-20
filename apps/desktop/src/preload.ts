@@ -240,6 +240,20 @@ contextBridge.exposeInMainWorld("desktopBridge", {
     ipcRenderer.invoke(IpcChannels.SET_WSL_BACKEND_ENABLED_CHANNEL, enabled),
   setWslDistro: (distro) => ipcRenderer.invoke(IpcChannels.SET_WSL_DISTRO_CHANNEL, distro),
   setWslOnly: (enabled) => ipcRenderer.invoke(IpcChannels.SET_WSL_ONLY_CHANNEL, enabled),
+  t3CodeImport: {
+    probe: () => ipcRenderer.invoke(IpcChannels.T3_CODE_IMPORT_PROBE_CHANNEL),
+    run: () => ipcRenderer.invoke(IpcChannels.T3_CODE_IMPORT_RUN_CHANNEL),
+    onProgress: (listener) => {
+      const wrappedListener = (_event: Electron.IpcRendererEvent, progress: unknown) => {
+        if (typeof progress !== "object" || progress === null) return;
+        listener(progress as Parameters<typeof listener>[0]);
+      };
+      ipcRenderer.on(IpcChannels.T3_CODE_IMPORT_PROGRESS_CHANNEL, wrappedListener);
+      return () => {
+        ipcRenderer.removeListener(IpcChannels.T3_CODE_IMPORT_PROGRESS_CHANNEL, wrappedListener);
+      };
+    },
+  },
   pickFolder: (options) => ipcRenderer.invoke(IpcChannels.PICK_FOLDER_CHANNEL, options),
   toLocalBackendPath: (backendId, path) =>
     ipcRenderer.invoke(IpcChannels.TO_LOCAL_BACKEND_PATH_CHANNEL, { backendId, path }),
