@@ -4136,7 +4136,7 @@ export default function ChatView(props: ChatViewProps) {
                 />
 
                 <ThreadDetailsPanel
-                  anchor={threadDetailsAnchorRef}
+                  anchor={tabbedFullscreen ? threadDetailsAnchorRef : threadPanelPopoverAnchorRef}
                   handle={threadPanelPopoverHandle}
                   forceNewWorktree={multipleModelSelections !== null}
                   environmentId={activeThread.environmentId}
