@@ -63,7 +63,7 @@ import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
-const DESKTOP_APP_ID = "com.t3tools.t3code";
+const DESKTOP_APP_ID = "io.bluejay.bluecode";
 const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/u;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
@@ -1401,6 +1401,29 @@ ${associatedDomains}
   </dict>
 </plist>
 `;
+}
+
+/**
+ * BlueCode: signs macOS with our own certificate. Without an Apple team the hardened runtime
+ * would refuse to load the app's own frameworks, and there is nothing to notarize with.
+ */
+function withMacSignIdentity(
+  buildConfig: Record<string, unknown>,
+  identity: string | undefined,
+): Record<string, unknown> {
+  if (!identity || typeof buildConfig.mac !== "object" || buildConfig.mac === null) {
+    return buildConfig;
+  }
+  return {
+    ...buildConfig,
+    mac: {
+      ...buildConfig.mac,
+      identity,
+      hardenedRuntime: false,
+      notarize: false,
+      gatekeeperAssess: false,
+    },
+  };
 }
 
 export function resolveFffNativeDependencies(
@@ -2765,10 +2788,9 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
   return `${trimmed.slice(0, versionSeparator)}/${trimmed.slice(versionSeparator + 1)}`;
 }
 
-export function resolveDesktopProductName(version: string): string {
-  return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "T3 Code (Nightly)"
-    : (desktopPackageJson.productName ?? "T3 Code");
+// BlueCode: one stable product name; it names the .app bundle and its Application Support folder.
+export function resolveDesktopProductName(_version: string): string {
+  return "BlueCode";
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2791,7 +2813,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     afterPack: (yield* Path.Path).join(yield* RepoRoot, "scripts/prepare-server-compile-cache.cjs"),
     appId: DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "T3-Code-${version}-${arch}.${ext}",
+    artifactName: "BlueCode-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2844,19 +2866,19 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
         // macOS 26 offers Messages/Mail codes in every text field unless opted out.
         NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
         NSLocalNetworkUsageDescription:
-          "T3 Code connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
+          "BlueCode connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
         NSCalendarsUsageDescription:
-          "Commands you run in T3 Code may need access to your calendars.",
+          "Commands you run in BlueCode may need access to your calendars.",
         NSCalendarsFullAccessUsageDescription:
-          "Commands you run in T3 Code may need to read and write your calendar events.",
+          "Commands you run in BlueCode may need to read and write your calendar events.",
         NSCalendarsWriteOnlyAccessUsageDescription:
-          "Commands you run in T3 Code may need to add events to your calendars.",
+          "Commands you run in BlueCode may need to add events to your calendars.",
         NSScreenCaptureUsageDescription:
-          "T3 Code captures the active window when you use the window capture shortcut.",
+          "BlueCode captures the active window when you use the window capture shortcut.",
         NSCameraUsageDescription:
-          "T3 Code lets commands run by terminals and coding agents use the camera.",
+          "BlueCode lets commands run by terminals and coding agents use the camera.",
         NSMicrophoneUsageDescription:
-          "T3 Code lets commands run by terminals and coding agents use the microphone.",
+          "BlueCode lets commands run by terminals and coding agents use the microphone.",
         // macOS lists an app under Default web browser only when it opens web
         // pages as documents as well as http and https links (see protocols).
         CFBundleDocumentTypes: [
@@ -2870,8 +2892,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "T3 Code",
-          schemes: ["t3code", "t3code-dev"],
+          name: "BlueCode",
+          schemes: ["bluecode", "bluecode-dev"],
         },
         {
           name: "Web site URL",
@@ -2916,21 +2938,21 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     buildConfig.afterPack = path.join(repoRoot, "scripts/linux-after-pack.ts");
     buildConfig.linux = {
       target: target === "AppImage" ? [target, "deb"] : [target],
-      executableName: "t3code",
+      executableName: "bluecode",
       icon: "icons",
       category: "Development",
       synopsis: "Desktop GUI for coding agents",
-      maintainer: "T3 Tools <hello@t3.codes>",
+      maintainer: "Bluejay",
       protocols: [
         {
-          name: "T3 Code",
-          schemes: ["t3code", "t3code-dev"],
+          name: "BlueCode",
+          schemes: ["bluecode", "bluecode-dev"],
         },
       ],
       desktop: {
         entry: {
           // Match Electron's WM_CLASS from setDesktopName so docks use this launcher.
-          StartupWMClass: "com.t3tools.T3Code",
+          StartupWMClass: "io.bluejay.BlueCode",
         },
       },
     };
@@ -2938,14 +2960,16 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     if (buildConfig.publish) {
       buildConfig.appImage = {
         artifactName:
-          updateChannel === "nightly" ? "T3-Code-Nightly-${arch}.${ext}" : "T3-Code-${arch}.${ext}",
+          updateChannel === "nightly"
+            ? "BlueCode-Nightly-${arch}.${ext}"
+            : "BlueCode-${arch}.${ext}",
       };
     }
     buildConfig.deb = {
       // FPM runs outside the staged app directory, so source paths must be absolute.
       fpm: [
-        `${path.join(repoRoot, "apps/desktop/resources/linux/com.t3tools.t3code.metainfo.xml")}=/usr/share/metainfo/com.t3tools.t3code.metainfo.xml`,
-        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/t3code/copyright`,
+        `${path.join(repoRoot, "apps/desktop/resources/linux/io.bluejay.bluecode.metainfo.xml")}=/usr/share/metainfo/io.bluejay.bluecode.metainfo.xml`,
+        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/bluecode/copyright`,
       ],
       // Debian 13 and Ubuntu 24.04 use 64-bit-time names; retain old-name fallbacks.
       depends: [
@@ -3863,6 +3887,12 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
           catch: MacPasskeySigningConfigurationResolutionError.fromCause,
         })
       : undefined;
+  // BlueCode: releases sign with the keychain identity the release workflow imports, not an
+  // Apple Developer ID (docs/operations/bluecode-release.md).
+  const macSignIdentity =
+    options.platform === "mac" && !options.signed
+      ? loadRepoEnv({ repoRoot }).BLUECODE_MAC_SIGN_IDENTITY?.trim() || undefined
+      : undefined;
   const macPasskeySigning = configuredMacPasskeySigning
     ? {
         ...configuredMacPasskeySigning,
@@ -3914,7 +3944,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
       ? path.join(stageAppDir, WINDOWS_SERVER_RESOURCE_SOURCE_DIR, WINDOWS_SERVER_ASAR_RESOURCE)
       : undefined;
   const stagePackageJson: StagePackageJson = {
-    name: "t3code",
+    name: "bluecode",
     version: appVersion,
     buildVersion: appVersion,
     t3codeCommitHash: commitHash,
@@ -3923,26 +3953,29 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     private: true,
     packageManager: rootPackageJson.packageManager,
     description:
-      "T3 Code is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
+      "BlueCode is an open-source desktop app for coding agents, built on T3 Code. Work with your existing agent subscriptions, review code changes, and run commands in your projects.",
     license: "MIT",
-    homepage: "https://t3.codes",
-    author: "T3 Tools",
+    homepage: "https://github.com/Bluejay-io/bluecode",
+    author: "Bluejay",
     main: "apps/desktop/dist-electron/boot.cjs",
-    build: yield* createBuildConfig(
-      options.platform,
-      options.target,
-      appVersion,
-      options.signed,
-      options.mockUpdates,
-      options.mockUpdateServerPort,
-      macPasskeySigning && macEntitlementsPath
-        ? {
-            entitlementsPath: macEntitlementsPath,
-            provisioningProfilePath: macPasskeySigning.provisioningProfilePath,
-          }
-        : undefined,
-      bundlesWslRuntime({ platform: options.platform, runtimeArchivePath: options.wslRuntime }),
-      options.arch,
+    build: withMacSignIdentity(
+      yield* createBuildConfig(
+        options.platform,
+        options.target,
+        appVersion,
+        options.signed,
+        options.mockUpdates,
+        options.mockUpdateServerPort,
+        macPasskeySigning && macEntitlementsPath
+          ? {
+              entitlementsPath: macEntitlementsPath,
+              provisioningProfilePath: macPasskeySigning.provisioningProfilePath,
+            }
+          : undefined,
+        bundlesWslRuntime({ platform: options.platform, runtimeArchivePath: options.wslRuntime }),
+        options.arch,
+      ),
+      macSignIdentity,
     ),
     dependencies: stageDependencies,
     devDependencies: {
@@ -4037,7 +4070,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     delete buildEnv.CSC_KEY_PASSWORD;
   }
   if (!options.signed) {
-    buildEnv.CSC_IDENTITY_AUTO_DISCOVERY = "false";
+    if (!macSignIdentity) buildEnv.CSC_IDENTITY_AUTO_DISCOVERY = "false";
     delete buildEnv.CSC_LINK;
     delete buildEnv.CSC_KEY_PASSWORD;
     delete buildEnv.APPLE_API_KEY;

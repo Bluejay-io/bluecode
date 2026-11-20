@@ -2,7 +2,8 @@
 import * as NodeFS from "node:fs";
 import * as NodeSqlite from "node:sqlite";
 
-import { migrationManifest } from "./Migrations.ts";
+import { migrationManifest, skippedV2Migrations } from "./Migrations.ts";
+import { reconciledV2PreviewHistory } from "./reconcileV2PreviewMigration.ts";
 
 export const BUILD_MIGRATION_HEAD = Math.max(...migrationManifest.map(([id]) => id));
 
@@ -46,4 +47,33 @@ export function databaseMigrationHead(databasePath: string): number | undefined 
   return recorded === null
     ? undefined
     : Math.max(BUILD_MIGRATION_HEAD, ...recorded.map(({ id }) => id));
+}
+
+export type DatabaseCompatibility =
+  | { readonly status: "compatible"; readonly head: number }
+  | { readonly status: "unreadable" }
+  | { readonly status: "newer"; readonly head: number; readonly unknown: ReadonlyArray<string> }
+  | {
+      readonly status: "divergent";
+      readonly head: number;
+      readonly skipped: ReadonlyArray<string>;
+    };
+
+/** Whether this build can run on the database, from its recorded history, read-only. `unknown`
+ * lists migrations a newer build wrote, oldest first. */
+export function databaseCompatibility(databasePath: string): DatabaseCompatibility {
+  const recorded = recordedMigrations(databasePath);
+  if (recorded === null) return { status: "unreadable" };
+  const head = Math.max(0, ...recorded.map(({ id }) => id));
+  const unknown = recorded
+    .filter(({ id }) => id > BUILD_MIGRATION_HEAD)
+    .map(({ id, name }) => `${id}_${name}`);
+  if (unknown.length > 0) return { status: "newer", head, unknown };
+  // Startup reconciles V2 preview ids before it checks the history, so check what it will see.
+  const reconciled = reconciledV2PreviewHistory(recorded);
+  const skipped =
+    reconciled === null ? ["an unexpected V2 preview history"] : skippedV2Migrations(reconciled);
+  return skipped.length > 0
+    ? { status: "divergent", head, skipped }
+    : { status: "compatible", head };
 }

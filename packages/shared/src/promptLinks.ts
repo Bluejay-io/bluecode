@@ -206,7 +206,8 @@ export function buildNewThreadLink(input: {
   return url.toString();
 }
 
-const APP_SCHEME = /^t3code(?:-[a-z]+)?:$/;
+// BlueCode: links on its own desktop scheme, and T3 Code links pasted or opened from the hosted app.
+const APP_SCHEME = /^(?:bluecode|t3code)(?:-[a-z]+)?:$/;
 const THREAD_PATH = /^\/([^/]+)\/([^/]+)\/?$/;
 
 export function promptLinkAppPath(

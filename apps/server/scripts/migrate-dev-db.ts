@@ -17,6 +17,12 @@ import { Command, Flag } from "effect/cli";
 
 import * as ProjectionStore from "../src/orchestration-v2/ProjectionStore.ts";
 import { rebuildMessageSearch } from "../src/orchestration-v2/messageSearchIndex.ts";
+import {
+  foreignKeyClosure,
+  LIVE_STATE_TABLES,
+  stopPullRequestWatches,
+  stopSettleScripts,
+} from "../src/persistence/copiedDatabaseScrub.ts";
 import { runMigrations } from "../src/persistence/Migrations.ts";
 import * as NodeSqliteClient from "@t3tools/shared/nodeSqliteClient";
 
@@ -202,16 +208,7 @@ const RECOVERY_KINDS: ReadonlyArray<ProjectionStore.ProjectionRecoveryKind> = [
   "delegated-completions",
 ];
 
-const CLEARED_TABLES: ReadonlyArray<string> = [
-  "scheduled_tasks",
-  "orchestration_v2_effect_outbox",
-  "orchestration_v2_thread_launch_workflows",
-  "orchestration_command_receipts",
-  "provider_session_runtime",
-  "auth_sessions",
-  "auth_pairing_links",
-  "peer_environment_links",
-];
+const CLEARED_TABLES: ReadonlyArray<string> = ["scheduled_tasks", ...LIVE_STATE_TABLES];
 
 const PROVIDER_SESSIONS_TABLE = "orchestration_v2_projection_provider_sessions";
 const FTS5_SHADOW_SUFFIXES = ["_data", "_idx", "_content", "_docsize", "_config"];
@@ -250,21 +247,7 @@ const copySourceSlice = Effect.fn("copyDevDbSourceSlice")(function* (sourcePath:
         );
       const tables = schema.filter((entry) => entry.type === "table" && !isShadowTable(entry.name));
       const filtered = tables.some((table) => table.name === "orchestration_v2_projection_threads");
-      // A row that points into a cleared table cannot be copied, so whatever references one is
-      // cleared with it, however far down the chain a newer migration added it.
-      const references = yield* sql<{ name: string; parent: string }>`
-        SELECT m.name, f."table" AS parent FROM src.sqlite_master m, pragma_foreign_key_list(m.name, 'src') f
-        WHERE m.type = 'table'`;
-      const cleared = new Set(CLEARED_TABLES);
-      for (let grew = true; grew;) {
-        grew = false;
-        for (const { name, parent } of references) {
-          if (cleared.has(parent) && !cleared.has(name)) {
-            cleared.add(name);
-            grew = true;
-          }
-        }
-      }
+      const cleared = yield* foreignKeyClosure(CLEARED_TABLES, "src");
 
       if (tables.some((table) => table.name === "projection_threads")) {
         // The V2 tables, application_event_version, and the partial index arrive in
@@ -417,21 +400,8 @@ const pruneSnapshot = Effect.fn("pruneDevDbSnapshot")(function* (input: RunMigra
             AND stream_id NOT IN (SELECT thread_id FROM kept_threads))
            OR (aggregate_kind = 'project'
             AND stream_id NOT IN (SELECT project_id FROM kept_projects))`;
-      yield* sql`UPDATE orchestration_v2_projection_threads
-        SET payload_json = json_set(payload_json, '$.pullRequests', json((
-          SELECT json_group_array(json_remove(link.value, '$.watch') ORDER BY link.key)
-          FROM json_each(payload_json, '$.pullRequests') AS link)))
-        WHERE EXISTS (
-          SELECT 1 FROM json_each(payload_json, '$.pullRequests') AS link
-          WHERE json_extract(link.value, '$.watch') IS NOT NULL)`;
-      // Copied threads keep their real worktree paths, where a settle script would run.
-      yield* sql`UPDATE projection_projects
-        SET scripts_json = (
-          SELECT json_group_array(json_remove(script.value, '$.runOnSettle') ORDER BY script.key)
-          FROM json_each(scripts_json) AS script)
-        WHERE EXISTS (
-          SELECT 1 FROM json_each(scripts_json) AS script
-          WHERE json_extract(script.value, '$.runOnSettle') IS NOT NULL)`;
+      yield* stopPullRequestWatches();
+      yield* stopSettleScripts();
       for (const table of CLEARED_TABLES) {
         yield* sql`DELETE FROM ${sql(table)}`;
       }

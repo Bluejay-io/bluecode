@@ -333,10 +333,13 @@ export const createDevRunnerEnv = Effect.fn("dev-runner.createDevRunnerEnv")(fun
   // The server stores an explicit home's state in userdata, which for ~/.t3 is the live
   // install. Left implicit, dev state goes to ~/.t3/dev.
   const isLiveHome = resolvedBaseDir === path.join(yield* HostProcess.HomeDirectory, ".t3");
+  // BlueCode: the desktop reads its home from BLUECODE_HOME, so it follows the same choice.
   if (configuredBaseDir !== undefined && !isLiveHome) {
     output.T3CODE_HOME = resolvedBaseDir;
+    output.BLUECODE_HOME = resolvedBaseDir;
   } else {
     delete output.T3CODE_HOME;
+    delete output.BLUECODE_HOME;
   }
 
   // Managed T3 service shells leak launcher variables that make dev servers fail version checks.

@@ -34,16 +34,6 @@ const syncFs = <A>(method: string, path: string, run: () => A) =>
 
 /** @public */
 export const make = FileSystem.makeNoop({
-  exists: (path) =>
-    syncFs("exists", path, () => {
-      NodeFS.accessSync(path);
-      return true;
-    }).pipe(
-      Effect.catchIf(
-        (error) => error.reason._tag === "NotFound",
-        () => Effect.succeed(false),
-      ),
-    ),
   readFileString: (path) => syncFs("readFileString", path, () => NodeFS.readFileSync(path, "utf8")),
   makeDirectory: (path, options) =>
     syncFs("makeDirectory", path, () => {

@@ -843,7 +843,8 @@ function PermissionsControl(props: {
                         "flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-sm px-2 text-muted-foreground outline-none transition-[flex-grow,background-color,color] duration-200 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none",
                         checked &&
                           cn(
-                            "grow-[2.6] bg-popover shadow-xs ring-1 ring-inset",
+                            // min-w-fit: on a phone the popover is too narrow to give the label its share.
+                            "min-w-fit grow-[2.6] bg-popover shadow-xs ring-1 ring-inset",
                             PERMISSION_TONE[option.mode],
                           ),
                       )}

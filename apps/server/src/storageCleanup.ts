@@ -45,6 +45,7 @@ import * as ServerConfig from "./config.ts";
 import * as GitManager from "./git/GitManager.ts";
 import * as GitWorkflowService from "./git/GitWorkflowService.ts";
 import * as ProjectStore from "./orchestration-v2/ProjectStore.ts";
+import { readT3ImportMarker } from "./persistence/t3ImportMarker.ts";
 import { scratchFolderRoot } from "./project/ManagedProjectFolders.ts";
 import * as Orchestrator from "./orchestration-v2/Orchestrator.ts";
 import * as ProjectionStore from "./orchestration-v2/ProjectionStore.ts";
@@ -1081,11 +1082,12 @@ const make = Effect.gen(function* () {
     let waiting = false;
     const kept: string[] = [];
     const roots: Array<string> = [];
-    // A git worktree's dev home is seeded from real data, so its threads and any
-    // copied settings can point at the developer's real worktrees.
-    const isWorktreeDevHome =
-      (yield* resolveWorktreeT3Home(config.baseDir)) === path.resolve(config.baseDir);
-    for (const directory of isWorktreeDevHome
+    // A git worktree's dev home is seeded from real data, and an imported home holds T3 Code's
+    // threads, so their threads and copied settings can point at worktrees another home owns.
+    const ownsOnlyItsWorktrees =
+      (yield* resolveWorktreeT3Home(config.baseDir)) === path.resolve(config.baseDir) ||
+      Option.isSome(yield* readT3ImportMarker(config.stateDir));
+    for (const directory of ownsOnlyItsWorktrees
       ? [config.worktreesDir]
       : managedWorktreesDirectories(
           serverSettings,
@@ -1709,6 +1711,10 @@ const make = Effect.gen(function* () {
 
   const reportRef = yield* SubscriptionRef.make<StorageCleanupReport | null>(null);
   const cleanCheckpointRefs = Effect.fn("StorageCleanup.cleanCheckpointRefs")(function* () {
+    // An imported thread's refs are also T3 Code's, under the same thread and scope ids.
+    const imported = yield* readT3ImportMarker(config.stateDir);
+    const importedAt = Option.isSome(imported) ? imported.value.importedAt : undefined;
+    if (importedAt === null) return;
     // Forks display their source history even after its thread is deleted. Keep
     // that ancestry, including deleted intermediate forks and archived children.
     const rows = yield* sql<{
@@ -1735,6 +1741,7 @@ const make = Effect.gen(function* () {
       LEFT JOIN orchestration_v2_projection_checkpoint_scopes s ON s.thread_id = t.thread_id
       WHERE t.deleted_at IS NOT NULL
         AND NOT EXISTS (SELECT 1 FROM retained_checkpoint_threads WHERE thread_id = t.thread_id)
+        ${importedAt === undefined ? sql`` : sql`AND julianday(t.created_at) > julianday(${importedAt})`}
         AND NOT EXISTS (
           SELECT 1 FROM orchestration_v2_effect_outbox e
           WHERE e.thread_id = t.thread_id AND e.status IN ('pending', 'running')

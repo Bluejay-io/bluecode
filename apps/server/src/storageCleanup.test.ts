@@ -672,6 +672,21 @@ const runCleanupTest = <A, E>(
   >,
 ) => effect.pipe(Effect.provide(cleanupTestLayer));
 
+const writeImportMarker = (stateDir: string, importedAt: string) =>
+  FileSystem.FileSystem.pipe(
+    Effect.flatMap((fs) =>
+      fs.writeFileString(
+        `${stateDir}/t3-import.json`,
+        JSON.stringify({
+          version: 1,
+          importedAt,
+          source: { baseDir: "/t3", databaseKind: "v2", migrationHead: 1, environmentId: null },
+          counts: { projects: 0, threads: 0, archivedThreads: 0, deletedThreads: 0 },
+        }),
+      ),
+    ),
+  );
+
 const legacyCheckpointRef = (threadId: string, turn: number) =>
   `refs/t3/checkpoints/${Base64Url.encode(threadId)}/turn/${turn}`;
 
@@ -822,6 +837,30 @@ describe("checkpoint ref cleanup", () => {
         yield* service.runNow;
         expect(yield* listRefs()).toEqual(retained.sort());
         yield* command(repo, ["show-ref", "--verify", "refs/heads/main"]);
+      }).pipe(Effect.provide(Sqlite.layerMemory)),
+    ),
+  );
+
+  it.live("keeps the refs of threads imported from T3 Code, which T3 Code still uses", () =>
+    runCleanupTest(
+      Effect.gen(function* () {
+        const { service, sql, fs, config, addThread, listRefs } = yield* checkpointCleanupFixture();
+        const imported = yield* addThread("imported", { deleted: true });
+        yield* addThread("local", { deleted: true });
+        const after = (days: number) => DateTime.formatIso(at(days * DAY_MS));
+        yield* sql`UPDATE orchestration_v2_projection_threads SET created_at = ${after(2)}
+          WHERE thread_id = 'local'`;
+        yield* writeImportMarker(config.stateDir, after(1));
+        yield* service.runNow;
+        expect(yield* listRefs()).toEqual(imported.toSorted());
+
+        // A marker that cannot be read keeps every ref.
+        yield* fs.writeFileString(`${config.stateDir}/t3-import.json`, "{");
+        const later = yield* addThread("later", { deleted: true });
+        yield* sql`UPDATE orchestration_v2_projection_threads SET created_at = ${after(3)}
+          WHERE thread_id = 'later'`;
+        yield* service.runNow;
+        expect(yield* listRefs()).toEqual([...imported, ...later].toSorted());
       }).pipe(Effect.provide(Sqlite.layerMemory)),
     ),
   );
@@ -3134,6 +3173,34 @@ describe("storage cleanup reports and local file policies", () => {
         );
       }),
     ),
+  );
+  it.effect.each([
+    { imported: false, outcome: "removed" },
+    { imported: true, outcome: "kept" },
+  ])(
+    "manages a settings worktree folder only when not imported, imported=$imported",
+    ({ imported, outcome }) =>
+      runCleanupTest(
+        Effect.gen(function* () {
+          yield* TestClock.setTime(NOW_MS);
+          const fixture = yield* cleanupFixture();
+          const { fs, command, config, repo } = fixture;
+          // T3 Code's worktree folder, named by settings an import copied over.
+          const t3Worktrees = yield* fs.realPath(
+            yield* fs.makeTempDirectoryScoped({ prefix: "cleanup-t3-worktrees-" }),
+          );
+          const t3Worktree = `${t3Worktrees}/shared`;
+          yield* command(repo, ["worktree", "add", "-b", "shared", t3Worktree]);
+          fixture.setSettings({ worktreesDirectory: t3Worktrees });
+          fixture.setThreads([shell({ branch: "shared", worktreePath: t3Worktree })]);
+          if (imported) yield* writeImportMarker(config.stateDir, DateTime.formatIso(at(0)));
+          const report = yield* fixture.service.runNow;
+          expect(report.entries.find((entry) => entry.path === t3Worktree)?.outcome ?? "kept").toBe(
+            outcome,
+          );
+          expect(yield* fs.exists(t3Worktree)).toBe(imported);
+        }),
+      ),
   );
   it.effect.each([
     [

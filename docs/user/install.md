@@ -36,6 +36,7 @@ one alone and stops. Set `T3CODE_CHANNEL=nightly` to install the nightly train, 
 | Keep it running in the background     | `t3 service install` ([details](./background-service.md))               |
 | Move to the newest release            | `t3 update`                                                             |
 | Reclaim database space                | `t3 doctor` ([details](./background-service.md#reclaim-database-space)) |
+| Bring over your T3 Code data          | `t3 import-t3-code` ([details](#import-from-t3-code))                   |
 | Remove it again                       | `t3 uninstall`                                                          |
 
 Run `t3 help` or `t3 --help` for the full reference. To start in a new working
@@ -53,6 +54,38 @@ it asks again at the next minor release, and `npx t3 install` installs it later.
 `npx t3` always runs the version npm picked, even when a `t3` is installed. On
 the nightly train, run your installed `t3` (for example `t3 connect`), not
 `npx t3`, which runs the latest stable release.
+
+### Import from T3 Code
+
+BlueCode keeps its data apart from T3 Code, so the two can run side by side.
+To start from your T3 Code projects and threads, quit BlueCode and run:
+
+```bash
+t3 import-t3-code
+```
+
+It reads `~/.t3` (pass `--from` for another folder) and leaves it unchanged, so
+T3 Code can stay open. It brings over every project and thread, including
+archived ones, with your settings, keybindings, themes, attachments and the
+provider, source control and text generation credentials saved in settings. If
+this BlueCode already has projects or threads, the import stops; add `--replace`
+to import anyway, which keeps the old database next to the new one as a backup.
+`t3 import-t3-code --probe` only reports what it would find.
+
+Some things stay behind or arrive paused:
+
+- Paired devices, saved remote connections and the T3 Connect sign-in belong to
+  T3 Code's identity. Pair and sign in again in BlueCode.
+- Scheduled tasks arrive turned off. Turn on the ones BlueCode should run.
+- Queued messages arrive held, turns that were running in T3 Code arrive
+  stopped, and threads waiting out a usage limit do not resume on their own.
+  Nothing starts until you send or resume it.
+
+Both apps then point at the same project folders, worktrees, checkpoints and
+agent sessions. Keep working on each thread in one app, and do not archive or
+delete the same thread in both: when T3 Code cleans up a thread deleted there,
+BlueCode's copy loses its worktree and checkpoints. BlueCode's automatic cleanup
+leaves T3 Code's worktrees and the imported threads' checkpoints alone.
 
 ### Intel Macs
 

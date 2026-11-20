@@ -6,7 +6,8 @@ const PAIRING_TOKEN_PARAM = "token";
 const HOSTED_PAIRING_HOST_PARAM = "host";
 const HOSTED_PAIRING_LABEL_PARAM = "label";
 const PAIRING_APP_LINK_PARAM = "pairingUrl";
-const APP_LINK_PROTOCOL = /^t3code(?:-[a-z]+)?:$/;
+// BlueCode: its own desktop scheme, plus the T3 Code mobile scheme that `buildPairingAppLink` emits.
+const APP_LINK_PROTOCOL = /^(?:bluecode|t3code)(?:-[a-z]+)?:$/;
 const SUPPORTED_REMOTE_BACKEND_PROTOCOLS = new Set(["http:", "https:", "ws:", "wss:"]);
 
 export const readHashParams = (url: URL): URLSearchParams =>

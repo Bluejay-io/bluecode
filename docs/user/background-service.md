@@ -39,7 +39,7 @@ installing one.
 
 `t3 uninstall` removes the background service, the `t3` launcher, and the
 downloaded versions after showing you the list and asking once. Your projects,
-threads, and settings under `~/.t3/userdata` are kept, along with `service.env`
+threads, and settings under `~/.bluecode/userdata` are kept, along with `service.env`
 under T3 home. Pass `--yes` from a script.
 
 ## Local network access
@@ -60,7 +60,7 @@ network. `t3 status` says so, and `t3 up --no-lan` turns it off. Any
 ## Configure the service environment
 
 Put custom environment variables in `service.env` under the service's T3 home
-directory, normally `~/.t3/service.env`. This file survives service installation
+directory, normally `~/.bluecode/service.env`. This file survives service installation
 and updates. For example:
 
 ```dotenv
@@ -79,7 +79,7 @@ For a service installed before env-file support, run `t3 service install` once
 with an up-to-date CLI.
 A missing file is ignored; other read failures stop service startup.
 If the file contains credentials, restrict access to that file with `chmod 600`
-(for the default T3 home, `chmod 600 ~/.t3/service.env`).
+(for the default T3 home, `chmod 600 ~/.bluecode/service.env`).
 
 ## Platform support
 
@@ -93,7 +93,7 @@ nobody is logged in at the Mac's screen can fail at the final start step; the
 service is still installed and will start at the next login.
 
 Windows starts the service when you log in and stops it when you sign out. It
-runs without a window as the `t3code-<domain>-<user name>` task in Task Scheduler, and Task
+runs without a window as the `bluecode-<domain>-<user name>` task in Task Scheduler, and Task
 Scheduler starts it again within a minute if it exits. Lock the screen instead
 of signing out, and keep the PC awake, for unattended remote access. Installing
 over SSH while nobody is signed in at the PC can fail at the final start step;
@@ -148,14 +148,14 @@ that session open.
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `linger-unavailable`                    | Run `loginctl show-user "$(id -un)" --property=Linger` and check that systemd-logind is available.                             |
 | `user-manager-unavailable`              | Run `systemctl --user status` in a login session for the service user; check your distribution's systemd user-session support. |
-| `service-disabled` or `service-stopped` | Read the log and, on Linux, `systemctl --user status t3code.service`, then use the repair command printed by T3 Code.          |
+| `service-disabled` or `service-stopped` | Read the log and, on Linux, `systemctl --user status bluecode.service`, then use the repair command printed by T3 Code.        |
 | `restart-pending`                       | A newer version is installed but the service still runs the previous one. Run `t3 service restart`.                            |
 
 On macOS, check **System Settings → General → Login Items** if the service no
 longer starts at login. If agent work cannot access Desktop, Documents, or
 Downloads, it may need Full Disk Access for the `t3` executable listed in
 `ProgramArguments` in
-`~/Library/LaunchAgents/com.t3tools.t3code.service.plist`.
+`~/Library/LaunchAgents/io.bluejay.bluecode.service.plist`.
 
 For failures after signing in to T3 Connect, see
 [connection troubleshooting](./t3-connect-troubleshooting.md).

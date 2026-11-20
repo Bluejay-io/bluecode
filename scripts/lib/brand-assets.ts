@@ -1,13 +1,14 @@
 export const BRAND_ASSET_PATHS = {
   developmentIconComposerProject: "assets/dev/app-icon.icon",
   developmentIosIconPng: "assets/dev/blueprint-ios-1024.png",
-  developmentUniversalIconPng: "assets/dev/blueprint-universal-1024.png",
+  // BlueCode: desktop icons come from assets/bluecode (generate-desktop-icons.py), not upstream's art.
+  developmentUniversalIconPng: "assets/bluecode/dev-universal-1024.png",
 
   productionIconComposerProject: "assets/prod/app-icon.icon",
   productionIosIconPng: "assets/prod/black-ios-1024.png",
-  productionMacIconPng: "assets/prod/black-macos-1024.png",
-  productionLinuxIconPng: "assets/prod/black-universal-1024.png",
-  productionWindowsIconIco: "assets/prod/t3-black-windows.ico",
+  productionMacIconPng: "assets/bluecode/macos-1024.png",
+  productionLinuxIconPng: "assets/bluecode/universal-1024.png",
+  productionWindowsIconIco: "assets/bluecode/windows.ico",
   productionWebFaviconIco: "assets/prod/t3-black-web-favicon.ico",
   productionWebFavicon16Png: "assets/prod/t3-black-web-favicon-16x16.png",
   productionWebFavicon32Png: "assets/prod/t3-black-web-favicon-32x32.png",
@@ -17,9 +18,9 @@ export const BRAND_ASSET_PATHS = {
 
   nightlyIconComposerProject: "assets/nightly/app-icon.icon",
   nightlyIosIconPng: "assets/nightly/nightly-ios-1024.png",
-  nightlyMacIconPng: "assets/nightly/nightly-macos-1024.png",
-  nightlyLinuxIconPng: "assets/nightly/nightly-universal-1024.png",
-  nightlyWindowsIconIco: "assets/nightly/nightly-windows.ico",
+  nightlyMacIconPng: "assets/bluecode/macos-1024.png",
+  nightlyLinuxIconPng: "assets/bluecode/universal-1024.png",
+  nightlyWindowsIconIco: "assets/bluecode/windows.ico",
   nightlyWebFaviconIco: "assets/nightly/nightly-web-favicon.ico",
   nightlyWebFavicon16Png: "assets/nightly/nightly-web-favicon-16x16.png",
   nightlyWebFavicon32Png: "assets/nightly/nightly-web-favicon-32x32.png",
@@ -27,8 +28,8 @@ export const BRAND_ASSET_PATHS = {
   nightlyWebIcon192Png: "assets/nightly/nightly-web-icon-192x192.png",
   nightlyWebIcon512Png: "assets/nightly/nightly-web-icon-512x512.png",
 
-  developmentDesktopIconPng: "assets/dev/blueprint-macos-1024.png",
-  developmentWindowsIconIco: "assets/dev/blueprint-windows.ico",
+  developmentDesktopIconPng: "assets/bluecode/dev-macos-1024.png",
+  developmentWindowsIconIco: "assets/bluecode/dev-windows.ico",
   developmentWebFaviconIco: "assets/dev/blueprint-web-favicon.ico",
   developmentWebFavicon16Png: "assets/dev/blueprint-web-favicon-16x16.png",
   developmentWebFavicon32Png: "assets/dev/blueprint-web-favicon-32x32.png",

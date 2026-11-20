@@ -7,7 +7,8 @@ import { channelSwitchLabel } from "./sidebar/updateEverything.logic";
 
 export type DesktopUpdateButtonAction = "download" | "install" | "none";
 
-const DEFAULT_DESKTOP_RELEASE_REPOSITORY = "pingdotgg/t3code";
+// BlueCode: release notes and downloads live in the BlueCode repository.
+const DEFAULT_DESKTOP_RELEASE_REPOSITORY = "Bluejay-io/bluecode";
 const GITHUB_REPOSITORY_SEGMENT = /^[A-Za-z0-9._-]+$/u;
 
 function isValidRepositorySegment(value: string | undefined): value is string {

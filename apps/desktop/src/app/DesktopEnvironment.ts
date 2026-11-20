@@ -1,6 +1,5 @@
 import type {
   DesktopAppBranding,
-  DesktopAppStageLabel,
   DesktopRuntimeArch,
   DesktopRuntimeInfo,
 } from "@t3tools/contracts";
@@ -15,7 +14,6 @@ import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
 import { resolveLinuxDesktopEntryName } from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopBaseDir, resolveDesktopStateDir } from "./DesktopStatePaths.ts";
-import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
 import type { OtlpProtocol } from "@t3tools/shared/observability";
 
 export interface MakeDesktopEnvironmentInput {
@@ -85,29 +83,16 @@ export class DesktopEnvironment extends Context.Service<
   }
 >()("@t3tools/desktop/app/DesktopEnvironment") {}
 
-const APP_BASE_NAME = "T3 Code";
+const APP_BASE_NAME = "BlueCode";
 
-function resolveDesktopAppStageLabel(input: {
-  readonly isDevelopment: boolean;
-  readonly appVersion: string;
-}): DesktopAppStageLabel {
-  if (input.isDevelopment) {
-    return "Dev";
-  }
-
-  return isNightlyDesktopVersion(input.appVersion) ? "Nightly" : "Beta";
-}
-
+// BlueCode: one stable channel. "Beta" is the contracts' label that shows no stage pill or
+// backdrop in the web client, and the packaged display name drops the suffix.
 export function resolveDesktopAppBranding(input: {
   readonly isDevelopment: boolean;
-  readonly appVersion: string;
 }): DesktopAppBranding {
-  const stageLabel = resolveDesktopAppStageLabel(input);
-  return {
-    baseName: APP_BASE_NAME,
-    stageLabel,
-    displayName: `${APP_BASE_NAME} (${stageLabel})`,
-  };
+  return input.isDevelopment
+    ? { baseName: APP_BASE_NAME, stageLabel: "Dev", displayName: `${APP_BASE_NAME} (Dev)` }
+    : { baseName: APP_BASE_NAME, stageLabel: "Beta", displayName: APP_BASE_NAME };
 }
 
 function normalizeDesktopArch(arch: string): DesktopRuntimeArch {
@@ -167,10 +152,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
     input.isPackaged && input.platform === "win32"
       ? path.join(input.resourcesPath, "server.asar")
       : appRoot;
-  const branding = resolveDesktopAppBranding({
-    isDevelopment,
-    appVersion: input.appVersion,
-  });
+  const branding = resolveDesktopAppBranding({ isDevelopment });
   const displayName = branding.displayName;
   const stateDir = resolveDesktopStateDir({
     baseDir,
@@ -228,7 +210,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
     branding,
     displayName,
     appUserModelId: Option.getOrElse(config.appUserModelIdOverride, () =>
-      isDevelopment ? "com.t3tools.t3code.dev" : "com.t3tools.t3code",
+      isDevelopment ? "io.bluejay.bluecode.dev" : "io.bluejay.bluecode",
     ),
     linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
     linuxApplicationsDir,

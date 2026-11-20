@@ -33,12 +33,34 @@ const { workerData } = require("node:worker_threads");
 const { DatabaseSync } = require("node:sqlite");
 const database = new DatabaseSync(workerData.sourcePath, { readOnly: true });
 try {
-  database.exec("PRAGMA auto_vacuum = INCREMENTAL");
+  // A read-only connection fails to set it on a database already in incremental mode, which
+  // VACUUM INTO then keeps anyway.
+  try { database.exec("PRAGMA auto_vacuum = INCREMENTAL"); } catch {}
   database.prepare("VACUUM INTO ?").run(workerData.snapshotPath);
 } finally {
   database.close();
 }
 `;
+
+/** A consistent, compacted copy of a database another process may be writing, made off the event loop. */
+export const snapshotDatabase = <E>(
+  sourcePath: string,
+  snapshotPath: string,
+  onError: (cause: unknown) => E,
+) =>
+  Effect.callback<void, E>((resume) => {
+    const fail = (cause: unknown) => resume(Effect.fail(onError(cause)));
+    const worker = new NodeWorkerThreads.Worker(snapshotWorkerSource, {
+      eval: true,
+      workerData: { sourcePath, snapshotPath },
+    });
+    worker.once("error", fail);
+    worker.once("exit", (code) =>
+      code === 0 ? resume(Effect.void) : fail(new Error(`Snapshot worker exited with ${code}`)),
+    );
+    // Interruption waits for the worker to exit before callers remove its directory.
+    return Effect.promise(() => worker.terminate());
+  });
 
 // Legacy names have no PID; newer copies stay while their process is alive.
 const removeAbandonedCopies = Effect.fn("removeAbandonedCopies")(function* (directory: string) {
@@ -74,20 +96,11 @@ export const initializeV2Database = Effect.fn("initializeV2Database")(function* 
       prefix: `.v2-import-${process.pid}-`,
     });
     const snapshotPath = path.join(temporaryDirectory, "snapshot.sqlite");
-    yield* Effect.callback<void, V2DatabaseImportError>((resume) => {
-      const fail = (cause: unknown) =>
-        resume(Effect.fail(new V2DatabaseImportError({ sourcePath, destinationPath, cause })));
-      const worker = new NodeWorkerThreads.Worker(snapshotWorkerSource, {
-        eval: true,
-        workerData: { sourcePath, snapshotPath },
-      });
-      worker.once("error", fail);
-      worker.once("exit", (code) =>
-        code === 0 ? resume(Effect.void) : fail(new Error(`Snapshot worker exited with ${code}`)),
-      );
-      // Interruption waits for the worker to exit before the scope removes its directory.
-      return Effect.promise(() => worker.terminate());
-    });
+    yield* snapshotDatabase(
+      sourcePath,
+      snapshotPath,
+      (cause) => new V2DatabaseImportError({ sourcePath, destinationPath, cause }),
+    );
     // Publish only a complete snapshot, without replacing an existing V2 database.
     yield* fs.link(snapshotPath, destinationPath).pipe(
       Effect.catchIf(

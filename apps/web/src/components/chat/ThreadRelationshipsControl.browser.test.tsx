@@ -57,7 +57,9 @@ vi.mock(import("../../state/use-atom-command"), () => ({
       : AsyncResult.failure(Cause.fail(new Error("Connection lost")))) as never,
 }));
 
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { render } from "../../../test/render";
+import { selectActiveRightPanelSurface, useRightPanelStore } from "../../rightPanelStore";
 import { makeThreadProjectionFixture } from "../../test-fixtures";
 import { ScrollArea } from "../ui/scroll-area";
 import { ToastProvider } from "../ui/toast";
@@ -164,7 +166,7 @@ it.each([
   }
 });
 
-it("opens an idle child from Lineage when its shell has not been loaded", async () => {
+it("opens an idle child from Lineage as a tab when its shell has not been loaded", async () => {
   setup();
   const projection = makeThreadProjectionFixture();
   const childId = ThreadId.make("omitted-child");
@@ -207,9 +209,13 @@ it("opens an idle child from Lineage when its shell has not been loaded", async 
   const child = screen.getByRole("button", { name: /Idle child/ });
   await expect.element(child).toBeEnabled();
   await child.click();
-  await vi.waitFor(() =>
-    expect(screen.router?.state.location.pathname).toBe("/local/omitted-child"),
-  );
+  // BlueCode: a subagent opens beside its parent's chat, not in place of it.
+  expect(
+    selectActiveRightPanelSurface(
+      useRightPanelStore.getState().byThreadKey,
+      scopeThreadRef(environmentId, projection.thread.id),
+    )?.id,
+  ).toBe("subagent:local:omitted-child");
 });
 
 it("shows a lineage thread's full title in its tooltip", async () => {

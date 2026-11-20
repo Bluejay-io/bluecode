@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.bluejay.bluecode</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>BlueCode</name>
+  <summary>Desktop GUI for coding agents</summary>
+  <developer id="io.bluejay">
+    <name>Bluejay</name>
+  </developer>
+  <description>
+    <p>
+      BlueCode is an open-source desktop app for coding agents, built on
+      T3 Code. Work with your existing agent subscriptions, review code
+      changes, and run commands in your projects.
+    </p>
+  </description>
+  <launchable type="desktop-id">bluecode.desktop</launchable>
+  <icon type="stock">bluecode</icon>
+  <provides>
+    <binary>bluecode</binary>
+  </provides>
+  <categories>
+    <category>Development</category>
+  </categories>
+  <url type="homepage">https://github.com/Bluejay-io/bluecode</url>
+  <url type="bugtracker">https://github.com/Bluejay-io/bluecode/issues</url>
+  <url type="vcs-browser">https://github.com/Bluejay-io/bluecode</url>
+</component>

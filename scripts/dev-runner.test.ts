@@ -505,7 +505,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
       Effect.gen(function* () {
         const env = yield* createDevRunnerEnv({
           mode: "dev",
-          baseEnv: { T3CODE_HOME: "/home/user/.t3" },
+          baseEnv: { T3CODE_HOME: "/home/user/.t3", BLUECODE_HOME: "/home/user/.bluecode" },
           serverOffset: 0,
           webOffset: 0,
           t3Home: undefined,
@@ -518,6 +518,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
         });
 
         assert.equal(env.T3CODE_HOME, undefined);
+        assert.equal(env.BLUECODE_HOME, undefined);
       }),
     );
 
@@ -539,7 +540,10 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
             devUrl: undefined,
           }).pipe(
             Effect.provideService(HostProcess.HomeDirectory, "/home/dev"),
-            Effect.map((env) => env.T3CODE_HOME),
+            Effect.map((env) => {
+              assert.equal(env.BLUECODE_HOME, env.T3CODE_HOME);
+              return env.T3CODE_HOME;
+            }),
           );
 
         assert.equal(yield* homeFor("~/t3-dev"), path.join("/home/dev", "t3-dev"));

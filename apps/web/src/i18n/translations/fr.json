@@ -11690,8 +11690,6 @@
   "2c3bb8ccf6c38078": "Ignorer l’avis de mise à jour du fournisseur",
   "3cef7762c22f5fb1": "Ignorer jusqu’au prochain changement de statut du fournisseur",
   "0f90824868d6c3af": "Nouveau fil ({shortcut})",
-  "a1dbe20d209982b6": "Rechercher",
-  "201317aac48d4d9f": "Effacer la recherche de fils",
   "bcda2ccaa871dc46": "Nouveau fil dans le projet actuel : Shift+clic ({shortcut})",
   "aa5c379423baace1": "Nouveau fil dans le projet actuel : Shift+clic",
   "9d9d32b401d2931a": "{count, plural, one {{count} processus de terminal en cours} other {{count} processus de terminal en cours}}",

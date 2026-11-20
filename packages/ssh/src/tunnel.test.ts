@@ -227,7 +227,12 @@ describe("ssh tunnel scripts", () => {
       const fs = yield* FileSystem.FileSystem;
       const home = yield* fs.makeTempDirectoryScoped({ prefix: "t3-ssh-launch-log-" });
       const target = { alias: "devbox", hostname: "devbox", username: null, port: null };
-      const stateDir = NodePath.join(home, ".t3", "ssh-launch", yield* remoteStateKey(target));
+      const stateDir = NodePath.join(
+        home,
+        ".bluecode",
+        "ssh-launch",
+        yield* remoteStateKey(target),
+      );
       const bin = NodePath.join(home, "bin");
       yield* fs.makeDirectory(stateDir, { recursive: true });
       yield* fs.makeDirectory(bin);
@@ -330,7 +335,7 @@ describe("ssh tunnel scripts", () => {
           assert.include(result.stderr, "download attempt");
           // A bare curl error does not tell the user that t3 itself could not be downloaded.
           assert.include(result.stderr, ARCHIVE.archiveVersion);
-          assert.include(result.stderr, "https://github.com/pingdotgg/t3code/releases/download");
+          assert.include(result.stderr, "https://github.com/Bluejay-io/bluecode/releases/download");
         } else {
           assert.notInclude(result.stderr, "download attempt");
           assert.include(result.stderr, "has no t3 release archive.");
@@ -341,47 +346,37 @@ describe("ssh tunnel scripts", () => {
     },
   );
 
-  it.each([
-    { installed: ARCHIVE.archiveVersion, status: 0, reuses: true },
-    { installed: ARCHIVE.archiveVersion, status: 1, reuses: false },
-    { installed: "9.9.9", status: 0, reuses: false },
-  ])(
-    "reuses a host t3 only at exactly the requested version: installed $installed, status $status",
-    ({ installed, status, reuses }) => {
-      const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-ssh-runner-"));
-      try {
-        const bin = NodePath.join(root, "bin");
-        NodeFS.mkdirSync(bin);
-        NodeFS.mkdirSync(NodePath.join(root, "home"));
-        // A host the release archive cannot run on, so only reuse can succeed.
-        NodeFS.writeFileSync(
-          NodePath.join(bin, "uname"),
-          `#!/bin/sh\ncase "$1" in -s) echo Darwin ;; -m) echo x86_64 ;; esac\n`,
-          { mode: 0o755 },
-        );
-        NodeFS.writeFileSync(
-          NodePath.join(bin, "t3"),
-          `#!/bin/sh\ncase "$1" in --version) echo "t3 v${installed}"; exit ${status} ;; *) echo "host t3 $*" ;; esac\n`,
-          { mode: 0o755 },
-        );
-        const runner = NodePath.join(root, "run-t3.sh");
-        NodeFS.writeFileSync(runner, SshTunnel.buildRemoteT3RunnerScript(ARCHIVE));
-        const result = NodeChildProcess.spawnSync("sh", [runner, "serve"], {
-          encoding: "utf8",
-          env: { HOME: NodePath.join(root, "home"), PATH: `${bin}:${process.env.PATH ?? ""}` },
-        });
-        if (reuses) {
-          assert.equal(result.status, 0);
-          assert.equal(result.stdout, "host t3 serve\n");
-        } else {
-          assert.notEqual(result.status, 0);
-          assert.include(result.stderr, "has no t3 release archive.");
-        }
-      } finally {
-        NodeFS.rmSync(root, { recursive: true, force: true });
-      }
-    },
-  );
+  // An upstream T3 Code install on PATH reports the same `t3 v<version>`.
+  it("never runs a host t3, even one at exactly the requested version", () => {
+    const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-ssh-runner-"));
+    try {
+      const bin = NodePath.join(root, "bin");
+      NodeFS.mkdirSync(bin);
+      NodeFS.mkdirSync(NodePath.join(root, "home"));
+      // A host the release archive cannot run on, so only reuse can succeed.
+      NodeFS.writeFileSync(
+        NodePath.join(bin, "uname"),
+        `#!/bin/sh\ncase "$1" in -s) echo Darwin ;; -m) echo x86_64 ;; esac\n`,
+        { mode: 0o755 },
+      );
+      NodeFS.writeFileSync(
+        NodePath.join(bin, "t3"),
+        `#!/bin/sh\ncase "$1" in --version) echo "t3 v${ARCHIVE.archiveVersion}" ;; *) echo "host t3 $*" ;; esac\n`,
+        { mode: 0o755 },
+      );
+      const runner = NodePath.join(root, "run-t3.sh");
+      NodeFS.writeFileSync(runner, SshTunnel.buildRemoteT3RunnerScript(ARCHIVE));
+      const result = NodeChildProcess.spawnSync("sh", [runner, "serve"], {
+        encoding: "utf8",
+        env: { HOME: NodePath.join(root, "home"), PATH: `${bin}:${process.env.PATH ?? ""}` },
+      });
+      assert.notEqual(result.status, 0);
+      assert.notInclude(result.stdout, "host t3");
+      assert.include(result.stderr, "has no t3 release archive.");
+    } finally {
+      NodeFS.rmSync(root, { recursive: true, force: true });
+    }
+  });
 
   // sha256sum and shasum escape a newline in a file name they print, so the home path has one.
   const checksumTools =
@@ -1294,7 +1289,7 @@ describe("ssh tunnel scripts", () => {
 child.on("exit", (code) => process.exit(code ?? 1));`,
         );
         // A launch that died holding the lock must not block or double-admit later ones.
-        const launchLock = path.join(home, ".t3", "ssh-launch", ".launch.lock");
+        const launchLock = path.join(home, ".bluecode", "ssh-launch", ".launch.lock");
         yield* fs.makeDirectory(path.dirname(launchLock), { recursive: true });
         yield* fs.writeFileString(launchLock, "999999999\n");
         const targets = [
@@ -1312,7 +1307,7 @@ child.on("exit", (code) => process.exit(code ?? 1));`,
         ).pipe(Effect.provide(localRemoteShellLayer(home)));
 
         const ownerPid = Number(
-          yield* fs.readFileString(path.join(home, ".t3", "userdata", "server.lock")),
+          yield* fs.readFileString(path.join(home, ".bluecode", "userdata", "server.lock")),
         );
         assert.sameMembers(
           launches.map((launch) => launch.remoteServerKind),
@@ -1326,7 +1321,7 @@ child.on("exit", (code) => process.exit(code ?? 1));`,
           if (launch.remoteServerKind !== "managed") continue;
           const stateKey = yield* remoteStateKey(targets[index]!);
           const recordedPid = yield* fs.readFileString(
-            path.join(home, ".t3", "ssh-launch", stateKey, "pid"),
+            path.join(home, ".bluecode", "ssh-launch", stateKey, "pid"),
           );
           assert.equal(
             Number(recordedPid.trim()),
@@ -1421,7 +1416,7 @@ server.listen(Number(flag("--port") ?? 0), "127.0.0.1", () => {
         holderPort,
         sshAsLocalShell,
         staleId: staleId === "an unrelated process" ? holder.pid : tid,
-        stateDir: `${home}/.t3/ssh-launch/${yield* remoteStateKey(target)}`,
+        stateDir: `${home}/.bluecode/ssh-launch/${yield* remoteStateKey(target)}`,
       };
     });
 
@@ -1455,7 +1450,7 @@ server.listen(Number(flag("--port") ?? 0), "127.0.0.1", () => {
       // Reboot: our server is gone and its recorded PID now names something that
       // answers on the recorded port.
       process.kill(firstPid, "SIGKILL");
-      yield* fs.remove(`${home}/.t3/userdata/server-runtime.json`);
+      yield* fs.remove(`${home}/.bluecode/userdata/server-runtime.json`);
       yield* fs.writeFileString(`${stateDir}/pid`, `${staleId}\n`);
       yield* fs.writeFileString(`${stateDir}/port`, `${holderPort}\n`);
 
@@ -1490,7 +1485,7 @@ server.listen(Number(flag("--port") ?? 0), "127.0.0.1", () => {
           launcherId,
         ).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, sshAsLocalShell));
       const runtimePid = fs
-        .readFileString(`${home}/.t3/userdata/server-runtime.json`)
+        .readFileString(`${home}/.bluecode/userdata/server-runtime.json`)
         .pipe(Effect.map((runtime) => Number(JSON.parse(runtime).pid)));
       const launchedPids: Array<number> = [];
       yield* Effect.addFinalizer(() =>
@@ -1698,13 +1693,13 @@ const canBind = (port) =>
       const fs = yield* FileSystem.FileSystem;
       const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-archive-launch-" });
       const home = `${root}/home`;
-      const stateDir = `${home}/.t3/ssh-launch/test-state`;
+      const stateDir = `${home}/.bluecode/ssh-launch/test-state`;
       const fakeT3 = `${root}/fake-t3.cjs`;
       yield* fs.makeDirectory(stateDir, { recursive: true });
       yield* fs.writeFileString(`${stateDir}/port`, `${yield* freeLoopbackPort}\n`);
       yield* fs.writeFileString(fakeT3, FAKE_T3);
       for (const version of versions) {
-        const runtimeDir = `${home}/.t3/runtime/versions/${version}`;
+        const runtimeDir = `${home}/.bluecode/runtime/versions/${version}`;
         yield* fs.makeDirectory(runtimeDir, { recursive: true });
         yield* fs.writeFileString(
           `${runtimeDir}/t3`,
@@ -1717,7 +1712,7 @@ const canBind = (port) =>
         .readFileString(`${stateDir}/pid`)
         .pipe(Effect.map((pid) => Number(pid.trim())));
       const readServerVersion = fs
-        .readFileString(`${home}/.t3/userdata/server-runtime.json`)
+        .readFileString(`${home}/.bluecode/userdata/server-runtime.json`)
         .pipe(Effect.map((raw) => (JSON.parse(raw) as { serverVersion: string }).serverVersion));
       // Launched servers outlive the script, so stop each PID it recorded.
       const launchedPids = new Set<number>();
@@ -1763,27 +1758,29 @@ const canBind = (port) =>
       }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  // An NFS home can carry a ~/.t3 symlink whose target exists only on another host.
-  it.live.skipIf(windowsHost)("launches through a ~/.t3 symlink whose target is missing", () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-dangling-home-" });
-      const home = `${root}/home`;
-      const target = `${root}/shared/t3`;
-      yield* fs.makeDirectory(home, { recursive: true });
-      yield* fs.symlink(target, `${home}/.t3`);
-      const launch = `${root}/launch.sh`;
-      yield* fs.writeFileString(
-        launch,
-        SshTunnel.buildRemoteLaunchScript({
-          archiveVersion: "0.1.6",
-          releaseBaseUrl: "http://127.0.0.1:9",
-        }),
-      );
-      const result = yield* runScript(home, [launch, "test-state"]);
-      assert.notInclude(result.stderr, "File exists");
-      assert.isTrue(yield* fs.exists(`${target}/ssh-launch/test-state`), result.stderr);
-    }).pipe(Effect.provide(NodeServices.layer)),
+  // An NFS home can carry a ~/.bluecode symlink whose target exists only on another host.
+  it.live.skipIf(windowsHost)(
+    "launches through a ~/.bluecode symlink whose target is missing",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-dangling-home-" });
+        const home = `${root}/home`;
+        const target = `${root}/shared/t3`;
+        yield* fs.makeDirectory(home, { recursive: true });
+        yield* fs.symlink(target, `${home}/.bluecode`);
+        const launch = `${root}/launch.sh`;
+        yield* fs.writeFileString(
+          launch,
+          SshTunnel.buildRemoteLaunchScript({
+            archiveVersion: "0.1.6",
+            releaseBaseUrl: "http://127.0.0.1:9",
+          }),
+        );
+        const result = yield* runScript(home, [launch, "test-state"]);
+        assert.notInclude(result.stderr, "File exists");
+        assert.isTrue(yield* fs.exists(`${target}/ssh-launch/test-state`), result.stderr);
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.live.skipIf(windowsHost)("a newer client still replaces an older managed server", () =>
