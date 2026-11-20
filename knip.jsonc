@@ -40,6 +40,7 @@
         "sign-macos.ts",
         "prepare-server-compile-cache.cjs",
         "bluecode-mac-after-pack.cjs",
+        "bluecode-update-check.ts",
         "smoke-desktop-app.ts",
         "verify-windows-desktop-artifact.ts",
       ],
