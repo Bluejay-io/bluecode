@@ -62,7 +62,8 @@ module.exports = async ({ appOutDir, electronPlatformName, arch, packager }) => 
       runner,
       `require(${JSON.stringify(helper)}).generatePreparedServerCache(${JSON.stringify(resources)}).then(()=>process.exit(0),e=>{console.error(e);process.exit(1)})`,
     );
-    result = spawnSync(executable, [runner], { env, encoding: "utf8", timeout: 120000 });
+    // BlueCode: GitHub's Macs run the x64 build under Rosetta on 3 cores and overran upstream's 2 minutes.
+    result = spawnSync(executable, [runner], { env, encoding: "utf8", timeout: 360000 });
   } finally {
     fs.rmSync(state, { recursive: true, force: true });
   }
