@@ -1,0 +1,251 @@
+/* BlueCode's shape and finish, measured against Capy. Colors stay in the theme system
+   (index.css and themePalette.ts); rules here read its tokens, so every theme gets them. */
+
+:root {
+  --font-weight-semibold: 560;
+}
+
+/* Inter at 450 reads denser than 400 without looking bold. */
+body {
+  font-weight: 450;
+}
+
+/* Conversation text one step below the interface size, set tighter. Tool lines match it. */
+[data-work-log-line],
+.chat-markdown.text-sm {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* Inner corners stay smaller than the card's. ::after outlines inherit. */
+[data-slot="composer-shell"]::before,
+[data-slot="composer-host"],
+[data-slot="composer-host"]::before,
+[data-chat-composer-main-surface],
+[data-chat-composer-surface] {
+  border-radius: 0.5rem;
+}
+
+/* Composer, measured against Capy: 6px controls, 14px icons, small muted model and permissions
+   labels sitting left beside the attach button, and a square send button. */
+[data-chat-composer-footer] {
+  --control-radius: 0.375rem;
+}
+[data-chat-composer-footer] :is(button, [role="button"]) svg,
+[data-chat-composer-footer] [data-slot="popover-trigger"] > span span.size-4 {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+[data-chat-composer-footer-controls] {
+  justify-content: flex-start;
+}
+[data-chat-composer-footer] :is(.group\/model-trigger, [data-composer-shortcut="composer.mode"]) {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+[data-chat-composer-footer]
+  :is(.group\/model-trigger, [data-composer-shortcut="composer.mode"]):is(
+    :hover,
+    [data-popup-open]
+  ) {
+  color: var(--foreground);
+}
+[data-chat-composer-footer] button.rounded-full {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  scale: none;
+}
+[data-chat-composer-body] .leading-relaxed {
+  line-height: 1.5;
+}
+[data-chat-composer-body] .text-placeholder {
+  color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+}
+
+/* Model picker: 28px rows in 13px type with a quieter highlight. */
+[data-model-picker-content] [data-slot="combobox-item"] {
+  min-height: 1.75rem;
+  height: auto;
+  padding-block: 0;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+}
+[data-model-picker-content] [data-slot="combobox-item"] .text-sm,
+[data-model-picker-content] [data-slot="combobox-input"] {
+  font-size: 0.8125rem;
+}
+[data-model-picker-content] [data-slot="combobox-item"]:is([data-highlighted], :hover) {
+  background-color: color-mix(in oklab, var(--foreground) 5%, transparent);
+}
+[data-model-picker-content] .focus-within\:border-ring:focus-within {
+  border-color: color-mix(in oklab, var(--border) 70%, transparent);
+}
+
+/* Light appearance: menus and popovers get a hairline edge and a soft layered shadow. */
+:root:not(.dark) :is(.dropdown-glass, [data-model-picker-card]) {
+  border: 0.5px solid color-mix(in oklab, var(--foreground) 11%, transparent);
+  box-shadow:
+    0 6px 18px oklch(0% 0 0 / 3%),
+    0 3px 9px oklch(0% 0 0 / 4%),
+    0 1px 1px oklch(0% 0 0 / 5%);
+}
+
+/* The reasoning slider's fill carries a fading dot texture, as in Capy's. */
+[data-slider-texture] {
+  background-image: radial-gradient(circle, white 0.6px, transparent 0.75px);
+  background-size: 3px 3px;
+  mask-image: linear-gradient(to right, black, transparent);
+}
+
+/* Chrome at Capy's scale: 44px top bars, 14px icons in 28px controls, 12–13px labels. */
+:root {
+  --workspace-topbar-height: 44px;
+}
+:is([data-chat-header], [data-right-panel-topbar], [data-workspace-titlebar-controls])
+  :is(button, a)
+  > svg,
+[data-app-sidebar] :is(button, a, label, div) > svg.lucide {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+[data-chat-header] h2,
+[data-app-sidebar] input[type="search"],
+[data-right-panel-topbar] ~ * input[placeholder] {
+  font-size: 0.8125rem;
+}
+[data-app-sidebar] [data-thread-title],
+[data-app-sidebar] .font-medium.truncate.text-foreground {
+  letter-spacing: -0.02em;
+}
+
+/* Chat, measured against Capy: prompts at 14px over 13px replies, and links and file references
+   in the theme's link color. */
+.chat-markdown.user-message-markdown.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  letter-spacing: normal;
+}
+.chat-markdown {
+  --context-chip-mention: var(--update);
+}
+
+/* Messages fade out above the composer instead of showing behind and below it. ChatView sets
+   --chat-composer-clearance to the composer's height; the scrollbar lane stays opaque. */
+.messages-timeline-scroll {
+  --chat-bottom-fade: linear-gradient(
+    to top,
+    transparent var(--chat-composer-clearance, 0px),
+    black calc(var(--chat-composer-clearance, 0px) + 1rem)
+  );
+  -webkit-mask-image: var(--chat-bottom-fade), linear-gradient(black, black);
+  mask-image: var(--chat-bottom-fade), linear-gradient(black, black);
+  -webkit-mask-position: left, right;
+  mask-position: left, right;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size:
+    100% 100%,
+    var(--app-scrollbar-width) 100%;
+  mask-size:
+    100% 100%,
+    var(--app-scrollbar-width) 100%;
+}
+.messages-timeline-scroll.topbar-scroll-fade {
+  --chat-top-fade: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 30%) 24%,
+    rgb(0 0 0 / 82%) 62%,
+    black 100%
+  );
+  -webkit-mask-image: var(--chat-top-fade), var(--chat-bottom-fade), linear-gradient(black, black);
+  mask-image: var(--chat-top-fade), var(--chat-bottom-fade), linear-gradient(black, black);
+  -webkit-mask-position: top, bottom, right;
+  mask-position: top, bottom, right;
+  -webkit-mask-size:
+    100% calc(var(--workspace-titlebar-scroll-fade-height) + 1px),
+    100% calc(100% - var(--workspace-titlebar-scroll-fade-height)),
+    var(--app-scrollbar-width) 100%;
+  mask-size:
+    100% calc(var(--workspace-titlebar-scroll-fade-height) + 1px),
+    100% calc(100% - var(--workspace-titlebar-scroll-fade-height)),
+    var(--app-scrollbar-width) 100%;
+}
+
+/* Full width, the collapsed sidebar's toggle sits in the tab row; a rule sets it apart from the tabs.
+   Shown under the same conditions as COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS. */
+[data-right-panel-sidebar-separator] {
+  display: none;
+}
+[data-sidebar-state="collapsed"] [data-right-panel-sidebar-separator] {
+  display: block;
+}
+@media (width < 48rem) {
+  [data-sidebar-state="expanded"] [data-right-panel-sidebar-separator] {
+    display: block;
+  }
+}
+
+/* The main sidebar toggle, on the card layout. Its "sidebar" copy slides out with the sidebar; its
+   "card" copy appears in the card's corner and slides in with the card, so neither ever floats
+   over content sliding beneath it. Same duration and easing as the sidebar's own slide. */
+@media (width >= 48rem) {
+  [data-sidebar-toggle-slot="card"] {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    visibility: hidden;
+    translate: calc(var(--sidebar-width) + 0.5px) calc(0.5rem + 0.5px);
+  }
+  [data-sidebar-state="collapsed"] [data-sidebar-toggle-slot="card"] {
+    visibility: visible;
+    translate: calc(0.5rem + 0.5px) calc(0.5rem + 0.5px);
+  }
+  /* Capy's titlebar: the sidebar's own toggle sits at the sidebar's right end, before back and
+     forward on desktop. The fixed control row starts at the window controls' inset. */
+  [data-sidebar-toggle-slot="sidebar"] {
+    --bluecode-sidebar-toggle-x: calc(
+      var(--bluecode-live-sidebar-width, var(--sidebar-width)) - var(--workspace-controls-left) -
+        1px - 0.5rem - var(--workspace-titlebar-control-size) -
+        var(--bluecode-titlebar-history-width, 0px)
+    );
+    translate: var(--bluecode-sidebar-toggle-x) 0;
+  }
+  [data-sidebar-state="collapsed"] [data-sidebar-toggle-slot="sidebar"] {
+    visibility: hidden;
+    translate: calc(var(--bluecode-sidebar-toggle-x) - var(--sidebar-width)) 0;
+  }
+  [data-panel-animations="true"] [data-sidebar-toggle-slot] {
+    transition:
+      translate var(--panel-animation-duration) var(--ease-out),
+      visibility var(--panel-animation-duration);
+  }
+  /* Opening, the card's copy leaves at once: the tabs move under its corner straight away. */
+  [data-panel-animations="true"][data-sidebar-state="expanded"] [data-sidebar-toggle-slot="card"] {
+    transition: translate var(--panel-animation-duration) var(--ease-out);
+  }
+}
+
+/* The moon mark in the theme's accent, toned like the app icon: a pale lit side, the accent in
+   the middle, and a deep shadow side. */
+[data-bluecode-moon="accent"] {
+  --bluecode-moon-lit: color-mix(in srgb, var(--primary) 45%, white);
+  --bluecode-moon-mid: var(--primary);
+  --bluecode-moon-shadow: color-mix(in srgb, var(--primary) 60%, black);
+}
+:root.dark [data-bluecode-moon="accent"] {
+  --bluecode-moon-lit: color-mix(in srgb, var(--primary) 30%, white);
+  --bluecode-moon-mid: color-mix(in srgb, var(--primary) 82%, white);
+  --bluecode-moon-shadow: color-mix(in srgb, var(--primary) 60%, transparent);
+}
+/* In icon rows the moon takes the row's text color, in the same three steps. */
+[data-bluecode-moon="current"] {
+  --bluecode-moon-lit: currentColor;
+  --bluecode-moon-mid: color-mix(in srgb, currentColor 60%, transparent);
+  --bluecode-moon-shadow: color-mix(in srgb, currentColor 25%, transparent);
+}

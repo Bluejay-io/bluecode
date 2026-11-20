@@ -60,11 +60,7 @@ import {
   type TimelineWorkEntry,
 } from "./timelineRowContext";
 import { MESSAGE_HEADING_LEVEL, TimelineRowTimestamp } from "./TimelineRowParts";
-import {
-  failedToolIconClassName,
-  toolIconAcceptsTint,
-  ToolActivityIconView,
-} from "./TimelineToolActivityIcon";
+import { failedToolIconClassName, ToolActivityIconView } from "./TimelineToolActivityIcon";
 import {
   workToneIcon,
   workEntryRawCommand,
@@ -494,7 +490,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
     : showDestructiveRowStyle
       ? "font-medium text-destructive"
       : workLogEntryIsToolLike(workEntry)
-        ? "text-secondary-label"
+        ? "text-muted-foreground"
         : "text-foreground/80";
   const threadLabel = isReasoning ? null : threadReadLabel(previewText, workEntry, threadTarget, m);
   const accessiblePreview = [threadLabel?.text ?? previewText, answerPreview]
@@ -525,19 +521,23 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
       data-v2-item-type={workEntry.projectedItem?.item.type}
       data-v2-item-visibility={workEntry.projectedItem?.visibility}
       {...rowToggleProps}
+      // BlueCode: tool lines are plain text, as in Capy. Only warnings and severe failures keep
+      // their alert icon.
       icon={
-        <span
-          className={iconWrapperClass}
-          role={showFailedIndicator ? "img" : undefined}
-          aria-label={showFailedIndicator ? gt("Tool call failed") : undefined}
-        >
-          <ToolActivityIconView
-            icon={entryToolIcon}
-            fallbackName={entryIconName}
-            className="block size-4 shrink-0 stroke-2"
-            muted
-          />
-        </span>
+        showWarningIndicator || showDestructiveRowStyle ? (
+          <span
+            className={iconWrapperClass}
+            role={showFailedIndicator ? "img" : undefined}
+            aria-label={showFailedIndicator ? gt("Tool call failed") : undefined}
+          >
+            <ToolActivityIconView
+              icon={entryToolIcon}
+              fallbackName={entryIconName}
+              className="block size-4 shrink-0 stroke-2"
+              muted
+            />
+          </span>
+        ) : undefined
       }
       label={
         <div className="min-w-0 flex-1 overflow-hidden">
@@ -619,17 +619,19 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
               <T>Open subagent</T>
             </InlineButton>
           ) : null}
-          {showFailedIndicator &&
-          !showDestructiveRowStyle &&
-          !toolIconAcceptsTint(entryToolIcon) ? (
-            <XIcon aria-hidden className={cn("size-3 shrink-0", failedToolIconClassName)} />
+          {showFailedIndicator && !showDestructiveRowStyle ? (
+            <XIcon
+              role="img"
+              aria-label={gt("Tool call failed")}
+              className={cn("size-3 shrink-0", failedToolIconClassName)}
+            />
           ) : null}
           {canExpandProjectedItem ? (
             <span className="flex size-4 shrink-0 items-center justify-center" aria-hidden>
               <ChevronRightIcon
                 className={cn(
-                  "size-3 shrink-0 text-icon-muted opacity-70 transition-transform duration-200",
-                  expanded && "rotate-90",
+                  "size-3 shrink-0 text-icon-muted opacity-0 transition-[opacity,rotate] duration-200 group-hover/timeline-row:opacity-70 group-focus-visible/timeline-row:opacity-70",
+                  expanded && "rotate-90 opacity-70",
                 )}
               />
             </span>

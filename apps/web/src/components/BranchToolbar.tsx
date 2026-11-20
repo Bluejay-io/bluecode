@@ -111,6 +111,8 @@ interface BranchToolbarProps {
   onComposerFocusRequest?: () => void;
   /** Shown at the end of the composer strip, such as the new thread's permissions. */
   trailing?: ReactNode;
+  /** BlueCode: drawn above the new thread's composer, on the page itself. */
+  bare?: boolean;
   availableEnvironments?: readonly EnvironmentOption[];
   onEnvironmentChange?: (environmentId: EnvironmentId) => void;
 }
@@ -646,6 +648,7 @@ export const BranchToolbar = memo(function BranchToolbar({
   availableEnvironments,
   onEnvironmentChange,
   trailing,
+  bare = false,
 }: BranchToolbarProps) {
   const m = useMessages();
   const branchSelectorRef = useRef<BranchToolbarBranchSelectorHandle>(null);
@@ -768,6 +771,7 @@ export const BranchToolbar = memo(function BranchToolbar({
   return (
     <ComposerSurface.ContextStrip
       ref={attachStrip}
+      bare={bare}
       data-compact={labelsOverflow ? "" : undefined}
       className={cn("gap-1 text-xs font-normal text-foreground/70 dark:text-muted-foreground")}
     >

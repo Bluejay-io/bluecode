@@ -102,7 +102,6 @@ export function ComposerControlsBar(props: {
     promptUltrathink,
     onPromptEdit,
     compatibleRuntimeMode,
-    defaultRuntimeMode,
     compatibleRuntimeModeOptions,
     handleRuntimeModeChange,
     composerControlsCollapsed,
@@ -132,7 +131,8 @@ export function ComposerControlsBar(props: {
     modelPickerIconClassName,
     getModelDisabledReason,
   } = props;
-  const accessMatchesDefault = compatibleRuntimeMode === defaultRuntimeMode;
+  // BlueCode: Auto is the quiet mode, so only it hides the chip; every other mode stays named.
+  const accessMatchesDefault = compatibleRuntimeMode === "auto";
   const {
     accessDisplay,
     showModeBlock,
@@ -190,8 +190,8 @@ export function ComposerControlsBar(props: {
       workspaceCwd={props.workspaceCwd}
       compact={false}
       isComposerOwned
-      // The trigger grows away from this edge when its model or effort label changes.
-      popupAlign={composerControlsCollapsed ? "start" : "end"}
+      // BlueCode: the trigger sits at the footer's start, so the popup opens from that edge too.
+      popupAlign="start"
       disabled={providerCatalogPending || isSendBusy}
       multipleModelsEnabled={multipleModelsEnabled}
       multipleModelSelections={multipleModelSelections}

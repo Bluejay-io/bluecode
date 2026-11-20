@@ -35,7 +35,6 @@ function header(title: string) {
         activeProject={null}
         parentThreadLink={null}
         onOpenThread={() => {}}
-        rightPanelOpen={false}
         onNewThreadInProject={() => {}}
       />
       <div tabIndex={0}>Outside rename</div>
@@ -48,7 +47,7 @@ it.each(["blur", "Enter"] as const)(
   async (finish) => {
     persisted.title = "New thread";
     await using screen = await render(header(persisted.title));
-    await screen.getByRole("button", { name: "Thread actions for New thread" }).dblClick();
+    await screen.getByRole("heading", { name: "New thread" }).dblClick();
     const input = screen.getByRole("textbox", { name: "Thread title" });
     await expect.element(input).toHaveValue("New thread");
 
@@ -61,7 +60,7 @@ it.each(["blur", "Enter"] as const)(
     expect(persisted.title).toBe("Fix login redirect");
 
     await screen.rerender(header(persisted.title));
-    await screen.getByRole("button", { name: "Thread actions for Fix login redirect" }).dblClick();
+    await screen.getByRole("heading", { name: "Fix login redirect" }).dblClick();
     await screen.getByRole("textbox", { name: "Thread title" }).fill("My edited title");
     persisted.title = "Another concurrent title";
     await screen.rerender(header(persisted.title));
@@ -73,18 +72,19 @@ it.each(["blur", "Enter"] as const)(
   },
 );
 
-it("opens the thread menu on a desktop title click without waiting", async () => {
+// BlueCode: the title no longer opens the menu; the header's context menu and the top-right "…" do.
+it("opens the thread menu from the header's context menu", async () => {
   openMenu.mockClear();
   using _bridge = stubGlobal("desktopBridge", {});
   await using screen = await render(header("New thread"));
-  await screen.getByRole("button", { name: "Thread actions for New thread" }).click();
+  await screen.getByRole("heading", { name: "New thread" }).click({ button: "right" });
   expect(openMenu).toHaveBeenCalledOnce();
 });
 
 it("keeps the Escape that cancels a rename from also reaching window shortcuts", async () => {
   persisted.title = "New thread";
   await using screen = await render(header(persisted.title));
-  await screen.getByRole("button", { name: "Thread actions for New thread" }).dblClick();
+  await screen.getByRole("heading", { name: "New thread" }).dblClick();
   const input = screen.getByRole("textbox", { name: "Thread title" });
   await input.fill("Unsaved title");
 

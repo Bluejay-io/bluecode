@@ -98,7 +98,8 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
         ) : null}
         {row.showAssistantMeta ? (
           <AssistantMessageMeta
-            className="mt-1.5"
+            // BlueCode: with a mouse the hover-only actions sit in the gap under the message.
+            className="mt-1.5 pointer-fine:absolute pointer-fine:top-full pointer-fine:mt-1 pointer-fine:inset-x-1"
             projectedItem={row.projectedItem}
             message={row.message}
             showCopyButton={row.showAssistantCopyButton}
@@ -258,7 +259,7 @@ function AssistantMessageMeta({
       ) : null}
       {!message.streaming && (
         <Tooltip>
-          <TooltipTrigger render={<p className="text-muted-foreground text-xs tabular-nums" />}>
+          <TooltipTrigger render={<p className="text-secondary-label text-xs tabular-nums" />}>
             {formatDayAwareTimestamp(
               message.updatedAt,
               ctx.timestampFormat,

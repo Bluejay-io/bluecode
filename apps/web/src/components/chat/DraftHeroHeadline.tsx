@@ -3,8 +3,8 @@ import { composerDraftHasUserContent, useComposerDraftStore } from "~/composerDr
 import { resolveEnvironmentMachineKind, type ScopedProjectRef } from "@t3tools/contracts";
 import { scopedProjectKey, scopeProjectRef } from "@t3tools/client-runtime/environment";
 import { isScratchProject } from "@t3tools/client-runtime/state/projects";
-import { T, useGT, Var } from "gt-react";
-import { FolderPlusIcon } from "lucide-react";
+import { T, useGT } from "gt-react";
+import { FolderPlusIcon, MessageSquareDashedIcon } from "lucide-react";
 import { useAtomValue } from "@effect/atom-react";
 import { useRef, useState } from "react";
 
@@ -44,12 +44,13 @@ import {
   useComboboxFilter,
 } from "../ui/combobox";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { InlineButton } from "../ui/button";
+import { ComposerContextLabel } from "../ComposerContextLabel";
+import { ComposerControl } from "./ComposerControl";
 import { DraftProjectName } from "./DraftProjectName";
-import { DraftHeroProjectHeading } from "./DraftHeroProjectHeading";
 import { TriageDraftHero } from "./TriageDraftHero";
 
 const ADD_PROJECT_VALUE = "add-project";
+const NO_PROJECT_VALUE = "no-project";
 
 interface PickerItem {
   readonly value: string;
@@ -57,12 +58,15 @@ interface PickerItem {
 }
 
 interface DraftHeroHeadlineProps {
+  /** BlueCode: `control` is the project picker in the row above the composer; `headline` only shows the triage hero. */
+  readonly variant: "headline" | "control";
   readonly draftId: DraftId | null;
   readonly activeProjectRef: ScopedProjectRef | null;
   readonly activeProjectTitle: string | null;
 }
 
 export function DraftHeroHeadline({
+  variant,
   draftId,
   activeProjectRef,
   activeProjectTitle,
@@ -120,7 +124,6 @@ export function DraftHeroHeadline({
           ),
         ) ?? null);
   const activeProjectKey = activeProjectGroup?.projectKey ?? "";
-  const hasResolvedProject = activeProjectTitle !== null;
   const canChooseProject = projectPickerEntries.length > 0;
   const shouldShowProjectMenu = canChooseProject;
   const menuEntries = projectPickerEntries.filter(
@@ -142,9 +145,11 @@ export function DraftHeroHeadline({
     isScratchProject(activeProject, scratchWorkspaceRootFor(activeProject.environmentId));
 
   // Pinning from a row keeps rows in place while the picker is open.
+  const canStartWithoutProject = scratchWorkspaceRoot !== null && !isScratchDraft;
   const pickerItems: readonly PickerItem[] = useOrderWhileOpen(
     [
       ...menuEntries.map(({ group }) => ({ value: group.projectKey, label: group.displayName })),
+      ...(canStartWithoutProject ? [{ value: NO_PROJECT_VALUE, label: gt("No project") }] : []),
       { value: ADD_PROJECT_VALUE, label: gt("Add project") },
     ],
     (item) => item.value,
@@ -202,6 +207,7 @@ export function DraftHeroHeadline({
     return true;
   };
 
+  const noProjectShortcut = shortcutLabelForCommand(keybindings, "chat.newWithoutProject");
   const projectSelector = shouldShowProjectMenu ? (
     <Combobox
       items={pickerItems}
@@ -225,6 +231,14 @@ export function DraftHeroHeadline({
           openAddProject();
           return;
         }
+        if (item.value === NO_PROJECT_VALUE) {
+          void startScratch().then((started) => {
+            if (started) {
+              document.querySelector<HTMLElement>("[data-draft-project-trigger]")?.focus();
+            }
+          });
+          return;
+        }
         const entry = projectEntryByKey.get(item.value);
         if (!entry || item.value === activeProjectKey) {
           return;
@@ -236,24 +250,27 @@ export function DraftHeroHeadline({
         <TooltipTrigger
           render={
             <ComboboxTrigger
-              render={<InlineButton tone="picker" />}
+              render={<ComposerControl size="xs" />}
               data-draft-project-trigger=""
-              className="pointer-events-auto min-w-0 max-w-full align-baseline"
+              aria-label={gt("Project")}
+              className="pointer-events-auto min-w-0 max-w-full active:scale-100"
             />
           }
         >
-          <DraftProjectName
-            value={
-              isScratchDraft ? gt("No project") : (activeProjectTitle ?? gt("Choose a project"))
-            }
-            singleLine
-          />
+          {activeProjectGroup && !isScratchDraft ? (
+            <ProjectFavicon project={activeProjectGroup} className="size-3.5 shrink-0" />
+          ) : (
+            <MessageSquareDashedIcon className="size-3.5 shrink-0" />
+          )}
+          <ComposerContextLabel>
+            {isScratchDraft ? gt("No project") : (activeProjectTitle ?? gt("Choose a project"))}
+          </ComposerContextLabel>
         </TooltipTrigger>
         {activeProjectTitle && !isScratchDraft ? (
           <TooltipPopup side="top">{activeProjectTitle}</TooltipPopup>
         ) : null}
       </Tooltip>
-      <ComboboxPopup align="center" className="w-72 overflow-hidden">
+      <ComboboxPopup align="start" className="w-72 overflow-hidden">
         <ComboboxSearchInput
           aria-label={gt("Search projects")}
           placeholder={gt("Search projects...")}
@@ -280,6 +297,8 @@ export function DraftHeroHeadline({
               <ComboboxItem key={item.value} hideIndicator value={item}>
                 {item.value === ADD_PROJECT_VALUE ? (
                   <FolderPlusIcon className="size-4 shrink-0" />
+                ) : item.value === NO_PROJECT_VALUE ? (
+                  <MessageSquareDashedIcon className="size-4 shrink-0" />
                 ) : entry ? (
                   <ProjectFavicon project={entry.group} className="size-4 shrink-0" />
                 ) : null}
@@ -289,6 +308,11 @@ export function DraftHeroHeadline({
                   </TooltipTrigger>
                   <TooltipPopup side="top">{item.label}</TooltipPopup>
                 </Tooltip>
+                {item.value === NO_PROJECT_VALUE && noProjectShortcut ? (
+                  <span className="shrink-0 text-muted-foreground text-xs">
+                    {noProjectShortcut}
+                  </span>
+                ) : null}
                 {entry && canPinProjectGroup(entry.group) ? (
                   <ProjectPinButton
                     name={entry.group.displayName}
@@ -311,40 +335,15 @@ export function DraftHeroHeadline({
       </ComboboxPopup>
     </Combobox>
   ) : (
-    <button
-      type="button"
-      onClick={openAddProject}
-      className="pointer-events-auto inline min-w-0 max-w-full cursor-pointer border-muted-foreground/35 border-b border-dotted text-muted-foreground/60 transition-colors hover:border-muted-foreground/60 hover:text-muted-foreground/80 focus-visible:rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-    >
-      <DraftProjectName value={activeProjectTitle ?? gt("Add a project")} singleLine />
-    </button>
+    <ComposerControl size="xs" className="pointer-events-auto" onClick={openAddProject}>
+      <FolderPlusIcon className="size-3.5 shrink-0" />
+      <ComposerContextLabel>{gt("Add project")}</ComposerContextLabel>
+    </ComposerControl>
   );
 
-  const noProjectShortcut = shortcutLabelForCommand(keybindings, "chat.newWithoutProject");
-  const orStartWithoutProject =
-    scratchWorkspaceRoot !== null && !isScratchDraft && (hasResolvedProject || canChooseProject) ? (
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <InlineButton
-              tone="muted"
-              className="pointer-events-auto"
-              onClick={() =>
-                void startScratch().then((started) => {
-                  if (started) {
-                    document.querySelector<HTMLElement>("[data-draft-project-trigger]")?.focus();
-                  }
-                })
-              }
-            />
-          }
-        >
-          <T>or start without a project</T>
-        </TooltipTrigger>
-        {noProjectShortcut ? <TooltipPopup side="bottom">{noProjectShortcut}</TooltipPopup> : null}
-      </Tooltip>
-    ) : null;
-
+  if (variant === "control") {
+    return projectSelector;
+  }
   if (isScratchDraft && isTriageDraftPrompt) {
     const environment = environments.find(
       (entry) => entry.environmentId === activeProject.environmentId,
@@ -356,31 +355,5 @@ export function DraftHeroHeadline({
       />
     );
   }
-
-  return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
-      {hasResolvedProject && !isScratchDraft ? (
-        <DraftHeroProjectHeading projectName={activeProjectTitle ?? gt("Choose a project")}>
-          {projectSelector}
-        </DraftHeroProjectHeading>
-      ) : (
-        <h1 className="w-full text-center font-normal text-2xl text-foreground tracking-tight sm:text-3xl">
-          {isScratchDraft ? (
-            <T>What should we work on?</T>
-          ) : canChooseProject ? (
-            <T>
-              <Var>{projectSelector}</Var> to start
-            </T>
-          ) : (
-            <T>Add a project to start</T>
-          )}
-        </h1>
-      )}
-      {scratchWorkspaceRoot === null ? null : (
-        <p className="mt-2 flex h-6 w-full items-center justify-center text-sm">
-          {isScratchDraft ? projectSelector : orStartWithoutProject}
-        </p>
-      )}
-    </div>
-  );
+  return null;
 }

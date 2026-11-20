@@ -1,10 +1,7 @@
 import { useGT } from "gt-react";
 import { MoonIcon, SunIcon } from "lucide-react";
 import type { CSSProperties } from "react";
-import {
-  STANDARD_THEME_PREVIEW_COLORS as SHARED_STANDARD_THEME_PREVIEW_COLORS,
-  THEME_PREVIEW_RENDER_SPECS,
-} from "@t3tools/shared/themePreview";
+import { THEME_PREVIEW_RENDER_SPECS } from "@t3tools/shared/themePreview";
 import { cn } from "../../lib/utils";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
@@ -41,18 +38,23 @@ const STANDARD_THEME_PREVIEW_COLORS: Record<
   Readonly<Record<ThemePreviewRole, string>>
 > = {
   light: {
-    sidebar: "#fafafa",
+    sidebar: "#f2f2f4",
     surface: "#ffffff",
-    accentSurface: "#f4f4f5",
-    messageSurface: "#e4e4e7",
-    ...SHARED_STANDARD_THEME_PREVIEW_COLORS.light,
+    accentSurface: "#f0f0f1",
+    messageSurface: "#ededee",
+    // BlueCode's standard palette is Capy's default; mobile keeps the shared preview.
+    canvas: "#fafafb",
+    accent: "#f0f0f1",
+    messageAction: "#3b5de8",
   },
   dark: {
-    sidebar: "#0f0f10",
-    surface: "#121212",
-    accentSurface: "#27272a",
-    messageSurface: "#27272a",
-    ...SHARED_STANDARD_THEME_PREVIEW_COLORS.dark,
+    sidebar: "#09090a",
+    surface: "#1a1a1b",
+    accentSurface: "#1e1e1f",
+    messageSurface: "#252526",
+    canvas: "#121213",
+    accent: "#1e1e1f",
+    messageAction: "#456af6",
   },
 };
 

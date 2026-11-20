@@ -27,6 +27,8 @@ import {
 import { resolveSidebarState, type ResponsiveSidebarState } from "./sidebarState";
 import * as Schema from "effect/Schema";
 import { announceSidebarVisibility } from "~/lib/accessibilityAnnouncements";
+import { useSidebarPeek } from "~/bluecode/sidebarPeek";
+import { BLUECODE_CARD_CLASS, BLUECODE_CARD_FRAME_CLASS } from "~/bluecode/cardLayout";
 
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "calc(100vw - var(--spacing) * 3)";
@@ -235,6 +237,7 @@ function SidebarProvider({
         className={cn(
           "group/sidebar-wrapper flex min-h-svh w-full",
           SIDEBAR_TITLEBAR_CONTROL_SIZE,
+          BLUECODE_CARD_FRAME_CLASS,
           className,
         )}
         data-sidebar-state={state}
@@ -302,6 +305,7 @@ function Sidebar({
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const panelAnimationsActive = panelAnimationDurationMs > 0 && !prefersReducedMotion;
   const offcanvasCollapsed = !isMobile && collapsible === "offcanvas" && state === "collapsed";
+  const peek = useSidebarPeek(offcanvasCollapsed && side === "left");
 
   const resolvedResizable = resolveSidebarResizable({ collapsible, isMobile, resizable });
   const instanceContextValue: SidebarInstanceContextProps = { side, resizable: resolvedResizable };
@@ -376,11 +380,19 @@ function Sidebar({
 
   return (
     <SidebarInstanceContext value={instanceContextValue}>
+      {offcanvasCollapsed && side === "left" ? (
+        <div
+          aria-hidden
+          className="fixed inset-y-0 left-0 z-10 hidden w-1.5 [-webkit-app-region:no-drag] md:block"
+          data-slot="sidebar-peek-edge"
+          {...peek.edgeProps}
+        />
+      ) : null}
       <div
         className="group peer hidden text-sidebar-foreground md:block"
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-collapsible-mode={collapsible}
-        inert={offcanvasCollapsed}
+        inert={offcanvasCollapsed && !peek.peeking}
         data-side={side}
         data-slot="sidebar"
         data-state={state}
@@ -407,11 +419,14 @@ function Sidebar({
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-              : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+              : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=right]:border-l",
+            peek.peeking && "z-40 shadow-[4px_0_24px_-4px_rgb(0_0_0/0.18)]",
             className,
           )}
           data-slot="sidebar-container"
           {...props}
+          {...peek.panelProps}
+          style={peek.peeking ? { ...props.style, left: 0 } : props.style}
         >
           <div
             className="flex h-full w-full flex-col bg-sidebar surface-grain group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm/5"
@@ -496,13 +511,17 @@ function SidebarRail({
       sidebarRoot.querySelector<HTMLElement>("[data-slot='sidebar-gap']"),
       sidebarContainer,
     ].filter((element): element is HTMLElement => element !== null);
+    // BlueCode: the sidebar's toggle rides its right edge, so it follows the drag through one
+    // variable on itself rather than the inherited width.
+    const toggleSlot = wrapper.querySelector<HTMLElement>("[data-sidebar-toggle-slot='sidebar']");
     const setTargetWidth = (value: number) => {
       widthTargets.forEach((element) => {
         element.style.setProperty("width", `${value}px`);
       });
+      toggleSlot?.style.setProperty("--bluecode-live-sidebar-width", `${value}px`);
     };
-    widthTargets.forEach((element) => {
-      element.style.setProperty("transition-duration", "0ms");
+    [...widthTargets, toggleSlot].forEach((element) => {
+      element?.style.setProperty("transition-duration", "0ms");
     });
     setTargetWidth(width);
 
@@ -543,6 +562,8 @@ function SidebarRail({
           element.style.removeProperty("width");
           element.style.removeProperty("transition-duration");
         });
+        toggleSlot?.style.removeProperty("--bluecode-live-sidebar-width");
+        toggleSlot?.style.removeProperty("transition-duration");
       },
     };
   });
@@ -584,13 +605,13 @@ function SidebarRail({
             aria-label={railLabel}
             className={cn(
               /* A collapsed offcanvas rail overlaps the native scrollbar on Windows and Linux. */
-              "-translate-x-1/2 group-data-[side=left]:-right-4 absolute inset-y-0 z-20 hidden w-4 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=right]:left-0 sm:flex [[data-collapsible=offcanvas][data-state=collapsed]_&]:pointer-events-none",
+              "-translate-x-1/2 group-data-[side=left]:-right-4 absolute inset-y-0 z-20 hidden w-4 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] group-data-[side=right]:left-0 sm:flex [[data-collapsible=offcanvas][data-state=collapsed]_&]:pointer-events-none",
               "[[data-panel-animations=true]_&]:transition-all [[data-panel-animations=true]_&]:[transition-duration:var(--panel-animation-duration)] [[data-panel-animations=true]_&]:ease-out",
               "touch-none",
               canResize
                 ? "cursor-col-resize"
                 : "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize [[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-              "group-data-[collapsible=offcanvas]:translate-x-0 hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:after:left-full",
+              "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
               "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
               "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
               className,
@@ -648,6 +669,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
     <main
       className={cn(
         "relative flex min-w-0 w-full flex-1 flex-col bg-background surface-grain",
+        BLUECODE_CARD_CLASS,
         "md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ms-2 md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm/5",
         className,
       )}

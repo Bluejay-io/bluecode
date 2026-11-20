@@ -207,7 +207,8 @@ export const EnvironmentIdentificationMode = Schema.Literals([
   "none",
 ]);
 export type EnvironmentIdentificationMode = typeof EnvironmentIdentificationMode.Type;
-export const DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE: EnvironmentIdentificationMode = "artwork";
+// BlueCode: a small channel tag next to the logo instead of the sidebar artwork.
+export const DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE: EnvironmentIdentificationMode = "pill";
 
 export const SnapShotKeyChord = KeybindingShortcut.check(
   Schema.makeFilter(

@@ -7,8 +7,8 @@ import { Atom } from "effect/reactivity";
 import { msg } from "gt-react";
 import "culori/css";
 import { converter, parse } from "culori/fn";
+import { CAPY_THEME_SPECS, capyThemeColors } from "./bluecode/capyThemes";
 import {
-  BUILT_IN_THEMES,
   EMBER_THEME,
   GROVE_THEME,
   IRIS_THEME,
@@ -178,7 +178,7 @@ function parseStoredThemeVariants(
 
 function parseStoredTheme(value: unknown): ThemeDefinition | null {
   if (!isRecord(value)) return null;
-  if (!isThemeId(value.id) || RESERVED_THEME_IDS.has(value.id)) return null;
+  if (!isThemeId(value.id) || isReservedThemeId(value.id)) return null;
   if (!isThemeLabel(value.label) || !isThemeAppearance(value.appearance)) return null;
   const colors = parseStoredThemeColors(value.colors, value.appearance);
   if (!colors) return null;
@@ -369,8 +369,10 @@ function getEnvironmentThemes(): ReadonlyArray<ThemeDefinition> {
   return appAtomRegistry.get(environmentThemeDefinitionsAtom);
 }
 
+const CAPY_THEME_IDS: ReadonlySet<string> = new Set(CAPY_THEME_SPECS.map((spec) => spec.id));
+
 export function isReservedThemeId(themeId: string): boolean {
-  return RESERVED_THEME_IDS.has(themeId);
+  return RESERVED_THEME_IDS.has(themeId) || CAPY_THEME_IDS.has(themeId);
 }
 
 export function getStoredCustomThemeCollection(
@@ -442,10 +444,15 @@ export function getStandardThemeColors(appearance: ThemeAppearance): ThemeColors
   return (standardLightThemeColors ??= decodeThemeColors(T3_CODE_LIGHT_THEME_COLORS));
 }
 
-// index.css paints the light bubble a step darker than the shared palette mobile uses.
+// index.css paints a tinted canvas and a translucent bubble; these are their opaque results.
 const STANDARD_WEB_PAINTED_COLORS: Record<ThemeAppearance, Partial<ThemeColors>> = {
-  light: { messageSurface: "#ebebed" },
-  dark: { canvas: "#000000", messageSurface: "#1e1e1e" },
+  light: { canvas: "#fafafb", surfaceRaised: "#f8f7f9", messageSurface: "#ededee" },
+  dark: {
+    canvas: "#121213",
+    surface: "#1a1a1b",
+    surfaceRaised: "#1f1f20",
+    messageSurface: "#252526",
+  },
 };
 
 /** The standard theme as index.css paints it, for solves that measure the page. */
@@ -1226,12 +1233,35 @@ export function updateThemeColorFamily(
   }
 }
 
-const BUILT_IN_THEME_DEFINITIONS: ReadonlyArray<ThemeDefinition> = BUILT_IN_THEMES;
+let builtInThemeDefinitions: ReadonlyArray<ThemeDefinition> | null = null;
+
+/** BlueCode's built-in themes (ported from Capy), replacing the shared palettes on web. */
+export function getBuiltInThemes(): ReadonlyArray<ThemeDefinition> {
+  return (builtInThemeDefinitions ??= CAPY_THEME_SPECS.map((spec) =>
+    canonicalizeThemeDefinition({
+      id: spec.id,
+      label: spec.label,
+      appearance: "light",
+      colors: capyThemeColors(
+        spec.light,
+        "light",
+        createVividThemeColors("light", spec.light.bg, spec.light.primary),
+      ),
+      variants: {
+        dark: capyThemeColors(
+          spec.dark,
+          "dark",
+          createVividThemeColors("dark", spec.dark.bg, spec.dark.primary),
+        ),
+      },
+    }),
+  ));
+}
 
 export function getThemeDefinition(theme: ThemePreference): ThemeDefinition | null {
   const themeId = themeIdFromPreference(theme);
   return (
-    BUILT_IN_THEME_DEFINITIONS.find((definition) => definition.id === themeId) ??
+    getBuiltInThemes().find((definition) => definition.id === themeId) ??
     getCustomThemes().find((definition) => definition.id === themeId) ??
     getEnvironmentThemes().find((definition) => definition.id === themeId) ??
     null
@@ -1241,8 +1271,7 @@ export function getThemeDefinition(theme: ThemePreference): ThemeDefinition | nu
 export function themeAllowsSidebarArtwork(theme: ThemePreference): boolean {
   const themeId = themeIdFromPreference(theme);
   return (
-    BUILT_IN_THEME_DEFINITIONS.find((definition) => definition.id === themeId)?.sidebarArtwork ===
-    true
+    getBuiltInThemes().find((definition) => definition.id === themeId)?.sidebarArtwork === true
   );
 }
 
@@ -1370,12 +1399,12 @@ function storedThemeHasCollectionId(storedTheme: unknown, collectionId: string):
 }
 
 export function installCustomTheme(theme: ThemeDefinition): ThemeDefinition {
-  if (RESERVED_THEME_IDS.has(theme.id)) {
+  if (isReservedThemeId(theme.id)) {
     throw new Error(m(msg('The theme id "{id}" is reserved.', { id: theme.id })));
   }
   const library = getWritableCustomThemeLibrary();
   if (
-    BUILT_IN_THEME_DEFINITIONS.some((existing) => existing.id === theme.id) ||
+    getBuiltInThemes().some((existing) => existing.id === theme.id) ||
     library.storedThemes.some((storedTheme) => storedThemeHasId(storedTheme, theme.id))
   ) {
     throw new Error(
@@ -1389,7 +1418,7 @@ export function installCustomTheme(theme: ThemeDefinition): ThemeDefinition {
 }
 
 export function updateCustomTheme(theme: ThemeDefinition): ThemeDefinition {
-  if (RESERVED_THEME_IDS.has(theme.id)) {
+  if (isReservedThemeId(theme.id)) {
     throw new Error(m(msg('The theme id "{id}" is reserved.', { id: theme.id })));
   }
 
@@ -1444,7 +1473,7 @@ export function replaceCustomThemeCollection(
       m(msg("Your installed themes changed while this package was downloading. Try again.")),
     );
   }
-  const occupiedIds = new Set(BUILT_IN_THEME_DEFINITIONS.map((theme) => theme.id));
+  const occupiedIds = new Set(getBuiltInThemes().map((theme) => theme.id));
   for (const storedTheme of library.storedThemes) {
     if (
       !storedThemeHasCollectionId(storedTheme, collectionId) &&
@@ -1455,7 +1484,7 @@ export function replaceCustomThemeCollection(
     }
   }
   const conflictingTheme = replacement.find(
-    (theme) => RESERVED_THEME_IDS.has(theme.id) || occupiedIds.has(theme.id),
+    (theme) => isReservedThemeId(theme.id) || occupiedIds.has(theme.id),
   );
   if (conflictingTheme) {
     throw new Error(
@@ -1561,7 +1590,7 @@ export function parseThemeFile(value: unknown): ThemeDefinition {
   if (!isThemeId(id)) {
     throw new Error(m(msg("Theme ids may only contain lowercase letters, numbers, and hyphens.")));
   }
-  if (RESERVED_THEME_IDS.has(id)) {
+  if (isReservedThemeId(id)) {
     throw new Error(m(msg('The theme id "{id}" is reserved.', { id })));
   }
 

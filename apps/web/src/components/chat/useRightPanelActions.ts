@@ -62,6 +62,12 @@ interface RightPanelActionsInput {
   readonly activeProjectCwd: string | null;
   readonly onDiffPanelOpen: (() => void) | undefined;
   readonly closeRightPanelSurface: (surface: RightPanelSurface) => void;
+  /** BlueCode: when set, maximize toggles split view instead. */
+  readonly onToggleSplitView?: (() => void) | undefined;
+  /** BlueCode: set while another tab covers the chat, which the inline details card sits on. */
+  readonly onShowChat?: (() => void) | undefined;
+  /** BlueCode: set at full width, where hiding the panel returns to the plain chat. */
+  readonly onLeaveTabbedFullscreen?: (() => void) | undefined;
 }
 
 /**
@@ -94,6 +100,9 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
     gitCwd,
     activeProjectCwd,
     onDiffPanelOpen,
+    onToggleSplitView,
+    onShowChat,
+    onLeaveTabbedFullscreen,
   } = input;
 
   const openPreview = useAtomCommand(previewEnvironment.open, { reportFailure: false });
@@ -220,6 +229,11 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
   const activateRightPanelSurfaceStable = useStableCallback(activateRightPanelSurface);
   const toggleRightPanel = () => {
     if (!activeThreadRef) return;
+    if (onLeaveTabbedFullscreen) {
+      onLeaveTabbedFullscreen();
+      if (rightPanelOpen) closePreviewPanel();
+      return;
+    }
     if (rightPanelOpen) {
       closePreviewPanel();
       return;
@@ -237,6 +251,10 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
         activeThreadRef,
         "inline",
       );
+      if (onShowChat) {
+        onShowChat();
+        if (open) return;
+      }
       if (!open) requestWorkspaceFocus({ area: "details" });
       else if (document.activeElement?.closest('[data-workspace-area="details"]'))
         requestWorkspaceContentFocus();
@@ -245,6 +263,10 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
   };
   const toggleThreadPanelStable = useStableCallback(toggleThreadPanel);
   const toggleRightPanelMaximized = () => {
+    if (onToggleSplitView) {
+      onToggleSplitView();
+      return;
+    }
     if (!canMaximizeRightPanel || !activeThreadRef) return;
     if (!rightPanelMaximized) requestWorkspaceFocus({ area: "panel" });
     useRightPanelStore.getState().setMaximized(activeThreadRef, !rightPanelMaximized);

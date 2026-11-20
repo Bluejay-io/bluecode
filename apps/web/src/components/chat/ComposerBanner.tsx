@@ -9,11 +9,8 @@ import { ScrollArea } from "../ui/scroll-area";
 
 export type ComposerBannerVariant = "default" | "error" | "info" | "success" | "warning";
 
-const surfaceColors = cn(
-  "[--chat-composer-attached-surface:var(--chat-composer-glass-surface,var(--card))]",
-  "dark:[--chat-composer-attached-surface:var(--chat-composer-glass-surface,var(--surface-raised))]",
-  "[html[data-theme-id]_&]:[--chat-composer-attached-surface:var(--app-theme-surface-raised)]",
-);
+const surfaceColors =
+  "[--chat-composer-attached-surface:var(--chat-composer-glass-surface,var(--card))]";
 
 const neutralOutline = cn(
   "[--chat-composer-attached-outline:var(--chat-composer-outline,color-mix(in_srgb,var(--contrast-foreground)_8%,transparent))]",

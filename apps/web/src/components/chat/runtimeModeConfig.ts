@@ -2,13 +2,7 @@ import { managedRuntimeModeDenial } from "@t3tools/client-runtime/contract-label
 import type { ManagedPolicySummary, RuntimeMode } from "@t3tools/contracts";
 import { msg } from "gt-react";
 import { m, type MessageResolver } from "~/i18n/messages";
-import {
-  type LucideIcon,
-  LockIcon,
-  PenLineIcon,
-  ShieldCheckIcon,
-  ShieldOffIcon,
-} from "lucide-react";
+import { BotIcon, type LucideIcon, LockIcon, PenLineIcon, ShieldOffIcon } from "lucide-react";
 
 export const runtimeModeConfig: Record<
   RuntimeMode,
@@ -27,7 +21,8 @@ export const runtimeModeConfig: Record<
   auto: {
     label: msg("Auto", { $context: "permission mode, provider approves routine actions" }),
     description: msg("Supported providers approve routine actions; others still ask."),
-    icon: ShieldCheckIcon,
+    // BlueCode: the agent approves routine actions itself; a checked shield read as a badge.
+    icon: BotIcon,
   },
   "full-access": {
     label: msg("Full access"),

@@ -859,7 +859,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
         </InlineButton>
       ) : null}
       <Tooltip>
-        <TooltipTrigger render={<p className="text-muted-foreground text-xs tabular-nums" />}>
+        <TooltipTrigger render={<p className="text-secondary-label text-xs tabular-nums" />}>
           {formatDayAwareTimestamp(
             row.message.createdAt,
             ctx.timestampFormat,
@@ -902,7 +902,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
   );
   return (
     <div
-      className="group @container flex flex-col items-end gap-1"
+      className="group @container relative flex flex-col items-end gap-1"
       data-user-message-attribution={folded ? "agent" : undefined}
     >
       {userMessage.attribution === "t3code" ? (
@@ -938,14 +938,14 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
       ) : null}
       <div
         className={cn(
-          "relative min-w-0 max-w-[80%] rounded-2xl text-message-foreground",
+          "relative min-w-0 max-w-[80%] rounded-lg text-message-foreground",
           (mediaAboveText || row.groupedWithPrevious) && "rounded-tr-md",
           row.groupedWithNext && "rounded-br-md",
           BUBBLE_CHIP_CLASS_NAME,
           userMessage.attribution === "guest"
             ? guestBubbleClassName(false)
             : !mediaOnly && !fileCardsOnly && !audioOnly && "bg-message",
-          !folded && !mediaOnly && !fileCardsOnly && !audioOnly && "p-3",
+          !folded && !mediaOnly && !fileCardsOnly && !audioOnly && "px-3 py-2",
           folded && expanded && "w-full",
         )}
         data-user-message-bubble=""
@@ -1123,7 +1123,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
       {!folded || expanded ? (
         <div
           className={cn(
-            "flex w-full max-w-[80%] justify-end pe-1",
+            "flex w-full max-w-[80%] justify-end pe-1 pointer-fine:absolute pointer-fine:top-full pointer-fine:mt-1 pointer-fine:end-0",
             floatActions && "@min-[37rem]:hidden",
             ACTIONS_REVEAL_CLASS_NAME,
           )}

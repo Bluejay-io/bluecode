@@ -86,7 +86,9 @@ function lockBackgroundScroll(popup: HTMLElement | null) {
 }
 
 /** What a docked effort column needs from its picker: the model it serves. */
-export const DockedPickerContext = createContext<{ modelLabel: string }>({ modelLabel: "" });
+export const DockedPickerContext = createContext<{ modelLabel: string; modelIcon?: ReactNode }>({
+  modelLabel: "",
+});
 
 export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   environmentId: EnvironmentId | null;
@@ -219,7 +221,7 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
     }
     popupRef.current
       ?.querySelector<HTMLButtonElement>("[data-composer-permissions-trigger]")
-      ?.click();
+      ?.focus();
   };
 
   const handleInstanceModelChange = (instanceId: ProviderInstanceId, model: string) => {
@@ -465,32 +467,53 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
         {...(docked
           ? { side: "top" as const, collisionAvoidance: { side: "shift", align: "shift" } as const }
           : {})}
-        className="before:hidden"
+        // BlueCode: docked, the list and the model's options are two cards side by side, as in
+        // Capy's picker, so the popup itself draws nothing.
+        {...(props.effortColumn ? { variant: "bare" as const } : { className: "before:hidden" })}
         padding="none"
         touchBackdrop
       >
         {props.effortColumn ? (
-          <DockedPickerContext value={{ modelLabel: triggerTitle }}>
-            <div className="flex max-h-(--available-height) flex-col">
-              {/* One fixed height, so a model with more options never resizes the popup. Short
-                  windows shrink it and keep the footer. */}
-              <div className="flex h-86.5 min-h-0 max-sm:h-auto max-sm:flex-col">
+          <DockedPickerContext
+            value={{
+              modelLabel: triggerLabel,
+              modelIcon: activeEntry ? (
+                <ProviderInstanceIcon
+                  driverKind={activeEntry.driverKind}
+                  displayName={activeEntry.displayName}
+                  accentColor={activeEntry.accentColor}
+                  acpRegistryAgentId={activeEntry.acpRegistryAgentId}
+                  acpRegistryIconUrl={activeEntry.acpRegistryIconUrl}
+                  className="size-3.5"
+                  iconClassName="size-3.5"
+                />
+              ) : undefined,
+            }}
+          >
+            <div className="flex max-h-(--available-height) items-start gap-2 max-sm:flex-col max-sm:items-stretch">
+              {/* One fixed height, so a model with more options never resizes the list. Short
+                  windows shrink it. */}
+              <div
+                data-model-picker-card
+                className="flex h-86.5 max-h-(--available-height) min-h-0 flex-col overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg max-sm:h-auto"
+              >
                 {picker}
-                <div
-                  data-model-picker-effort
-                  className="flex min-h-0 w-48 flex-col sm:shrink-0 border-l border-border/70 bg-muted/40 max-sm:h-64 max-sm:w-full max-sm:border-t max-sm:border-l-0"
-                  onKeyDown={(event) => {
-                    if (event.key !== "ArrowLeft" || event.altKey || event.ctrlKey || event.metaKey)
-                      return;
-                    event.preventDefault();
-                    event.stopPropagation();
-                    searchInputRef.current?.focus();
-                  }}
-                >
-                  {props.effortColumn}
-                </div>
               </div>
-              {props.footer}
+              <div
+                data-model-picker-effort
+                data-model-picker-card
+                className="flex max-h-(--available-height) min-h-0 w-72 flex-col overflow-hidden rounded-lg border p-1 bg-popover text-popover-foreground shadow-lg max-sm:w-full"
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowLeft" || event.altKey || event.ctrlKey || event.metaKey)
+                    return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  searchInputRef.current?.focus();
+                }}
+              >
+                {props.effortColumn}
+                {props.footer}
+              </div>
             </div>
           </DockedPickerContext>
         ) : (

@@ -85,7 +85,6 @@ it("keeps each registry image when adding a model from another ACP agent", async
     );
   await vi.waitFor(() => expect(imageWidths()).toEqual([11]));
   await screen.getByRole("button", { name: "First model", exact: true }).click();
-  await page.getByRole("button", { name: "Second agent", exact: true }).click();
   await userEvent.keyboard("{Shift>}");
   try {
     await page.getByRole("option", { name: /Second model/ }).click();
@@ -287,7 +286,7 @@ it("opens on the active provider when every favorite belongs to a disabled provi
   await expect.element(page.getByRole("option", { name: /Codex model/ })).toBeVisible();
 });
 
-it("keeps the touch keyboard down while choosing a provider", async () => {
+it("keeps the touch keyboard down when the picker opens", async () => {
   const entries = deriveProviderInstanceEntries(
     ["Codex", "Claude"].map((name) => ({
       instanceId: ProviderInstanceId.make(name.toLowerCase()),
@@ -338,8 +337,7 @@ it("keeps the touch keyboard down while choosing a provider", async () => {
   const search = page.getByPlaceholder("Search models...");
   const popup = search.element().closest('[data-slot="popover-popup"]');
   await vi.waitFor(() => expect(document.activeElement).toBe(popup));
-
-  await page.getByRole("button", { name: /^Claude/ }).click();
+  // Every provider's models are listed together, so another provider needs no tap first.
   await expect.element(page.getByRole("option", { name: /Claude model/ })).toBeVisible();
   await expect.element(search).not.toHaveFocus();
 });

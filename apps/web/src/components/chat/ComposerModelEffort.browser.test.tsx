@@ -93,14 +93,17 @@ it("draws an agent's reasoning as bars and keeps its mode out of the levels", as
   expect(status.element().querySelector("[data-composer-effort-glyph]")).not.toBeNull();
   await expect.element(status).toHaveTextContent("");
 
-  const levels = screen.getByRole("radiogroup", { name: "Thinking" });
-  await expect.element(levels.getByRole("radio")).toHaveLength(3);
+  const levels = screen.getByRole("slider", { name: "Thinking" });
+  await expect.element(levels).toHaveAttribute("aria-valuemax", "2");
   await expect.element(screen.getByRole("radio", { name: "Plan" })).not.toBeInTheDocument();
 
-  // Up and Down walk from the levels through the option rows without opening their menus.
+  // Right steps the slider; Up and Down walk on through the option rows without opening menus.
   await userEvent.tab();
-  await expect.element(screen.getByRole("radio", { name: "Medium" })).toHaveFocus();
-  await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+  await expect.element(levels).toHaveFocus();
+  await expect.element(levels).toHaveAttribute("aria-valuetext", "Medium");
+  await userEvent.keyboard("{ArrowRight}");
+  await expect.element(levels).toHaveAttribute("aria-valuetext", "High");
+  await userEvent.keyboard("{ArrowDown}{ArrowDown}");
   const speed = screen.getByRole("button", { name: "Speed: Standard" });
   await expect.element(speed).toHaveFocus();
   await expect.element(page.getByRole("menuitemradio")).not.toBeInTheDocument();

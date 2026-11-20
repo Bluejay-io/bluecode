@@ -94,6 +94,8 @@ type PendingThreadRequests = ReturnType<typeof usePendingThreadRequests>;
 type LocalDispatchState = ReturnType<typeof useLocalDispatchState>;
 
 interface ThreadLifecycleInput {
+  /** BlueCode: subagents open as read-only tabs beside the chat instead of their own page. */
+  readonly onOpenSubagentTab?: ((subagent: ScopedThreadRef) => void) | undefined;
   readonly environmentId: EnvironmentId;
   readonly routeThreadKey: string;
   readonly currentRouteThreadKeyRef: { readonly current: string | null };
@@ -150,6 +152,7 @@ interface ThreadLifecycleInput {
  */
 export function useThreadLifecycle(input: ThreadLifecycleInput) {
   const {
+    onOpenSubagentTab,
     environmentId,
     routeThreadKey,
     currentRouteThreadKeyRef,
@@ -506,6 +509,13 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     }
     const routeRef = resolveThreadOpenRoute(threadRef, shell);
     if (scopedThreadKey(routeRef) === routeThreadKey) return;
+    // Only idle subagent children are left out of the shell.
+    const isSubagent =
+      shell === null ? shellOmitsChildren : shell.lineage.relationshipToParent === "subagent";
+    if (isSubagent && onOpenSubagentTab) {
+      onOpenSubagentTab(routeRef);
+      return;
+    }
     void navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(routeRef),

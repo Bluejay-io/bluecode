@@ -34,7 +34,8 @@ interface Props {
   onForward: () => void;
   onRefresh: () => void;
   onStopLoading: () => void;
-  onSubmit: (url: string) => void;
+  /** `onHost`: Shift+Enter asks for the environment's own browser instead of this device's. */
+  onSubmit: (url: string, options: { readonly onHost: boolean }) => void;
   onOpenInBrowser?: (() => void) | undefined;
   onCapture?: ((record: boolean) => void) | undefined;
   captureDisabled?: boolean | undefined;
@@ -87,7 +88,7 @@ export function PreviewChromeRow({
     event?.preventDefault();
     const next = draft.trim();
     if (next.length === 0) return;
-    onSubmit(next);
+    onSubmit(next, { onHost: event !== undefined && "shiftKey" in event && event.shiftKey });
     inputRef.current?.blur();
   };
 
@@ -95,7 +96,7 @@ export function PreviewChromeRow({
     <div className="relative">
       <form
         onSubmit={submit}
-        className="flex h-10 min-h-10 shrink-0 items-center gap-1 border-b border-border/60 bg-background px-2 in-data-[preview-panel-mode=inline]:mb-3 in-data-[preview-panel-mode=inline]:h-7 in-data-[preview-panel-mode=inline]:min-h-7 in-data-[preview-panel-mode=inline]:border-b-transparent"
+        className="flex h-10 min-h-10 shrink-0 items-center gap-1 border-b border-border/60 bg-background px-2"
         data-surface-subheader
       >
         <div className="flex items-center gap-0.5" role="group" aria-label={gt("Navigation")}>
@@ -104,7 +105,7 @@ export function PreviewChromeRow({
               render={
                 <Button
                   variant="ghost"
-                  size="icon-xs"
+                  size="icon-sm"
                   onClick={canGoBack ? onBack : NOOP}
                   disabled={!canGoBack}
                   aria-label={gt("Back", { $context: "browser navigation" })}
@@ -123,7 +124,7 @@ export function PreviewChromeRow({
               render={
                 <Button
                   variant="ghost"
-                  size="icon-xs"
+                  size="icon-sm"
                   onClick={canGoForward ? onForward : NOOP}
                   disabled={!canGoForward}
                   aria-label={gt("Forward", { $context: "browser navigation" })}
@@ -142,7 +143,7 @@ export function PreviewChromeRow({
               render={
                 <Button
                   variant="ghost"
-                  size="icon-xs"
+                  size="icon-sm"
                   onClick={refreshDisabled ? NOOP : loading ? onStopLoading : onRefresh}
                   disabled={refreshDisabled}
                   aria-label={
@@ -235,7 +236,7 @@ export function PreviewChromeRow({
               render={
                 <Button
                   variant={pickActive ? "secondary" : "ghost"}
-                  size="icon-xs"
+                  size="icon-sm"
                   onClick={onPickElement}
                   disabled={pickDisabled}
                   aria-label={pickActive ? gt("Cancel annotation") : gt("Annotate preview")}
@@ -261,7 +262,7 @@ export function PreviewChromeRow({
               render={
                 <Button
                   variant={recording ? "secondary" : "ghost"}
-                  size="icon-xs"
+                  size="icon-sm"
                   onClick={(event) => onCapture(event.shiftKey)}
                   aria-label={recording ? gt("Stop recording") : gt("Capture screenshot")}
                   type="button"
@@ -286,7 +287,7 @@ export function PreviewChromeRow({
               render={
                 <Button
                   variant={pictureInPicture ? "secondary" : "ghost"}
-                  size="icon-xs"
+                  size="icon-sm"
                   onClick={onPictureInPicture}
                   aria-label={
                     pictureInPicture ? gt("Close floating preview") : gt("Float preview over chat")

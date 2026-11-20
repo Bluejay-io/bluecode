@@ -22,11 +22,7 @@ import {
   type ThemeAppearance,
   type ThemeDefinition,
   type ThemeHalves,
-  T3_CHAT_THEME,
-  EMBER_THEME,
-  GROVE_THEME,
-  IRIS_THEME,
-  OCEAN_THEME,
+  getBuiltInThemes,
 } from "../../themePalette";
 import {
   AlertDialog,
@@ -54,14 +50,6 @@ import {
 } from "./ThemePreviewCircles";
 import { ThemeWireframe } from "./ThemeWireframe";
 import { T, useGT } from "gt-react";
-
-const MAINTAINER_THEMES: ReadonlyArray<ThemeDefinition> = [
-  T3_CHAT_THEME,
-  GROVE_THEME,
-  OCEAN_THEME,
-  EMBER_THEME,
-  IRIS_THEME,
-];
 
 function collectionVariantLabels(themes: ReadonlyArray<ThemeDefinition>): ReadonlyArray<string> {
   if (themes.length === 0) return [];
@@ -809,7 +797,7 @@ export function ThemeLibrary({
             theme={standardTheme}
           />
         ))}
-        {MAINTAINER_THEMES.map((maintainerTheme) => {
+        {getBuiltInThemes().map((maintainerTheme) => {
           const card = getThemeCardDefinition(maintainerTheme);
           return (
             <ThemeLibraryCard

@@ -10,11 +10,8 @@ import {
   isKnownThemePreference,
   publishedThemeDefinitions,
   resolveThemeAppearance,
-  T3_CHAT_THEME,
-  EMBER_THEME,
-  GROVE_THEME,
-  IRIS_THEME,
-  OCEAN_THEME,
+  getBuiltInThemes,
+  getThemeDefinition,
   THEME_APPEARANCE_MODE_STORAGE_KEY,
   THEME_FOLLOW_SYSTEM_STORAGE_KEY,
   toCanonicalThemeColor,
@@ -310,7 +307,7 @@ describe("index.html boot script", () => {
   });
 
   it("keeps every built-in boot splash in sync with the real palettes", () => {
-    for (const theme of [T3_CHAT_THEME, GROVE_THEME, OCEAN_THEME, EMBER_THEME, IRIS_THEME]) {
+    for (const theme of getBuiltInThemes()) {
       expect(theme.appearance).toBe("light");
       for (const mode of ["light", "dark"] as const) {
         const colors = getThemeColorsForMode(theme, mode);
@@ -334,41 +331,44 @@ describe("index.html boot script", () => {
   });
 
   it("applies the matching half of an automatic mix to the splash", () => {
+    const baseTheme = getThemeDefinition("github")!;
+    const halfTheme = getThemeDefinition("linear")!;
     const storage = {
-      [THEME_STORAGE_KEY]: "t3-chat",
+      [THEME_STORAGE_KEY]: baseTheme.id,
       [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-      "t3code:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+      "t3code:theme-halves:v1": JSON.stringify({ dark: halfTheme.id }),
     };
 
     const dark = runBootScript({ storage, prefersDark: true });
     expect(dark.isDark).toBe(true);
-    expect(dark.themeId).toBe(GROVE_THEME.id);
+    expect(dark.themeId).toBe(halfTheme.id);
     expect(dark.bootVariables["--boot-background"]).toBe(
-      getThemeColorsForMode(GROVE_THEME, "dark")!.canvas,
+      getThemeColorsForMode(halfTheme, "dark")!.canvas,
     );
 
     const light = runBootScript({ storage, prefersDark: false });
     expect(light.isDark).toBe(false);
-    expect(light.themeId).toBe("t3-chat");
+    expect(light.themeId).toBe(baseTheme.id);
     expect(light.bootVariables["--boot-background"]).toBe(
-      getThemeColorsForMode(T3_CHAT_THEME, "light")!.canvas,
+      getThemeColorsForMode(baseTheme, "light")!.canvas,
     );
   });
 
   it("paints the half's splash when the base theme no longer exists", () => {
+    const halfTheme = getThemeDefinition("linear")!;
     const boot = runBootScript({
       storage: {
         [THEME_STORAGE_KEY]: "gone-theme",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-        "t3code:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+        "t3code:theme-halves:v1": JSON.stringify({ dark: halfTheme.id }),
       },
       prefersDark: true,
     });
     expect(boot.isDark).toBe(true);
-    expect(boot.themeId).toBe(GROVE_THEME.id);
+    expect(boot.themeId).toBe(halfTheme.id);
     expect(boot.themeSelected).toBe("true");
     expect(boot.bootVariables["--boot-background"]).toBe(
-      getThemeColorsForMode(GROVE_THEME, "dark")!.canvas,
+      getThemeColorsForMode(halfTheme, "dark")!.canvas,
     );
   });
 

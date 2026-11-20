@@ -97,7 +97,7 @@ it("returns focus to the editor after a pick", async () => {
   await vi.waitFor(() => expect(handle.focusAtEnd).toHaveBeenCalled());
 });
 
-// Mirrors the model picker: a composer popover whose footer nests the Permissions menu.
+// Mirrors the model picker: a composer popover whose footer holds the permission modes.
 function PickerWithPermissions() {
   const [mode, setMode] = useState<RuntimeMode>("full-access");
   const composerMenuProps = useComposerMenuProps();
@@ -119,7 +119,7 @@ function PickerWithPermissions() {
   );
 }
 
-it("on a touch tablet, tapping outside the Permissions menu leaves the editor unfocused", async () => {
+it("on a touch tablet, picking a permission in the picker leaves the editor unfocused", async () => {
   const realMatchMedia = window.matchMedia.bind(window);
   using _touch = vi
     .spyOn(window, "matchMedia")
@@ -127,15 +127,11 @@ it("on a touch tablet, tapping outside the Permissions menu leaves the editor un
   const { handle, ui } = withComposer(<PickerWithPermissions />);
   await using screen = await render(ui, { router: false }); // no routes involved
   await userEvent.click(screen.getByRole("button", { name: "Model" }));
-  await userEvent.click(page.getByRole("button", { name: "Permissions: Full access" }));
-  const fullAccess = page.getByRole("menuitemradio", { name: "Full access" });
-  await expect.element(fullAccess).toBeInTheDocument();
-  const permissionsTrigger = page.getByRole("button", { name: "Permissions: Full access" });
-  // The first outside tap closes the Permissions menu, the second the picker around it.
-  await userEvent.click(document.body, { position: { x: 1, y: 1 } });
-  await expect.element(fullAccess).not.toBeInTheDocument();
+  const supervised = page.getByRole("radio", { name: "Supervised" });
+  await userEvent.click(supervised);
+  await expect.element(supervised).toHaveAttribute("aria-checked", "true");
   await userEvent.click(screen.getByText("Timeline"));
-  await expect.element(permissionsTrigger).not.toBeInTheDocument();
+  await expect.element(supervised).not.toBeInTheDocument();
   // Focusing the editor after a tap opens the on-screen keyboard on Android tablets.
   expect(handle.focusAtEnd).not.toHaveBeenCalled();
 });

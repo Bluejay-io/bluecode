@@ -25,6 +25,7 @@ const RIGHT_PANEL_KINDS = [
   "pull-requests",
   "issue",
   "side-chat",
+  "subagent",
 ] as const;
 export type RightPanelKind = (typeof RIGHT_PANEL_KINDS)[number];
 
@@ -96,10 +97,12 @@ export type RightPanelSurface =
       key: string;
       url?: string;
     }
-  | { id: `side-chat:${string}`; kind: "side-chat"; threadId: ThreadId };
+  | { id: `side-chat:${string}`; kind: "side-chat"; threadId: ThreadId }
+  /** BlueCode: a subagent's conversation, read-only, beside its parent's chat. */
+  | { id: `subagent:${string}`; kind: "subagent"; environmentId: string; threadId: ThreadId };
 
 const RIGHT_PANEL_STORAGE_KEY = "t3code:right-panel-state:v2";
-const RIGHT_PANEL_STORAGE_VERSION = 15;
+const RIGHT_PANEL_STORAGE_VERSION = 16;
 
 export const PULL_REQUESTS_PANEL_REF = scopeThreadRef(
   EnvironmentId.make("pull-requests-panel"),
@@ -154,9 +157,13 @@ interface RightPanelStoreState {
   ) => boolean;
   open: (
     ref: ScopedThreadRef,
-    kind: Exclude<RightPanelKind, "file" | "terminal" | "pull-request" | "issue" | "side-chat">,
+    kind: Exclude<
+      RightPanelKind,
+      "file" | "terminal" | "pull-request" | "issue" | "side-chat" | "subagent"
+    >,
   ) => void;
   openSideChat: (ref: ScopedThreadRef, threadId: ThreadId) => void;
+  openSubagent: (ref: ScopedThreadRef, subagent: ScopedThreadRef) => void;
   openDevice: (ref: ScopedThreadRef, target: DeviceTabTarget, automatic?: boolean) => void;
   renameDevice: (ref: ScopedThreadRef, surfaceId: string, title: string) => void;
   openBrowser: (ref: ScopedThreadRef, tabId: string | null) => void;
@@ -218,10 +225,15 @@ interface RightPanelStoreState {
   show: (ref: ScopedThreadRef) => void;
   close: (ref: ScopedThreadRef) => void;
   setMaximized: (ref: ScopedThreadRef, maximized: boolean) => void;
+  /** BlueCode: moving to another thread keeps the panel open or shut as it was, if it has tabs. */
+  carryPanel: (from: ScopedThreadRef, to: ScopedThreadRef) => void;
   toggleVisibility: (ref: ScopedThreadRef) => void;
   toggle: (
     ref: ScopedThreadRef,
-    kind: Exclude<RightPanelKind, "file" | "terminal" | "pull-request" | "issue" | "side-chat">,
+    kind: Exclude<
+      RightPanelKind,
+      "file" | "terminal" | "pull-request" | "issue" | "side-chat" | "subagent"
+    >,
   ) => void;
   setThreadPanelOpen: (
     ref: ScopedThreadRef,
@@ -238,15 +250,16 @@ const EMPTY_THREAD_STATE: ThreadRightPanelState = {
   surfaces: [],
 };
 
+// BlueCode: the details card stays closed until the user opens it, like Capy.
 const DEFAULT_THREAD_PANEL_VISIBILITY: ThreadPanelVisibility = {
-  inlineOpen: true,
+  inlineOpen: false,
   popoverOpen: false,
 };
 
 const singletonSurface = (
   kind: Exclude<
     RightPanelKind,
-    "file" | "preview" | "terminal" | "pull-request" | "issue" | "side-chat"
+    "file" | "preview" | "terminal" | "pull-request" | "issue" | "side-chat" | "subagent"
   >,
 ): RightPanelSurface => {
   switch (kind) {
@@ -414,7 +427,10 @@ const updateThreadPanelVisibilityMap = (
 ): Record<string, ThreadPanelVisibility> => {
   const current = byThreadKey[threadKey] ?? DEFAULT_THREAD_PANEL_VISIBILITY;
   const next = updater(current);
-  if (next.inlineOpen && !next.popoverOpen) {
+  if (
+    next.inlineOpen === DEFAULT_THREAD_PANEL_VISIBILITY.inlineOpen &&
+    next.popoverOpen === DEFAULT_THREAD_PANEL_VISIBILITY.popoverOpen
+  ) {
     if (!(threadKey in byThreadKey)) return byThreadKey;
     const { [threadKey]: _removed, ...rest } = byThreadKey;
     return rest;
@@ -568,7 +584,8 @@ export function migratePersistedRightPanelState(persistedState: unknown): {
               const surfaces = Array.isArray(validThreadState?.surfaces)
                 ? validThreadState.surfaces.flatMap<RightPanelSurface>((surface) => {
                     const kind = (surface as { kind?: string }).kind;
-                    if (kind === "plan" || kind === "agents") return [];
+                    // BlueCode: the Overview tab became the thread details menu.
+                    if (kind === "plan" || kind === "agents" || kind === "overview") return [];
                     if (
                       (surface.kind === "file" || surface.kind === "files") &&
                       "folderTrail" in surface &&
@@ -708,8 +725,8 @@ export function migratePersistedRightPanelState(persistedState: unknown): {
             persistedState.threadPanelVisibilityByThreadKey as Record<string, unknown>,
           ).flatMap(([threadKey, value]) => {
             if (!value || typeof value !== "object" || !("inlineOpen" in value)) return [];
-            return value.inlineOpen === false
-              ? [[threadKey, { inlineOpen: false, popoverOpen: false }]]
+            return value.inlineOpen === true
+              ? [[threadKey, { inlineOpen: true, popoverOpen: false }]]
               : [];
           }),
         )
@@ -820,6 +837,17 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         set((state) =>
           userAction(state, scopedThreadKey(ref), (current) =>
             upsertSurface(current, { id: `side-chat:${threadId}`, kind: "side-chat", threadId }),
+          ),
+        ),
+      openSubagent: (ref, subagent) =>
+        set((state) =>
+          userAction(state, scopedThreadKey(ref), (current) =>
+            upsertSurface(current, {
+              id: `subagent:${subagent.environmentId}:${subagent.threadId}`,
+              kind: "subagent",
+              environmentId: subagent.environmentId,
+              threadId: subagent.threadId,
+            }),
           ),
         ),
       renameDevice: (ref, surfaceId, title) =>
@@ -1217,6 +1245,14 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
             return maximized ? { ...rest, maximized: true } : rest;
           }),
         ),
+      carryPanel: (from, to) =>
+        set((state) => {
+          const fromOpen = selectThreadRightPanelState(state.byThreadKey, from).isOpen;
+          return automaticUpdate(state, scopedThreadKey(to), (current) => {
+            const isOpen = fromOpen && current.surfaces.length > 0;
+            return current.isOpen === isOpen ? current : { ...current, isOpen };
+          });
+        }),
       toggleVisibility: (ref) =>
         set((state) =>
           userAction(state, scopedThreadKey(ref), (current) => ({
@@ -1310,7 +1346,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         threadPanelVisibilityByThreadKey: Object.fromEntries(
           Object.entries(state.threadPanelVisibilityByThreadKey).flatMap(
             ([threadKey, visibility]) =>
-              visibility.inlineOpen ? [] : [[threadKey, { inlineOpen: false, popoverOpen: false }]],
+              visibility.inlineOpen ? [[threadKey, { inlineOpen: true, popoverOpen: false }]] : [],
           ),
         ),
       }),

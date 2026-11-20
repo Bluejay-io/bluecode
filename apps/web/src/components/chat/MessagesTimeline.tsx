@@ -59,7 +59,6 @@ import {
   ArrowRightIcon,
   BotIcon,
   CircleAlertIcon,
-  MessagesSquareIcon,
   Minimize2Icon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -99,6 +98,7 @@ import { WorktreeSetupCard } from "./WorktreeSetupCard";
 import { useOpenPrLink } from "~/lib/openPullRequestLink";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
 import { cn } from "~/lib/utils";
+import { SideChatIcon } from "~/bluecode/icons/SideChatIcon";
 import { type TimestampFormat } from "@t3tools/contracts/settings";
 import { type HandoffTimelineRun } from "./V2LifecycleRow";
 import { TimelineSystemDivider } from "./TimelineSystemDivider";
@@ -1231,7 +1231,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
                     environment: parentThreadLink.environmentLabel,
                   })
             }
-            icon={parentThreadLink.sideChat ? MessagesSquareIcon : BotIcon}
+            icon={parentThreadLink.sideChat ? SideChatIcon : BotIcon}
             {...(parentThreadLink.open === undefined
               ? {}
               : { actionLabel: gt("Open parent thread"), onAction: parentThreadLink.open })}
@@ -1415,7 +1415,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
       return (
         <>
           {activityAnnouncer}
-          <div className="h-full min-h-0 bg-background" data-timeline-loading="true" />
+          <div className="h-full min-h-0" data-timeline-loading="true" />
         </>
       );
     }
@@ -1654,7 +1654,10 @@ const TimelineRowContent = memo(function TimelineRowContent({ row }: { row: Time
                   row.kind === "mcp-app" ||
                   row.kind === "viewed-images"
                 ? "pb-2"
-                : "pb-4",
+                : row.kind === "message" && (row.message.role === "user" || row.showAssistantMeta)
+                  ? // Room for the hover actions that overlay this gap with a mouse.
+                    "pb-4 pointer-fine:pb-7"
+                  : "pb-4",
         (row.kind === "message" && row.message.role === "assistant") ||
           row.kind === "assistant-meta"
           ? "group/assistant"
@@ -1863,7 +1866,7 @@ function TurnFoldTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "turn-
   );
 
   return (
-    <div className="group/timeline-row border-b border-border/60 pb-2 pe-0.5 pt-1">
+    <div className="group/timeline-row pb-2 pe-0.5 pt-1">
       <div className="relative flex items-center gap-1">
         <button
           type="button"
@@ -1871,7 +1874,7 @@ function TurnFoldTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "turn-
           data-scroll-anchor-ignore
           onClick={toggle}
           aria-busy={loading}
-          className="flex cursor-pointer select-none items-center gap-1 rounded-md px-1 text-sm leading-relaxed text-muted-foreground tabular-nums transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
+          className="flex cursor-pointer select-none items-center gap-1 rounded-md px-1 text-xs leading-relaxed text-secondary-label tabular-nums transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
         >
           <span>
             {row.label}

@@ -10,12 +10,14 @@ import {
   MIN_PROMPT_FONT_SIZE,
 } from "@t3tools/contracts";
 
+// BlueCode: Inter leads on every platform; keep index.css's --font-sans in step.
 export const DEFAULT_SANS_FONT_STACK =
-  '-apple-system, BlinkMacSystemFont, "Inter Variable", "Segoe UI", system-ui, sans-serif';
+  '"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
 
 // Some engines map `ui-monospace` to a proportional font, so prefer concrete names.
+// BlueCode: the bundled Geist Mono leads; keep index.css's --font-mono in step.
 export const DEFAULT_CODE_FONT_STACK =
-  '"SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace';
+  '"Geist Mono Variable", "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace';
 
 export const TYPOGRAPHY_ADVANCED_STORAGE_KEY = "t3code:typography-advanced";
 
@@ -283,8 +285,12 @@ export function displayFontFamily(family: string): string {
     .replace(/^(['"])(.*)\1$/, "$2")
     .trim()
     .toLowerCase();
-  if (label === "sf pro") return appearanceFontStack(family, DEFAULT_SANS_FONT_STACK);
-  if (label === "sf mono") return DEFAULT_CODE_FONT_STACK;
+  if (label === "sf pro") {
+    return appearanceFontStack("-apple-system, BlinkMacSystemFont", DEFAULT_SANS_FONT_STACK);
+  }
+  if (label === "sf mono") {
+    return appearanceFontStack('"SF Mono", "SFMono-Regular"', DEFAULT_CODE_FONT_STACK);
+  }
   return cssFontFamilies(family) ?? "";
 }
 

@@ -1982,8 +1982,7 @@ function ChatMarkdown({
       ref={bindMarkdownRef}
       className={cn(
         "chat-markdown w-full min-w-0 [overflow-wrap:anywhere] [word-break:break-word]",
-        !inline &&
-          "text-sm leading-relaxed text-foreground/[calc(90%+var(--appearance-contrast-boost)/10)]",
+        !inline && "text-sm leading-relaxed text-foreground",
         className,
       )}
       data-streaming={componentState.isStreaming ? "" : undefined}

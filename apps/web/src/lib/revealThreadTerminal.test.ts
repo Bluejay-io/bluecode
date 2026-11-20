@@ -49,10 +49,18 @@ it("reopens the existing panel and selects a running terminal in its split", () 
   ).toEqual([]);
 });
 
-it("reveals terminals in their own environment without changing another environment's drawer", () => {
+it("opens a terminal no tab shows yet as a panel tab in its own environment", () => {
   revealThreadTerminal(threadRef, "default");
   revealThreadTerminal(remoteRef, "setup-install");
-  const state = useTerminalUiStateStore.getState().terminalUiStateByThreadKey;
-  expect(selectThreadTerminalUiState(state, threadRef).terminalIds).toEqual(["default"]);
-  expect(selectThreadTerminalUiState(state, remoteRef).terminalIds).toEqual(["setup-install"]);
+  const panels = useRightPanelStore.getState().byThreadKey;
+  expect(selectThreadRightPanelState(panels, threadRef)).toMatchObject({
+    isOpen: true,
+    surfaces: [{ kind: "terminal", terminalIds: ["default"] }],
+  });
+  expect(selectThreadRightPanelState(panels, remoteRef)).toMatchObject({
+    isOpen: true,
+    surfaces: [{ kind: "terminal", terminalIds: ["setup-install"] }],
+  });
+  const drawers = useTerminalUiStateStore.getState().terminalUiStateByThreadKey;
+  expect(selectThreadTerminalUiState(drawers, threadRef).terminalIds).toEqual([]);
 });

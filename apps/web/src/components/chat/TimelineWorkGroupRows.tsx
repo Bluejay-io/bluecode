@@ -1,7 +1,6 @@
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { WorkLogButton, WorkLogList, WorkLogRow } from "./WorkLog";
 import type { WorktreeSetupSnapshot } from "@t3tools/contracts";
-import { type ToolActivityIcon } from "@t3tools/contracts";
 import {
   liveThoughtLine,
   resolveViewedImageAsset,
@@ -42,12 +41,7 @@ import {
   type TimelineRow,
 } from "./timelineRowContext";
 import { TimelineRowTimestamp, ActivityShimmerOverlay } from "./TimelineRowParts";
-import {
-  failedToolIconClassName,
-  toolIconAcceptsTint,
-  type WorkEntryIconName,
-  ToolActivityIconView,
-} from "./TimelineToolActivityIcon";
+import { failedToolIconClassName } from "./TimelineToolActivityIcon";
 import {
   useThreadReadTarget,
   threadReadLabel,
@@ -58,8 +52,6 @@ import {
 import {
   thoughtPreviewPlugins,
   THOUGHT_PREVIEW_SOURCE_MAX_LENGTH,
-  toolGroupSummaryIconName,
-  workEntryIconName,
 } from "./TimelineWorkEntryRow.logic";
 import { formatWorkingTimerNow } from "./TimelineWorkGroupRows.logic";
 
@@ -456,7 +448,6 @@ export function ThinkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
         liveAnswerPreview ??
         gt("Thinking")
       }
-      iconName="brain"
       active={live}
       shimmer={live}
     />
@@ -477,15 +468,11 @@ export function ThinkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
 
 function LiveActivityRow({
   label,
-  iconName,
-  toolIcon,
   failed = false,
   active = false,
   shimmer = false,
 }: {
   label: ReactNode;
-  iconName?: WorkEntryIconName;
-  toolIcon?: ToolActivityIcon | undefined;
   failed?: boolean;
   active?: boolean;
   shimmer?: boolean;
@@ -499,15 +486,13 @@ function LiveActivityRow({
     >
       <LiveActivityContent
         label={label}
-        iconName={iconName}
-        toolIcon={toolIcon}
         failed={failed}
         announceFailure={failed}
         active={animated && !shimmer}
       />
       {showShimmer ? (
         <ActivityShimmerOverlay>
-          <LiveActivityContent label={label} iconName={iconName} toolIcon={toolIcon} highlighted />
+          <LiveActivityContent label={label} highlighted />
         </ActivityShimmerOverlay>
       ) : null}
     </div>
@@ -516,50 +501,22 @@ function LiveActivityRow({
 
 function LiveActivityContent({
   label,
-  iconName,
-  toolIcon,
   failed = false,
   announceFailure = false,
   active = false,
   highlighted = false,
 }: {
   label: ReactNode;
-  iconName: WorkEntryIconName | undefined;
-  toolIcon?: ToolActivityIcon | undefined;
   failed?: boolean;
   announceFailure?: boolean;
   active?: boolean;
   highlighted?: boolean;
 }) {
   const gt = useGT();
-  const showTrailingFailureMark =
-    failed && iconName !== undefined && !toolIconAcceptsTint(toolIcon);
 
+  // BlueCode: tool lines are plain text, as in Capy; a failure keeps its mark at the end.
   return (
     <WorkLogRow
-      icon={
-        iconName ? (
-          <span
-            className={cn(
-              "flex size-4 items-center justify-center",
-              failed
-                ? failedToolIconClassName
-                : highlighted
-                  ? "text-foreground"
-                  : "text-icon-muted",
-            )}
-            role={announceFailure ? "img" : undefined}
-            aria-label={announceFailure ? gt("Tool call failed") : undefined}
-          >
-            <ToolActivityIconView
-              icon={toolIcon}
-              fallbackName={iconName}
-              className="block size-4 shrink-0 stroke-2"
-              muted={!highlighted}
-            />
-          </span>
-        ) : null
-      }
       label={
         <span
           className={cn(
@@ -572,8 +529,13 @@ function LiveActivityContent({
         </span>
       }
       trailing={
-        showTrailingFailureMark ? (
-          <XIcon aria-hidden className={cn("size-3 shrink-0", failedToolIconClassName)} />
+        failed ? (
+          <XIcon
+            role={announceFailure ? "img" : undefined}
+            aria-label={announceFailure ? gt("Tool call failed") : undefined}
+            aria-hidden={announceFailure ? undefined : true}
+            className={cn("size-3 shrink-0", failedToolIconClassName)}
+          />
         ) : null
       }
     />
@@ -623,16 +585,6 @@ export function LiveWorkEntryTimelineRow({
     >
       {thoughtLine ? (
         <WorkLogRow
-          icon={
-            <span className="flex size-4 items-center justify-center text-icon-muted">
-              <ToolActivityIconView
-                icon={undefined}
-                fallbackName="brain"
-                className="block size-4 shrink-0 stroke-2"
-                muted
-              />
-            </span>
-          }
           label={
             <span className="line-clamp-4">
               <ChatMarkdown
@@ -677,8 +629,6 @@ export function LiveWorkEntryTimelineRow({
             label
           )
         }
-        iconName={workEntryIconName(row.entry)}
-        toolIcon={row.entry.toolIcon ?? row.entry.toolSource?.icon}
         failed={failed}
         active={row.active}
       />
@@ -695,8 +645,6 @@ export function WorkGroupToggleTimelineRow({
   return (
     <WorkGroupHeader
       label={row.summary}
-      iconName={row.toolSurface ?? toolGroupSummaryIconName(row.summaryKind)}
-      toolIcon={row.toolIcon}
       failed={row.hasFailure}
       expanded={row.expanded}
       createdAt={row.createdAt}
@@ -708,8 +656,6 @@ export function WorkGroupToggleTimelineRow({
 
 function WorkGroupHeader(props: {
   label: string;
-  iconName: WorkEntryIconName;
-  toolIcon?: ToolActivityIcon | undefined;
   failed?: boolean | undefined;
   expanded: boolean;
   createdAt: string;
@@ -724,17 +670,17 @@ function WorkGroupHeader(props: {
       }
       aria-expanded={props.expanded}
       onClick={props.onToggle}
-      icon={
-        <ToolActivityIconView
-          icon={props.toolIcon}
-          fallbackName={props.iconName}
-          className="size-4 shrink-0 stroke-2 text-icon-muted"
-          muted
-        />
-      }
       label={<span className="block truncate">{props.label}</span>}
       trailing={
-        <TimelineRowTimestamp createdAt={props.createdAt} timestampFormat={props.timestampFormat} />
+        <>
+          {props.failed ? (
+            <XIcon aria-hidden className={cn("size-3 shrink-0", failedToolIconClassName)} />
+          ) : null}
+          <TimelineRowTimestamp
+            createdAt={props.createdAt}
+            timestampFormat={props.timestampFormat}
+          />
+        </>
       }
     />
   );

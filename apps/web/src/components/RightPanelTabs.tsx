@@ -39,6 +39,7 @@ import { restrictToFirstScrollableAncestor, restrictToHorizontalAxis } from "@dn
 import { horizontalListSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  BotIcon,
   CircleDotIcon,
   Smartphone,
   ChevronDown,
@@ -47,7 +48,6 @@ import {
   FileDiff,
   Files,
   Globe2,
-  MessagesSquare,
   Plus,
   TerminalSquare,
   Volume2Icon,
@@ -68,6 +68,7 @@ import { isElectron } from "~/env";
 import type { DesktopPreviewOverlay } from "~/previewStateStore";
 import type { RightPanelSurface } from "~/rightPanelStore";
 import { cn } from "~/lib/utils";
+import { ChatIcon, SideChatIcon } from "~/bluecode/icons/SideChatIcon";
 import { issueStatePresentation } from "~/components/issue/issuePresentation";
 import { issueEnvironment } from "~/state/issues";
 import { resolveShortcutCommand, type ShortcutMatchContext } from "~/keybindings";
@@ -151,6 +152,15 @@ export interface RightPanelTabsProps {
   onAddDevice: () => void;
   /** Absent where side chats are not offered. */
   onAddSideChat?: (() => void) | undefined;
+  /** BlueCode: the thread's chat as the first tab, when chat and tabs share the full width. */
+  chatTab?: {
+    readonly title: string;
+    readonly active: boolean;
+    /** The agent is working while another tab is in front. */
+    readonly working: boolean;
+    readonly onActivate: () => void;
+    readonly onRename?: (() => void) | undefined;
+  };
   browserAvailable: boolean;
   terminalAvailable: boolean;
   diffAvailable: boolean;
@@ -412,7 +422,7 @@ function RightPanelEmptyState(props: {
           {
             label: msg("Side chat"),
             description: msg("Ask a side question while this thread keeps working."),
-            icon: MessagesSquare,
+            icon: SideChatIcon,
             shortcut: "S",
             available: props.sideChatAvailable && !props.sideChatDisabledReason,
             disabledReason:
@@ -614,6 +624,8 @@ function surfaceTitle(
       return surface.title ?? surface.target?.name ?? resolve(msg("Device"));
     case "side-chat":
       return resolve(msg("Side chat"));
+    case "subagent":
+      return resolve(msg("Subagent"));
     case "preview": {
       const snapshot = surface.resourceId ? sessions[surface.resourceId] : null;
       if (!snapshot || snapshot.navStatus._tag === "Idle") return resolve(msg("Browser"));
@@ -706,6 +718,8 @@ function SurfaceIcon({
       return <IssueSurfaceIcon surface={surface} environmentId={environmentId} />;
     case "side-chat":
       return <SideChatTabIcon environmentId={environmentId} threadId={surface.threadId} />;
+    case "subagent":
+      return <BotIcon className="size-3 shrink-0" />;
     case "device":
       return surface.target?.platform === "ios" ? (
         <AppleIcon className="size-3 shrink-0" />
@@ -744,7 +758,7 @@ function SideChatTabIcon(props: { environmentId: EnvironmentId | null; threadId:
   );
   return (
     <>
-      <MessagesSquare className="size-3 shrink-0" />
+      <SideChatIcon className="size-3 shrink-0" />
       {state === null ? null : (
         <span
           className={cn(
@@ -963,13 +977,19 @@ function RightPanelTab(
   const sideChatShell = useQuietThreadShell(
     surface.kind === "side-chat" && props.environmentId !== null
       ? scopeThreadRef(props.environmentId, surface.threadId)
-      : null,
+      : surface.kind === "subagent"
+        ? scopeThreadRef(surface.environmentId as EnvironmentId, surface.threadId)
+        : null,
   );
   const title = sideChatShell?.title ?? props.title;
-  const sideChatState = sideChatTabState(sideChatShell);
+  const sideChatState = surface.kind === "side-chat" ? sideChatTabState(sideChatShell) : null;
   const content = (
     <>
-      <PanelTabCloseButton label={gt("Close {title}", { title })} onClick={() => onClose(surface)}>
+      <PanelTabCloseButton
+        label={gt("Close {title}", { title })}
+        onClick={() => onClose(surface)}
+        size="lg"
+      >
         <SurfaceIcon
           surface={surface}
           previewUrl={props.previewUrl}
@@ -1085,7 +1105,7 @@ function RightPanelTab(
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
-        "cursor-pointer group/tab flex h-6 max-w-36 shrink-0 items-center gap-0.5 rounded-md pr-2 pl-1.5 text-xs",
+        "cursor-pointer group/tab flex h-7 max-w-44 shrink-0 items-center gap-1.5 rounded-md pr-2.5 pl-1.5 text-xs font-medium",
         props.ownsDesktopTitleBar && "[-webkit-app-region:no-drag]",
         props.active
           ? "bg-accent text-foreground"
@@ -1229,7 +1249,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
       ? [
           {
             label: msg("Side chat"),
-            icon: MessagesSquare,
+            icon: SideChatIcon,
             shortcut: "S",
             available: props.sideChatAvailable === true && !props.sideChatDisabledReason,
             disabledReason:
@@ -1429,15 +1449,26 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
       }
     >
       <div
+        data-right-panel-topbar
         className={cn(
-          "flex h-[var(--workspace-topbar-height)] min-h-[var(--workspace-topbar-height)] shrink-0 items-center gap-1 pl-2",
-          props.mode === "inline" && !props.layoutControls ? "pr-28" : "pr-3",
+          "flex h-[var(--workspace-topbar-height)] min-h-[var(--workspace-topbar-height)] shrink-0 items-center gap-1 border-b pl-2",
+          // BlueCode: the window's controls float over this row's end; the view sizes the gap.
+          props.mode === "inline" && !props.layoutControls
+            ? "pr-(--bluecode-titlebar-controls-inset,7rem)"
+            : "pr-3",
           ownsDesktopTitleBar && "drag-region",
           ownsDesktopTitleBar && "wco:pr-(--workspace-native-controls-inset)",
           props.mode === "inline" && props.maximized && COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS,
         )}
         data-right-panel-tabbar
       >
+        {props.mode === "inline" && props.maximized ? (
+          <div
+            aria-hidden
+            data-right-panel-sidebar-separator
+            className="-ml-1.75 mr-1.5 h-4 w-px shrink-0 bg-border"
+          />
+        ) : null}
         <ScrollArea
           radius="none"
           ref={attachTabList}
@@ -1450,6 +1481,37 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           data-right-panel-tab-list
         >
           <div className="flex h-full w-max min-w-full items-center gap-1">
+            {props.chatTab ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label={props.chatTab.title}
+                      data-active-tab={props.chatTab.active}
+                      onClick={props.chatTab.onActivate}
+                      onDoubleClick={props.chatTab.onRename}
+                      className={cn(
+                        "relative flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md",
+                        ownsDesktopTitleBar && "[-webkit-app-region:no-drag]",
+                        props.chatTab.active
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                      )}
+                    />
+                  }
+                >
+                  <ChatIcon className="size-3.5 shrink-0" />
+                  {props.chatTab.working ? (
+                    <span
+                      aria-label={gt("Working")}
+                      className="absolute top-1 right-1 size-1.5 rounded-full bg-primary"
+                    />
+                  ) : null}
+                </TooltipTrigger>
+                <TooltipPopup side="bottom">{props.chatTab.title}</TooltipPopup>
+              </Tooltip>
+            ) : null}
             <SortableTabList surfaces={props.surfaces} onMove={props.onMoveSurface}>
               {props.surfaces.map((surface) => {
                 const previewTabId = previewTabIdOf(surface, props.previewSessions);
@@ -1463,7 +1525,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                     key={surface.id}
                     surface={surface}
                     dragDisabled={!props.onMoveSurface || renamingDevice === surface.id}
-                    active={surface.id === props.activeSurfaceId}
+                    active={surface.id === props.activeSurfaceId && !props.chatTab?.active}
                     pending={props.pendingSurfaceIds.has(surface.id)}
                     title={surfaceTitle(
                       surface,
@@ -1503,7 +1565,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                     <Button
                       aria-label={gt("Add panel surface")}
                       className="shrink-0"
-                      size="icon-xs"
+                      size="icon-sm"
                       variant="ghost-muted"
                     />
                   }
@@ -1630,7 +1692,15 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           />
         ) : null}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col" data-right-panel-surface-content>
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col",
+          // The chat covers this area; the surface stays laid out so it keeps its state.
+          props.chatTab?.active && "invisible",
+        )}
+        inert={props.chatTab?.active === true}
+        data-right-panel-surface-content
+      >
         {props.activeSurfaceId === null ? (
           <RightPanelEmptyState
             onAddBrowser={props.onAddBrowser}

@@ -255,7 +255,7 @@ import {
   useComboboxFilter,
 } from "./ui/combobox";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
-import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
+import { SidebarBrand, SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
 import {
@@ -1023,7 +1023,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const highlightedProjectScopeKeyRef = useRef<string | null>(null);
   // Hold dropped rows until server placement is confirmed; block another pickup from replacing the hold.
   const [optimisticDrop, setOptimisticDrop] = useState<SidebarOptimisticDrop | null>(null);
-  const threadSearchInputRef = useRef<HTMLInputElement>(null);
   const [threadSearchQuery, setThreadSearchQuery] = useState("");
   const [searchHighlightKey, setSearchHighlightKey] = useState<string | null>(null);
   const connectedEnvironmentIds = useConnectedEnvironmentIds();
@@ -1430,10 +1429,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         typeof index === "function" ? index(activeSearchResultIndex) : index
       ] ?? null,
     );
-  const moveSearchHighlight = (step: 1 | -1) => {
-    const count = threadSearchResults.length;
-    setActiveSearchResultIndex((activeSearchResultIndex + step + count) % count);
-  };
 
   const orderedThreadKeysRef = useRef(orderedThreadKeys);
   // Read changing maps/sets through refs so streamed events preserve row callbacks.
@@ -1510,31 +1505,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     clearThreadSearch();
     navigateToThread(ref);
     if (match) openThreadFindOnQuery(scopedThreadKey(ref), findForMessageMatch(match, query));
-  };
-  const handleThreadSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
-    if (event.key === "Escape" && isSearchingThreads) {
-      event.preventDefault();
-      event.stopPropagation();
-      clearThreadSearch();
-      return;
-    }
-    if (threadSearchResults.length === 0) return;
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      moveSearchHighlight(1);
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      moveSearchHighlight(-1);
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const result = threadSearchResults[activeSearchResultIndex];
-      if (result) selectThreadSearchResult(result);
-    }
   };
 
   // The ref write stops the compiler memoizing this, and every row receives it.
@@ -3002,6 +2972,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         fixedHeader={
           <SidebarGroup className="z-[1]">
             <SidebarThreadHeader
+              brand={isElectron ? <SidebarBrand /> : null}
               hasProjects={projectGroups.length > 0}
               projectScope={
                 <Combobox
@@ -3224,17 +3195,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                   projectGroups.length,
                 )
               }
-              searchInputRef={threadSearchInputRef}
-              searchQuery={threadSearchQuery}
-              onSearchQueryChange={(value) => {
-                setThreadSearchQuery(value);
-                setSearchHighlightKey(null);
-              }}
-              onSearchKeyDown={handleThreadSearchKeyDown}
-              isSearching={isSearchingThreads}
-              searchResultCount={threadSearchResults.length}
-              activeSearchResultIndex={activeSearchResultIndex}
-              onClearSearch={clearThreadSearch}
             />
           </SidebarGroup>
         }

@@ -1013,9 +1013,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       !props.isActive &&
       "[&:not(:hover):not(:focus-within)_*:not(.live-activity-focus_*)]:text-secondary-label",
     props.isActive
-      ? "bg-sidebar-row-active text-sidebar-foreground light:ring-1 light:ring-inset light:ring-sidebar-border/70"
+      ? "bg-sidebar-row-active text-sidebar-foreground"
       : isSelected || props.sweepAction !== null
-        ? "bg-sidebar-row-selected text-sidebar-foreground light:ring-1 light:ring-inset light:ring-sidebar-border/70"
+        ? "bg-sidebar-row-selected text-sidebar-foreground"
         : hasUnsentDraft
           ? cn(draftSurfaceClassName, "text-sidebar-foreground")
           : shouldRecede
@@ -1271,8 +1271,27 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     issueBadge === null &&
     diff === null &&
     runningTerminalIds.length === 0;
-  const metaLine = metaLineEmpty ? null : (
-    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-secondary-label text-xs">
+  // BlueCode: cards are two lines, so the project moves down beside the branch.
+  const cardProjectLead =
+    variant === "card" && (props.project || props.projectDisplayName) ? (
+      <span className="inline-flex min-w-0 shrink items-center gap-1.5">
+        {props.project ? (
+          <ProjectFavicon project={props.project} className="size-3.5 shrink-0" />
+        ) : null}
+        {props.projectDisplayName ? (
+          <span className="truncate">{props.projectDisplayName}</span>
+        ) : null}
+      </span>
+    ) : null;
+  const metaLineShown = !metaLineEmpty || cardProjectLead !== null;
+  const metaLine = !metaLineShown ? null : (
+    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-muted-foreground text-xs">
+      {cardProjectLead}
+      {cardProjectLead && (checkoutThread.branch || showsScratchMachine) ? (
+        <span aria-hidden className="shrink-0 opacity-60">
+          ·
+        </span>
+      ) : null}
       {checkoutThread.branch ? (
         <>
           <ThreadWorktreeIndicator thread={checkoutThread} />
@@ -1313,7 +1332,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       </span>
     </div>
   );
-  const titleLineIcons = metaLineEmpty ? (
+  const titleLineIcons = !metaLineShown ? (
     <span aria-hidden className="inline-flex shrink-0 items-center gap-1">
       {remoteMachineIcon}
       <SidebarProviderStack
@@ -1538,8 +1557,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       // The hints are the rendered heights inside py-0.5. Revealing the open thread measures rows
       // that have not rendered yet, so a hint off by a pixel lands it a pixel short per row above.
       className={cn(
-        "list-none py-0.5 [content-visibility:auto] [contain-intrinsic-size:auto_78px]",
-        metaLineEmpty && "[contain-intrinsic-size:auto_60px]",
+        "list-none py-0.5 [content-visibility:auto] [contain-intrinsic-size:auto_56px]",
+        !metaLineShown && "[contain-intrinsic-size:auto_36px]",
         sortable?.isDragging && "relative z-20",
       )}
     >
@@ -1566,27 +1585,22 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
         >
           <div
             className={cn(
-              "relative z-10 h-[4.875rem] px-(--sidebar-row-content-inset) py-(--sidebar-content-inset)",
-              metaLineEmpty && "h-auto",
+              "relative z-10 h-13 px-(--sidebar-row-content-inset) py-1.5",
+              !metaLineShown && "h-auto",
             )}
           >
             <div className="flex h-5 min-w-0 items-center gap-1.5">
               {draftIndicator}
-              {props.project ? (
-                <ProjectFavicon project={props.project} className="size-4 shrink-0" />
-              ) : null}
               {/* Left of the status slot, the pin would slide when hover swaps the
                 label for the wider row controls. */}
               {pinIndicator}
-              {props.projectDisplayName ? (
-                <span
-                  className={cn("min-w-0 flex-1 truncate font-normal text-secondary-label text-xs")}
-                >
-                  {props.projectDisplayName}
+              {title}
+              {isRegeneratingTitle ? (
+                <span role="status" className="sr-only">
+                  <T>Regenerating title</T>
                 </span>
-              ) : (
-                <span className="flex-1" />
-              )}
+              ) : null}
+              {titleLineIcons}
               {sortable?.isDragging ? (
                 dragDestination
               ) : (
@@ -1726,15 +1740,6 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                 </span>
               )}
               {props.sweepAction !== null ? dragDestination : null}
-            </div>
-            <div className="mt-1 flex min-w-0 items-center gap-1.5">
-              {title}
-              {isRegeneratingTitle ? (
-                <span role="status" className="sr-only">
-                  <T>Regenerating title</T>
-                </span>
-              ) : null}
-              {titleLineIcons}
             </div>
             {metaLine}
           </div>

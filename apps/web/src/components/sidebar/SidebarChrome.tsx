@@ -1,4 +1,10 @@
-import { ArrowLeftIcon, ArrowRightIcon, ChartNoAxesColumnIcon, SettingsIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ChartNoAxesColumnIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  SettingsIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { T, useGT } from "gt-react";
 import { memo } from "react";
@@ -15,7 +21,7 @@ import {
 import { primaryServerKeybindingsAtom } from "../../state/server";
 import { cn } from "../../lib/utils";
 import { useIssuesSupported, usePullRequestsSupported } from "../../state/environments";
-import { T3Wordmark } from "../T3Wordmark";
+import { BlueCodeMoonMark } from "~/bluecode/brand/BlueCodeMoonMark";
 import {
   resolveEnvironmentIdentificationPillLabel,
   resolveSidebarStageBackdropVariant,
@@ -55,15 +61,10 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
     stageLabel,
     environmentIdentificationMode,
   );
-  const pillLabel =
-    environmentIdentificationMode === "pill"
-      ? resolveEnvironmentIdentificationPillLabel(stageLabel)
-      : null;
-
   return (
     <div
       className={cn(
-        "relative flex h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center gap-2 pr-3",
+        "relative flex h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center gap-2 pr-2",
         isElectron && "drag-region",
       )}
     >
@@ -75,24 +76,21 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
           aria-label={gt("Toggle main sidebar")}
         />
       </div>
-      <div className="relative z-10 flex h-8 min-w-0 flex-1 flex-wrap content-start items-center gap-x-2 overflow-hidden py-0.5">
-        <div className="flex shrink-0 items-center gap-1">
-          <SidebarBrand onBackdrop={backdropVariant !== null} />
-          {isElectron ? (
-            <div className="hidden items-center md:flex">
-              <HistoryNavigationButton direction="back" onBackdrop={backdropVariant !== null} />
-              <HistoryNavigationButton direction="forward" onBackdrop={backdropVariant !== null} />
-            </div>
-          ) : null}
+      {isElectron ? null : (
+        // BlueCode: on the web the mark leads the titlebar; desktop's window controls hold that
+        // corner, so there it leads the sidebar's next row instead.
+        <div className="relative z-10 ml-1 md:ml-3.5">
+          <SidebarBrand />
         </div>
-        {pillLabel ? (
-          <div className="ml-1 flex h-7 items-center">
-            <Badge data-environment-identification="pill" size="sm" variant="secondary">
-              {pillLabel}
-            </Badge>
-          </div>
-        ) : null}
-      </div>
+      )}
+      <div className="flex-1" />
+      {isElectron ? (
+        // BlueCode: Capy's titlebar ends with the sidebar toggle, then back and forward.
+        <div className="relative z-10 hidden items-center md:flex">
+          <HistoryNavigationButton direction="back" onBackdrop={backdropVariant !== null} />
+          <HistoryNavigationButton direction="forward" onBackdrop={backdropVariant !== null} />
+        </div>
+      ) : null}
     </div>
   );
 });
@@ -117,7 +115,6 @@ export function SidebarBrandWidthProbe({
       ref={observeWidth}
     >
       <div className="ml-[var(--workspace-titlebar-content-left)] flex gap-1">
-        <SidebarBrandMark onBackdrop={false} />
         {isElectron ? <div className="w-[calc(2*var(--workspace-titlebar-control-size))]" /> : null}
       </div>
     </div>
@@ -139,7 +136,7 @@ function HistoryNavigationButton({
     keybindings,
     direction === "back" ? "navigation.back" : "navigation.forward",
   );
-  const Icon = direction === "back" ? ArrowLeftIcon : ArrowRightIcon;
+  const Icon = direction === "back" ? ChevronLeftIcon : ChevronRightIcon;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -167,36 +164,30 @@ function HistoryNavigationButton({
   );
 }
 
-function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
+/** BlueCode: the moon mark, and the environment pill when that mode is on, as in Capy's sidebar. */
+export function SidebarBrand() {
   const gt = useGT();
+  const stageLabel = useEnvironmentStageLabel();
+  const environmentIdentificationMode = useEnvironmentIdentificationMode();
+  const pillLabel =
+    environmentIdentificationMode === "pill"
+      ? resolveEnvironmentIdentificationPillLabel(stageLabel)
+      : null;
   return (
-    <Link
-      aria-label={gt("T3 Code home")}
-      className={cn(
-        "relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center overflow-hidden rounded-md outline-hidden ring-ring focus-visible:ring-2 focus-visible:ring-inset md:flex",
-        onBackdrop ? "text-white" : "text-foreground",
-      )}
-      to="/"
-    >
-      <SidebarBrandMark onBackdrop={onBackdrop} />
-    </Link>
-  );
-}
-
-function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
-  return (
-    <span className="inline-flex min-w-0 items-baseline gap-1 text-sm font-medium tracking-tight">
-      <T3Wordmark aria-label="T3" className="h-[1cap] w-auto shrink-0" />
-      <span
-        className={cn(
-          "truncate [text-box:trim-both_cap_alphabetic] supports-[text-box:trim-both_cap_alphabetic]:py-1",
-          onBackdrop ? "text-white/70" : "text-muted-foreground",
-        )}
+    <div className="flex min-w-0 items-center gap-2">
+      <Link
+        aria-label={gt("T3 Code home")}
+        className="flex size-7 shrink-0 items-center justify-center rounded-md outline-hidden ring-ring focus-visible:ring-2 focus-visible:ring-inset"
+        to="/"
       >
-        {/* oxlint-disable-next-line t3code/no-untranslated-copy -- product wordmark */}
-        {"Code"}
-      </span>
-    </span>
+        <BlueCodeMoonMark className="size-7" label={null} />
+      </Link>
+      {pillLabel ? (
+        <Badge data-environment-identification="pill" size="sm" variant="secondary">
+          {pillLabel}
+        </Badge>
+      ) : null}
+    </div>
   );
 }
 

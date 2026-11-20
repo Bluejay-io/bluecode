@@ -65,7 +65,7 @@ const MenuTriggerButton = () => {
             render={
               <Button
                 variant="ghost"
-                size="icon-xs"
+                size="icon-sm"
                 type="button"
                 aria-label={gt("Preview menu")}
               />

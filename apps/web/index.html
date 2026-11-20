@@ -12,8 +12,8 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <script>
       (() => {
-        const LIGHT_BACKGROUND = "#ffffff";
-        const DARK_BACKGROUND = "#000000";
+        const LIGHT_BACKGROUND = "#fafafb";
+        const DARK_BACKGROUND = "#121213";
         const CUSTOM_THEMES_STORAGE_KEY = "t3code:themes:v1";
         const ENVIRONMENT_THEMES_STORAGE_KEY = "t3code:environment-themes:v1";
         const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "t3code:theme-follow-system";
@@ -21,14 +21,14 @@
         const THEME_HALVES_STORAGE_KEY = "t3code:theme-halves:v1";
         const SPLASH_COLORS = {
           light: {
-            background: "#ffffff",
-            foreground: "#262626",
-            accent: "#4f46e5",
+            background: "#fafafb",
+            foreground: "#1e1e20",
+            accent: "#3b5de8",
           },
           dark: {
-            background: "#000000",
-            foreground: "#f5f5f5",
-            accent: "#818cf8",
+            background: "#121213",
+            foreground: "#ebebec",
+            accent: "#456af6",
           },
         };
         // These are the runtime defaults used to complete a custom palette
@@ -52,74 +52,186 @@
         // Keep this small boot-time copy in sync with the built-in palettes so
         // the selected theme is visible before the app has mounted.
         const BUILT_IN_THEME_PALETTES = {
-          "t3-chat": {
+          absolutely: {
             light: {
-              background: "oklch(0.982446 0.010114 325.653)",
-              foreground: "oklch(0.325698 0.116116 325.037)",
-              accent: "oklch(0.591646 0.217985 0.584)",
-              chrome: "oklch(0.982446 0.010114 325.653)",
+              background: "oklch(0.987622 0.000901 106.449)",
+              foreground: "oklch(0.296426 0.00355 106.614)",
+              accent: "oklch(0.598087 0.145069 37.696)",
+              chrome: "oklch(0.987622 0.000901 106.449)",
             },
             dark: {
-              background: "oklch(0.22813 0.020366 307.469)",
-              foreground: "oklch(0.980735 0.004092 301.426)",
-              accent: "oklch(0.460685 0.185347 4.099)",
-              chrome: "oklch(0.22813 0.020366 307.469)",
+              background: "oklch(0.300537 0.003471 106.647)",
+              foreground: "oklch(0.981562 0.002639 106.448)",
+              accent: "oklch(0.687821 0.133123 35.778)",
+              chrome: "oklch(0.300537 0.003471 106.647)",
             },
           },
-          grove: {
+          "bearded-oled": {
             light: {
-              background: "oklch(0.972369 0.005497 157.15)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.523295 0.112292 158.089)",
-              chrome: "oklch(0.972369 0.005497 157.15)",
+              background: "oklch(0.98382 0.000453 286.374)",
+              foreground: "oklch(0.222964 0.003842 286.084)",
+              accent: "oklch(0.672874 0.172128 267.648)",
+              chrome: "oklch(0.98382 0.000453 286.374)",
             },
             dark: {
-              background: "oklch(0.260865 0.02152 162.75)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.796228 0.133058 157.319)",
-              chrome: "oklch(0.260865 0.02152 162.75)",
+              background: "oklch(0.122119 0 0)",
+              foreground: "oklch(0.766755 0 0)",
+              accent: "oklch(0.672874 0.172128 267.648)",
+              chrome: "oklch(0.122119 0 0)",
             },
           },
-          ocean: {
+          catppuccin: {
             light: {
-              background: "oklch(0.974199 0.002856 241.597)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.536684 0.120219 247.01)",
-              chrome: "oklch(0.974199 0.002856 241.597)",
+              background: "oklch(0.985639 0.001961 264.532)",
+              foreground: "oklch(0.43547 0.043008 279.325)",
+              accent: "oklch(0.55467 0.250346 297.016)",
+              chrome: "oklch(0.985639 0.001961 264.532)",
             },
             dark: {
-              background: "oklch(0.242641 0.024125 250.573)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.758933 0.105833 241.548)",
-              chrome: "oklch(0.242641 0.024125 250.573)",
+              background: "oklch(0.215522 0.025417 284.065)",
+              foreground: "oklch(0.87866 0.042552 272.277)",
+              accent: "oklch(0.787146 0.11867 304.769)",
+              chrome: "oklch(0.215522 0.025417 284.065)",
             },
           },
-          ember: {
+          codex: {
             light: {
-              background: "oklch(0.976527 0.002685 60.725)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.552831 0.129438 44.656)",
-              chrome: "oklch(0.976527 0.002685 60.725)",
+              background: "oklch(0.987812 0 0)",
+              foreground: "oklch(0.159066 0 0)",
+              accent: "oklch(0.528649 0.173447 254.975)",
+              chrome: "oklch(0.987812 0 0)",
             },
             dark: {
-              background: "oklch(0.245899 0.019144 42.044)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.762174 0.124117 52.082)",
-              chrome: "oklch(0.245899 0.019144 42.044)",
+              background: "oklch(0.218756 0 0)",
+              foreground: "oklch(0.991069 0 0)",
+              accent: "oklch(0.528649 0.173447 254.975)",
+              chrome: "oklch(0.218756 0 0)",
             },
           },
-          iris: {
+          "crimson-evernight": {
             light: {
-              background: "oklch(0.976531 0.003855 303.226)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.525348 0.15373 294.176)",
-              chrome: "oklch(0.976531 0.003855 303.226)",
+              background: "oklch(0.982207 0.00342 1.989)",
+              foreground: "oklch(0.251152 0.019897 356.773)",
+              accent: "oklch(0.484499 0.179322 6.099)",
+              chrome: "oklch(0.982207 0.00342 1.989)",
             },
             dark: {
-              background: "oklch(0.225975 0.031062 293.741)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.671712 0.169136 293.929)",
-              chrome: "oklch(0.225975 0.031062 293.741)",
+              background: "oklch(0.137063 0.010654 350.97)",
+              foreground: "oklch(0.924566 0.011557 357.016)",
+              accent: "oklch(0.686015 0.139792 11.361)",
+              chrome: "oklch(0.137063 0.010654 350.97)",
+            },
+          },
+          everforest: {
+            light: {
+              background: "oklch(0.983736 0.010394 98.864)",
+              foreground: "oklch(0.515402 0.021214 232.866)",
+              accent: "oklch(0.669732 0.156008 118.23)",
+              chrome: "oklch(0.983736 0.010394 98.864)",
+            },
+            dark: {
+              background: "oklch(0.3236 0.011646 232.891)",
+              foreground: "oklch(0.829874 0.040522 86.053)",
+              accent: "oklch(0.773207 0.090629 125.783)",
+              chrome: "oklch(0.3236 0.011646 232.891)",
+            },
+          },
+          firecrawl: {
+            light: {
+              background: "oklch(0.99392 0 0)",
+              foreground: "oklch(0.268618 0 0)",
+              accent: "oklch(0.677684 0.204333 39.679)",
+              chrome: "oklch(0.99392 0 0)",
+            },
+            dark: {
+              background: "oklch(0.240183 0 0)",
+              foreground: "oklch(0.982118 0 0)",
+              accent: "oklch(0.677684 0.204333 39.679)",
+              chrome: "oklch(0.240183 0 0)",
+            },
+          },
+          github: {
+            light: {
+              background: "oklch(0.99258 0.001162 247.858)",
+              foreground: "oklch(0.254208 0.011124 254.038)",
+              accent: "oklch(0.539924 0.190584 257.481)",
+              chrome: "oklch(0.99258 0.001162 247.858)",
+            },
+            dark: {
+              background: "oklch(0.217471 0.01332 258.357)",
+              foreground: "oklch(0.942539 0.01105 243.657)",
+              accent: "oklch(0.715252 0.15181 253.306)",
+              chrome: "oklch(0.217471 0.01332 258.357)",
+            },
+          },
+          gruvbox: {
+            light: {
+              background: "oklch(0.973487 0.018815 92.526)",
+              foreground: "oklch(0.344068 0.006603 48.523)",
+              accent: "oklch(0.575589 0.065839 199.487)",
+              chrome: "oklch(0.973487 0.018815 92.526)",
+            },
+            dark: {
+              background: "oklch(0.30326 0.002878 17.315)",
+              foreground: "oklch(0.894146 0.056589 89.24)",
+              accent: "oklch(0.575589 0.065839 199.487)",
+              chrome: "oklch(0.30326 0.002878 17.315)",
+            },
+          },
+          hub: {
+            light: {
+              background: "oklch(0.98382 0.000453 286.374)",
+              foreground: "oklch(0.222964 0.003842 286.084)",
+              accent: "oklch(0.672407 0.156333 60.895)",
+              chrome: "oklch(0.98382 0.000453 286.374)",
+            },
+            dark: {
+              background: "oklch(0.05 0 0)",
+              foreground: "oklch(1 0 0)",
+              accent: "oklch(0.757005 0.17725 60.16)",
+              chrome: "oklch(0.05 0 0)",
+            },
+          },
+          linear: {
+            light: {
+              background: "oklch(0.988701 0.001956 264.532)",
+              foreground: "oklch(0.313132 0.028735 265.239)",
+              accent: "oklch(0.567376 0.158526 275.206)",
+              chrome: "oklch(0.988701 0.001956 264.532)",
+            },
+            dark: {
+              background: "oklch(0.187666 0.010909 266.847)",
+              foreground: "oklch(0.933459 0.008714 264.521)",
+              accent: "oklch(0.564786 0.149676 276.118)",
+              chrome: "oklch(0.187666 0.010909 266.847)",
+            },
+          },
+          notion: {
+            light: {
+              background: "oklch(0.990846 0.0014 91.446)",
+              foreground: "oklch(0.328942 0.010678 91.659)",
+              accent: "oklch(0.602859 0.151327 252.476)",
+              chrome: "oklch(0.990846 0.0014 91.446)",
+            },
+            dark: {
+              background: "oklch(0.235948 0 0)",
+              foreground: "oklch(0.885019 0.001355 106.427)",
+              accent: "oklch(0.602859 0.151327 252.476)",
+              chrome: "oklch(0.235948 0 0)",
+            },
+          },
+          one: {
+            light: {
+              background: "oklch(0.978693 0.000454 286.374)",
+              foreground: "oklch(0.349645 0.014137 274.503)",
+              accent: "oklch(0.597134 0.190593 271.069)",
+              chrome: "oklch(0.978693 0.000454 286.374)",
+            },
+            dark: {
+              background: "oklch(0.299839 0.012033 258.372)",
+              foreground: "oklch(0.762093 0.020162 262.987)",
+              accent: "oklch(0.561528 0.016568 264.433)",
+              chrome: "oklch(0.299839 0.012033 258.372)",
             },
           },
         };
@@ -138,6 +250,19 @@
           "ocean",
           "ember",
           "iris",
+          "absolutely",
+          "bearded-oled",
+          "catppuccin",
+          "codex",
+          "crimson-evernight",
+          "everforest",
+          "firecrawl",
+          "github",
+          "gruvbox",
+          "hub",
+          "linear",
+          "notion",
+          "one",
           "t3-chat-dark",
           "t3-grove",
           "t3-ocean",
@@ -681,13 +806,13 @@
       if (desktopDisplayName) document.title = desktopDisplayName;
     </script>
     <!-- vite.config.ts stamps the web build's channel into this title. -->
-    <title>T3 Code</title>
+    <title>BlueCode</title>
   </head>
   <body>
     <div id="root">
       <div id="boot-shell">
-        <div id="boot-shell-card" aria-label="T3 Code splash screen">
-          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="T3 Code" />
+        <div id="boot-shell-card" aria-label="BlueCode splash screen">
+          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="BlueCode" />
         </div>
       </div>
     </div>

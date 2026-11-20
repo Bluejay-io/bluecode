@@ -3,7 +3,7 @@ import { type ToolActivityIcon } from "@t3tools/contracts";
 import { toolActivityFaviconUrl } from "@t3tools/shared/favicon";
 import { getProjectFaviconCacheKey } from "@t3tools/shared/projectFavicon";
 import { use, useState } from "react";
-import { T3Wordmark } from "../T3Wordmark";
+import { BlueCodeMoonMark } from "~/bluecode/brand/BlueCodeMoonMark";
 import {
   BotIcon,
   BrainIcon,
@@ -28,10 +28,6 @@ import { cn } from "~/lib/utils";
 import { TimelineRowCtx } from "./timelineRowContext";
 
 export const failedToolIconClassName = "text-tool-error-icon/40";
-
-export function toolIconAcceptsTint(toolIcon: ToolActivityIcon | undefined): boolean {
-  return toolIcon === undefined;
-}
 
 export type WorkEntryIconName =
   | "bot"
@@ -245,7 +241,7 @@ function WorkEntryIcon({ name, className }: { name: WorkEntryIconName; className
     case "device":
       return <SmartphoneIcon className={className} aria-hidden />;
     case "t3-code":
-      return <T3Wordmark className={className} aria-hidden />;
+      return <BlueCodeMoonMark className={className} tone="current" label={null} />;
     case "check":
       return <CheckIcon className={className} aria-hidden />;
     case "list-todo":

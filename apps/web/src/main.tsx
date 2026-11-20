@@ -2,7 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import "@fontsource-variable/inter";
+import "@fontsource-variable/geist-mono";
 import "./index.css";
+import "./bluecode/theme.css";
 
 import { hasCloudPublicConfig } from "./cloud/publicConfig";
 import { isElectron } from "./env";

@@ -4,7 +4,11 @@ import { useAtomValue } from "@effect/atom-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import type { DesktopPreviewAnnotationVoiceConfig } from "@t3tools/contracts";
-import { previewStreamDownloadUrl } from "@t3tools/client-runtime/preview/server-browser-stream";
+import {
+  previewStreamDownloadUrl,
+  type PreviewStreamControl,
+} from "@t3tools/client-runtime/preview/server-browser-stream";
+import { BrowserControlButton } from "~/bluecode/browser/BrowserControlButton";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -19,6 +23,7 @@ import {
   DEFAULT_PREVIEW_ZOOM_FACTOR,
   PREVIEW_ZOOM_LEVELS,
   type PreviewAdjustInput,
+  type PreviewRuntime,
 } from "@t3tools/contracts";
 import {
   normalizePreviewUrl,
@@ -40,6 +45,8 @@ import { type ComposerImageAttachment, useComposerDraftStore } from "~/composerD
 import { capturePreviewAnnotationScreenshot } from "~/lib/previewAnnotation";
 import { readComposerImageBytes } from "../chat/composerAttachmentFiles";
 import { ensureLocalApi } from "~/localApi";
+import { isPublicWebUrl } from "~/bluecode/browser/publicWebUrl";
+import { isElectron } from "~/env";
 import { getClientSettings } from "~/hooks/useSettings";
 import {
   rememberPreviewUrl,
@@ -245,6 +252,10 @@ export function PreviewView({
     );
   }, [serverToolbarShown]);
   const [serverControlledTabId, setServerControlledTabId] = useState<string | null>(null);
+  const [serverControl, setServerControl] = useState<{
+    readonly tabId: string | null;
+    readonly control: PreviewStreamControl | null;
+  }>({ tabId: null, control: null });
   const serverInputDisabled = isServerTab && serverControlledTabId !== runtimeTabId;
   const [serverStreamSettledTabId, setServerStreamSettledTabId] = useState<string | null>(null);
   // A desktop page that mounted before its tab went headless leaves its stale state here.
@@ -310,10 +321,20 @@ export function PreviewView({
   const isHistoryProfile = (profileId: string | null) =>
     profileId !== null && profileId !== INCOGNITO_BROWSER_PROFILE_ID;
 
-  const handleSubmitUrl = async (next: string) => {
+  const handleSubmitUrl = async (next: string, { onHost }: { readonly onHost: boolean }) => {
     try {
       const resolved = resolveAddressBarInput(next, resolveSearchUrlTemplate(getClientSettings()));
-      if (isHistoryProfile(await navigateToResolvedUrl(resolved))) {
+      // BlueCode: web tabs stream from the environment, so a public site opens in this browser.
+      if (!onHost && !isElectron && localApi && isPublicWebUrl(resolved)) {
+        await localApi.shell.openExternal(resolved);
+        return;
+      }
+      // BlueCode: a desktop tab for another environment loads here; this streams it from there.
+      const opened =
+        onHost && hostRuntimeAvailable
+          ? await reopenTabIn("server", resolved)
+          : await navigateToResolvedUrl(resolved);
+      if (isHistoryProfile(opened)) {
         recordVisitForThread(threadRef, resolved);
       }
     } catch (error) {
@@ -477,35 +498,43 @@ export function PreviewView({
         ? gt("Open in the environment's browser")
         : gt("Open in {environment}''s browser", { environment: environmentLabel })
       : gt("Open on this computer");
-  const handleMoveTab = async () => {
-    if (!moveTarget || !tabId || !snapshot) return;
+  const hostRuntimeAvailable =
+    isElectron &&
+    serverBrowser &&
+    threadRef.environmentId !== primaryEnvironmentId &&
+    snapshot?.runtime !== "server";
+  /** Replaces this tab with one in `runtime`; resolves to the new tab's profile, or null. */
+  const reopenTabIn = async (runtime: PreviewRuntime, nextUrl: string | null) => {
     const result = await openPreviewSession({
       openPreview: open,
       threadRef,
-      ...(url
-        ? {
-            url:
-              moveTarget === "desktop"
-                ? resolveDiscoveredServerUrl(threadRef.environmentId, url)
-                : url,
-          }
-        : {}),
+      ...(nextUrl ? { url: nextUrl } : {}),
       viewport,
-      ...(snapshot.profileId === undefined ? {} : { profileId: snapshot.profileId }),
-      runtime: moveTarget,
+      ...(snapshot?.profileId === undefined ? {} : { profileId: snapshot.profileId }),
+      runtime,
     });
     if (result._tag === "Failure") {
-      if (isAtomCommandInterrupted(result)) return;
+      if (isAtomCommandInterrupted(result)) return null;
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
         title: gt("Unable to move the browser tab"),
         description: thrownErrorMessage(error, m) ?? gt("An error occurred."),
       });
-      return;
+      return null;
     }
     useRightPanelStore.getState().openBrowser(threadRef, result.value.tabId);
-    await closePreviewSession({ closePreview, snapshot, tabId, threadRef });
+    if (snapshot && tabId) await closePreviewSession({ closePreview, snapshot, tabId, threadRef });
+    return result.value.profileId ?? DEFAULT_BROWSER_PROFILE_ID;
+  };
+  const handleMoveTab = async () => {
+    if (!moveTarget || !tabId || !snapshot) return;
+    await reopenTabIn(
+      moveTarget,
+      url && moveTarget === "desktop"
+        ? resolveDiscoveredServerUrl(threadRef.environmentId, url)
+        : url || null,
+    );
   };
 
   const handlePictureInPicture = () => {
@@ -1017,7 +1046,7 @@ export function PreviewView({
         onForward={handleForward}
         onRefresh={handleRefresh}
         onStopLoading={handleStopLoading}
-        onSubmit={(next) => void handleSubmitUrl(next)}
+        onSubmit={(next, options) => void handleSubmitUrl(next, options)}
         onOpenInBrowser={tabId ? handleOpenInBrowser : undefined}
         onCapture={previewBridge && tabId && !isServerTab ? handleCapture : undefined}
         captureDisabled={!desktopOverlay || isUnreachable}
@@ -1048,33 +1077,41 @@ export function PreviewView({
           ) : null
         }
         trailingActions={
-          moreMenuActions ? (
-            <PreviewMoreMenu
-              enabled={
-                runtimeTabId !== null &&
-                (serverOwnsRendering || (desktopOverlay?.hasWebContents ?? false))
-              }
-              actions={moreMenuActions}
-              {...(moveTarget
-                ? { move: { label: moveLabel, onMove: () => void handleMoveTab() } }
-                : {})}
-              profileName={activeProfileName}
-              findShortcutLabel={shortcutLabelForCommand(keybindings, "preview.find", {
-                context: { previewFocus: true },
-              })}
-              zoomFactor={
-                serverOwnsRendering ? serverZoomFactor : (desktopOverlay?.zoomFactor ?? 1)
-              }
-              colorScheme={
-                serverOwnsRendering
-                  ? (snapshot?.colorScheme ?? "system")
-                  : (desktopOverlay?.colorScheme ?? "system")
-              }
-              deviceToolbarVisible={viewport._tag !== "fill"}
-              onToggleDeviceToolbar={handleToggleDeviceToolbar}
-              nativePictureInPicture={desktopOverlay?.pictureInPicture ?? false}
-            />
-          ) : null
+          <>
+            {isServerTab && serverControl.tabId === runtimeTabId ? (
+              <BrowserControlButton
+                control={serverControl.control}
+                onChange={(take) => serverSurfaceRef.current?.setControl(take)}
+              />
+            ) : null}
+            {moreMenuActions ? (
+              <PreviewMoreMenu
+                enabled={
+                  runtimeTabId !== null &&
+                  (serverOwnsRendering || (desktopOverlay?.hasWebContents ?? false))
+                }
+                actions={moreMenuActions}
+                {...(moveTarget
+                  ? { move: { label: moveLabel, onMove: () => void handleMoveTab() } }
+                  : {})}
+                profileName={activeProfileName}
+                findShortcutLabel={shortcutLabelForCommand(keybindings, "preview.find", {
+                  context: { previewFocus: true },
+                })}
+                zoomFactor={
+                  serverOwnsRendering ? serverZoomFactor : (desktopOverlay?.zoomFactor ?? 1)
+                }
+                colorScheme={
+                  serverOwnsRendering
+                    ? (snapshot?.colorScheme ?? "system")
+                    : (desktopOverlay?.colorScheme ?? "system")
+                }
+                deviceToolbarVisible={viewport._tag !== "fill"}
+                onToggleDeviceToolbar={handleToggleDeviceToolbar}
+                nativePictureInPicture={desktopOverlay?.pictureInPicture ?? false}
+              />
+            ) : null}
+          </>
         }
       />
 
@@ -1119,9 +1156,11 @@ export function PreviewView({
                 visible={visible}
                 onFirstFrame={() => setServerStreamSettledTabId(runtimeTabId)}
                 onNoFrames={() => setServerStreamSettledTabId(runtimeTabId)}
-                onControl={(control) =>
-                  setServerControlledTabId(control?.controller === "you" ? runtimeTabId : null)
-                }
+                onControl={(control) => {
+                  setServerControlledTabId(control?.controller === "you" ? runtimeTabId : null);
+                  setServerControl({ tabId: runtimeTabId, control });
+                }}
+                controlPosition="none"
                 onPopup={(popupTabId) => showPreviewPopup(threadRef, popupTabId, "panel")}
                 // Stays connected under the empty state so a URL picked there reaches the page.
                 className="absolute inset-0 h-full w-full"

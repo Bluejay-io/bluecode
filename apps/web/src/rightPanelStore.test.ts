@@ -154,6 +154,42 @@ describe("rightPanelStore", () => {
     expect(useClosedViewStore.getState().entries).toHaveLength(1);
   });
 
+  it("carries the panel's open state to the next thread, keeping each thread's tabs", () => {
+    const store = useRightPanelStore.getState();
+    store.open(refB, "files");
+    store.close(refB);
+    store.open(refA, "diff");
+    store.carryPanel(refA, refB);
+    let next = selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refB);
+    expect(next).toMatchObject({ isOpen: true, activeSurfaceId: "files" });
+    expect(next.surfaces.map((surface) => surface.id)).toEqual(["files"]);
+    store.close(refB);
+    store.carryPanel(refB, refA);
+    next = selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA);
+    expect(next.isOpen).toBe(false);
+  });
+
+  it("drops the retired Overview tab from saved panels", () => {
+    const threadKey = "env-1:thread-A";
+    const migrated = migratePersistedRightPanelState({
+      byThreadKey: {
+        [threadKey]: {
+          isOpen: true,
+          activeSurfaceId: "overview",
+          surfaces: [
+            { id: "overview", kind: "overview" },
+            { id: "diff", kind: "diff" },
+          ],
+        },
+      },
+    });
+    expect(migrated.byThreadKey[threadKey]).toMatchObject({
+      isOpen: true,
+      activeSurfaceId: "diff",
+      surfaces: [{ id: "diff", kind: "diff" }],
+    });
+  });
+
   it("gives each host/device its own tab and preserves renamed tabs", () => {
     const store = useRightPanelStore.getState();
     const android = {
@@ -700,12 +736,19 @@ describe("rightPanelStore", () => {
     ).toEqual({
       byThreadKey: {},
       threadPanelVisibilityByThreadKey: {
-        "env-1:thread-A": { inlineOpen: false, popoverOpen: false },
+        "env-1:thread-B": { inlineOpen: true, popoverOpen: false },
       },
     });
   });
 
   it("closes the popover atomically when the real right panel opens", () => {
+    // A thread's details card starts closed.
+    expect(
+      selectThreadPanelVisibility(
+        useRightPanelStore.getState().threadPanelVisibilityByThreadKey,
+        refA,
+      ),
+    ).toEqual({ inlineOpen: false, popoverOpen: false });
     useRightPanelStore.getState().setThreadPanelOpen(refA, "popover", true);
     useRightPanelStore.getState().open(refA, "diff");
 
@@ -714,7 +757,7 @@ describe("rightPanelStore", () => {
         useRightPanelStore.getState().threadPanelVisibilityByThreadKey,
         refA,
       ),
-    ).toEqual({ inlineOpen: true, popoverOpen: false });
+    ).toEqual({ inlineOpen: false, popoverOpen: false });
   });
 
   it("keeps an open popover visible by promoting it to inline when the real panel closes", () => {

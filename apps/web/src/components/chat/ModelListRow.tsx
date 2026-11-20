@@ -34,6 +34,8 @@ export const ModelListRow = memo(function ModelListRow(props: {
   jumpLabel?: string | null;
   disabledReason?: string | null;
   onToggleFavorite: (instanceId: ProviderInstanceId, slug: string) => void;
+  /** The combobox value, when the model is listed twice (in Favorites and under its provider). */
+  itemValue?: string;
 }) {
   const gt = useGT();
   const model = {
@@ -47,7 +49,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
       hideIndicator
       selectedFill={false}
       index={props.index}
-      value={modelPickerModelKey(props.instanceId, props.slug)}
+      value={props.itemValue ?? modelPickerModelKey(props.instanceId, props.slug)}
       disabled={Boolean(props.disabledReason)}
       className={cn(
         "group relative w-full !min-w-0 max-w-full cursor-pointer",
@@ -81,7 +83,6 @@ export const ModelListRow = memo(function ModelListRow(props: {
           {/* The logo is decorative, so name the provider for screen readers. */}
           <span className="sr-only">, {props.providerDisplayName}</span>
         </div>
-        {props.isSelected ? <CheckIcon className="size-3.5 shrink-0" aria-hidden="true" /> : null}
         {props.subProvider ? (
           <span className="min-w-0 shrink truncate text-xs text-muted-foreground/70">
             {props.subProvider}
@@ -135,6 +136,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
           </TooltipPopup>
         </Tooltip>
         {props.jumpLabel ? <Kbd>{props.jumpLabel}</Kbd> : null}
+        {props.isSelected ? <CheckIcon className="size-3.5 shrink-0" aria-hidden="true" /> : null}
       </div>
     </ComboboxItem>
   );

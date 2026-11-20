@@ -430,12 +430,17 @@ export function pairVsCodeThemes(
       group.dark.length === 1 &&
       (!light.css || !dark.css || light.css === dark.css)
     ) {
+      const familyId = themeIdFromName(key);
       try {
         paired.push({
           order: group.order,
           theme: parseThemeFile({
             version: THEME_FILE_VERSION,
-            ...(options?.pairedId ? { id: options.pairedId(light, dark) } : {}),
+            ...(options?.pairedId
+              ? { id: options.pairedId(light, dark) }
+              : isReservedThemeId(familyId)
+                ? { id: `${familyId}-vscode` }
+                : {}),
             name: key,
             appearance: "light",
             colors: light.colors,

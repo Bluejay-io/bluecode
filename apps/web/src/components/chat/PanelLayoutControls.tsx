@@ -147,6 +147,47 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
   );
 });
 
+/**
+ * BlueCode: full width shows one view at a time and minimizes into split view, the chat beside the
+ * active tab; split view maximizes back. The icon names the action, as the window controls do.
+ */
+export function SplitViewToggle(props: {
+  readonly splitView: boolean;
+  readonly disabled: boolean;
+  readonly shortcutLabel: string | null;
+  readonly onToggle: () => void;
+}) {
+  const gt = useGT();
+  const action = props.splitView ? gt("Maximize") : gt("Minimize to split view");
+  const label = props.disabled
+    ? gt("Open a tab to see it beside the chat")
+    : props.shortcutLabel
+      ? gt("{action} ({shortcut})", { action, shortcut: props.shortcutLabel })
+      : action;
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span className="flex shrink-0" />}>
+        <Toggle
+          className="shrink-0 [-webkit-app-region:no-drag]"
+          pressed={false}
+          disabled={props.disabled}
+          onPressedChange={props.onToggle}
+          aria-label={action}
+          variant="ghost"
+          size="sm"
+        >
+          {props.splitView ? (
+            <Maximize2Icon className="size-4" />
+          ) : (
+            <Minimize2Icon className="size-4" />
+          )}
+        </Toggle>
+      </TooltipTrigger>
+      <TooltipPopup side="bottom">{label}</TooltipPopup>
+    </Tooltip>
+  );
+}
+
 export const RightPanelMaximizeControl = memo(function RightPanelMaximizeControl({
   maximized,
   onToggle,
@@ -180,22 +221,6 @@ export const RightPanelMaximizeControl = memo(function RightPanelMaximizeControl
     </Tooltip>
   );
 });
-
-/** The thread panel toggle on a header whose right side the inline right panel covers. */
-export function ThreadPanelHeaderControl(props: PanelLayoutControlsProps) {
-  const mobileSidebarSheetMounted = useMobileSidebarSheetMounted();
-  return (
-    <div
-      className={cn(
-        "absolute top-[var(--workspace-controls-top)] right-[calc(env(safe-area-inset-right)+0.75rem)] z-50 flex h-[var(--workspace-topbar-height)] items-center [-webkit-app-region:no-drag]",
-        mobileSidebarSheetMounted && "hidden",
-      )}
-      data-workspace-titlebar-controls
-    >
-      <PanelLayoutControls {...props} showTerminalControl={false} showRightPanelControl={false} />
-    </div>
-  );
-}
 
 /** The window's top-right panel controls, with the maximize toggle while the panel is open. */
 export function WorkspaceTitlebarControls(props: {

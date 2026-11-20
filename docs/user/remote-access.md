@@ -301,7 +301,12 @@ host cannot be reached, the tab shows a connection error; a `localhost`,
 Other names that point at your computer, such as `/etc/hosts` entries, still
 do. These tabs ignore your system proxy settings, so they can't reach a host
 you connect to only through a proxy or over HTTPS with a privately issued
-certificate. The web app keeps streaming.
+certificate. Press Shift+Enter in a tab's address bar to open the page in the
+host's browser instead.
+
+The web app streams its tabs from the host, except that a public site you type
+into the address bar opens in a new tab of your own browser. Press Shift+Enter
+to stream it from the host instead.
 
 The desktop app can also forward a port on the host to your computer, so any
 app there, such as your own browser, `curl`, or a database client, reaches it

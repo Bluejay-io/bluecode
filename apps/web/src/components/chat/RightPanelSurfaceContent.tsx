@@ -13,6 +13,7 @@ import type {
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { lazy, Suspense } from "react";
 import SideChatPane from "./SideChatPane";
+import SubagentPane from "./SubagentPane";
 import type { ComposerImageAttachment, DraftId } from "../../composerDraftStore";
 import type { ShortcutMatchContext } from "../../keybindings";
 import type { SideChatParentPanel } from "../../lib/sideChatPane";
@@ -84,7 +85,7 @@ export function RightPanelSurfaceContent(props: {
   readonly files: RightPanelFileProps;
   readonly sideChatParentPanel: SideChatParentPanel;
 }) {
-  const { surface, threadRef, visible, onCloseSurface } = props;
+  const { surface, threadRef, visible } = props;
   const gt = useGT();
   if (surface === null) return null;
   switch (surface.kind) {
@@ -220,7 +221,16 @@ export function RightPanelSurfaceContent(props: {
           parentRef={threadRef}
           threadId={surface.threadId}
           parentPanel={props.sideChatParentPanel}
-          onClose={() => onCloseSurface(surface)}
+        />
+      );
+    case "subagent":
+      return (
+        <SubagentPane
+          key={surface.id}
+          parentRef={threadRef}
+          environmentId={surface.environmentId as EnvironmentId}
+          threadId={surface.threadId}
+          parentPanel={props.sideChatParentPanel}
         />
       );
     case "device":

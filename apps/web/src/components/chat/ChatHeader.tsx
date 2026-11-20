@@ -11,7 +11,6 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import { T, useGT, Var } from "gt-react";
-import { ChevronDownIcon } from "lucide-react";
 import {
   memo,
   useEffect,
@@ -20,7 +19,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { isTrailingDoubleClick } from "../Sidebar.logic";
 import { Badge } from "../ui/badge";
 import { MiddleTruncate } from "../ui/middle-truncate";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -40,7 +38,6 @@ import {
   WorkspaceBreadcrumbText,
 } from "../WorkspaceBreadcrumb";
 import { observeResize } from "~/lib/observeResize";
-import { cn } from "~/lib/utils";
 import { textDirection } from "~/textDirection";
 import { useClientSettings } from "../../hooks/useSettings";
 import { GuestShareIndicator } from "./GuestShareControls";
@@ -54,7 +51,6 @@ interface ChatHeaderProps {
   activeProject: EnvironmentProject | null;
   parentThreadLink: { threadId: ThreadId; title: string } | null;
   onOpenThread: (threadId: ThreadId) => void;
-  rightPanelOpen: boolean;
   onNewThreadInProject: () => void;
   onOpenProjectSettings?: (() => void) | undefined;
   onFindInThread?: ((threadRef: ScopedThreadRef) => void) | undefined;
@@ -79,7 +75,6 @@ export const ChatHeader = memo(function ChatHeader({
   activeProject,
   parentThreadLink,
   onOpenThread,
-  rightPanelOpen,
   onNewThreadInProject,
   onOpenProjectSettings,
   onFindInThread,
@@ -206,15 +201,10 @@ export const ChatHeader = memo(function ChatHeader({
     onFind: onFindInThread,
     canShareWithGuest,
   });
-  const openMenuFromTitle = (event: ReactMouseEvent<HTMLButtonElement>) => {
-    if (isTrailingDoubleClick(event.detail)) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    openMenu({ x: rect.left, y: rect.bottom + 4 });
-  };
+
   // A native menu takes the second click, so only the in-page menu lets a double-click reach here.
   const handleTitleDoubleClick = (event: ReactMouseEvent) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    if ((event.target as HTMLElement).closest("[data-thread-title-chevron]") !== null) return;
     closeMenu();
     startRename();
   };
@@ -251,10 +241,7 @@ export const ChatHeader = memo(function ChatHeader({
   return (
     <div
       ref={breadcrumbContainerRef}
-      className={cn(
-        "flex min-w-0 flex-1 items-center gap-2 sm:gap-3",
-        rightPanelOpen ? "pr-10" : "pr-24",
-      )}
+      className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"
       onContextMenu={handleHeaderContextMenu}
     >
       <WorkspaceBreadcrumb
@@ -357,24 +344,15 @@ export const ChatHeader = memo(function ChatHeader({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
-                    type="button"
-                    aria-label={gt("Thread actions for {title}", { title: activeThreadTitle })}
-                    aria-haspopup="menu"
-                    onClick={openMenuFromTitle}
+                  // BlueCode: thread actions moved to the "…" button; double-click still renames.
+                  <h2
+                    className="inline-flex min-w-0 max-w-full"
+                    dir={textDirection(activeThreadTitle)}
                     onDoubleClick={canOperateThread ? handleTitleDoubleClick : undefined}
-                    className="group/thread-title inline-flex min-w-0 max-w-full cursor-pointer items-center gap-1 rounded-sm text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   />
                 }
               >
-                <h2 className="min-w-0" dir={textDirection(activeThreadTitle)}>
-                  <WorkspaceBreadcrumbText>{activeThreadTitle}</WorkspaceBreadcrumbText>
-                </h2>
-                <ChevronDownIcon
-                  aria-hidden
-                  data-thread-title-chevron
-                  className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/thread-title:opacity-100 group-focus-visible/thread-title:opacity-100"
-                />
+                <WorkspaceBreadcrumbText>{activeThreadTitle}</WorkspaceBreadcrumbText>
               </TooltipTrigger>
               <TooltipPopup side="top">{activeThreadTitle}</TooltipPopup>
             </Tooltip>

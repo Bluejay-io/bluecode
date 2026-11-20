@@ -60,6 +60,7 @@ vi.mock("../commandPaletteBus", () => ({
   isCommandPaletteOpen: () => false,
 }));
 vi.mock("./sidebar/SidebarChrome", () => ({
+  SidebarBrand: () => null,
   SidebarChromeHeader: () => null,
   SidebarChromeFooter: () => null,
 }));

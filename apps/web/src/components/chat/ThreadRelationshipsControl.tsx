@@ -50,7 +50,6 @@ import {
   ChevronDownIcon,
   CornerLeftUpIcon,
   GitForkIcon,
-  MessagesSquareIcon,
   MoreHorizontalIcon,
   PlusIcon,
   SquareIcon,
@@ -91,6 +90,8 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { toastManager } from "../ui/toast";
 import { Spinner } from "../ui/spinner";
 import { cn } from "~/lib/utils";
+import { SideChatIcon } from "~/bluecode/icons/SideChatIcon";
+import { useRightPanelStore } from "~/rightPanelStore";
 import {
   THREAD_DETAILS_PANEL_CHEVRON_CLASS,
   THREAD_DETAILS_PANEL_ICON_CLASS,
@@ -677,12 +678,17 @@ export function ThreadRelationshipsPanel(props: {
   }
 
   // Idle children can be omitted from the shell; opening one loads its own detail.
-  const openThread = (threadId: ThreadId) => {
+  // BlueCode: subagents open as read-only tabs beside this thread's chat.
+  const openThread = (threadId: ThreadId, asTab = false) => {
     const routeRef = resolveThreadOpenRoute(
       scopeThreadRef(props.environmentId, threadId),
       graph.nodes.get(threadId)?.thread ?? null,
     );
     if (routeRef.threadId === ref.threadId) return;
+    if (asTab) {
+      useRightPanelStore.getState().openSubagent(ref, routeRef);
+      return;
+    }
     void navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(routeRef),
@@ -785,7 +791,7 @@ export function ThreadRelationshipsPanel(props: {
       : isSubagent
         ? BotIcon
         : node?.thread?.lineage.sideChat === true
-          ? MessagesSquareIcon
+          ? SideChatIcon
           : GitForkIcon;
 
     const projectedAgent = isSubagent && !isParent ? subagentsByThreadId.get(threadId) : undefined;
@@ -904,7 +910,7 @@ export function ThreadRelationshipsPanel(props: {
               size="sm"
               variant="ghost"
               part={workflowGroup ? "primary" : "row"}
-              onClick={() => openThread(threadId)}
+              onClick={() => openThread(threadId, isSubagent && !isParent)}
             />
           }
         >
@@ -923,7 +929,7 @@ export function ThreadRelationshipsPanel(props: {
           providers={providers}
           providerEntries={providerEntries}
           driver={providerDriver}
-          onOpenThread={(memberThreadId) => openThread(memberThreadId as ThreadId)}
+          onOpenThread={(memberThreadId) => openThread(memberThreadId as ThreadId, true)}
           onStop={canStopWorkflow ? () => void stopWorkflow(agent.id) : undefined}
           stopping={stoppingId === agent.id}
           stopDisabled={stoppingId !== null}
@@ -944,7 +950,7 @@ export function ThreadRelationshipsPanel(props: {
                     variant="ghost"
                     part="primary"
                     aria-label={`${threadTitle} ${threadRelationshipStatusLabel(rowStatus, m)}`}
-                    onClick={() => openThread(threadId)}
+                    onClick={() => openThread(threadId, isSubagent && !isParent)}
                   />
                 }
               >

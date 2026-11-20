@@ -383,6 +383,9 @@ function SidebarControl({ showSidebar }: { readonly showSidebar: boolean }) {
       node === null ? undefined : registerAppShellCommands(router, node),
   );
 
+  const tooltip = shortcutLabel
+    ? gt("Toggle main sidebar ({shortcut})", { shortcut: shortcutLabel })
+    : gt("Toggle main sidebar");
   return (
     <div
       ref={appShellCommandsRef}
@@ -391,27 +394,54 @@ function SidebarControl({ showSidebar }: { readonly showSidebar: boolean }) {
         mobileSidebarSheetMounted && "hidden",
       )}
       data-sidebar-control=""
+      style={
+        // BlueCode: desktop's back and forward sit after the toggle at the sidebar titlebar's end.
+        isElectron
+          ? ({
+              "--bluecode-titlebar-history-width":
+                "calc(2 * var(--workspace-titlebar-control-size))",
+            } as CSSProperties)
+          : undefined
+      }
     >
       {showSidebar ? (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <SidebarTrigger
-                variant={isSidebarVisible && stageBackdropVariant ? "media-navigation" : "ghost"}
-                className={cn(
-                  "pointer-events-auto",
-                  isSidebarVisible && stageBackdropVariant && "relative top-auto translate-y-0",
-                )}
-                aria-label={gt("Toggle main sidebar")}
+        <>
+          {/* BlueCode: one toggle rides the sidebar out and another rides the card in (theme.css),
+              so neither sits over content sliding beneath it. */}
+          <span className="flex items-center" data-sidebar-toggle-slot="sidebar">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <SidebarTrigger
+                    variant={
+                      isSidebarVisible && stageBackdropVariant ? "media-navigation" : "ghost"
+                    }
+                    className={cn(
+                      "pointer-events-auto",
+                      isSidebarVisible && stageBackdropVariant && "relative top-auto translate-y-0",
+                    )}
+                    aria-label={gt("Toggle main sidebar")}
+                  />
+                }
               />
-            }
-          />
-          <TooltipPopup side="bottom">
-            {shortcutLabel
-              ? gt("Toggle main sidebar ({shortcut})", { shortcut: shortcutLabel })
-              : gt("Toggle main sidebar")}
-          </TooltipPopup>
-        </Tooltip>
+              <TooltipPopup side="bottom">{tooltip}</TooltipPopup>
+            </Tooltip>
+          </span>
+          <span className="hidden" data-sidebar-toggle-slot="card">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <SidebarTrigger
+                    variant="ghost"
+                    className="pointer-events-auto"
+                    aria-label={gt("Toggle main sidebar")}
+                  />
+                }
+              />
+              <TooltipPopup side="bottom">{tooltip}</TooltipPopup>
+            </Tooltip>
+          </span>
+        </>
       ) : null}
     </div>
   );

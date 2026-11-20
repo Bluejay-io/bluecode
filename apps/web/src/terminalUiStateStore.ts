@@ -830,9 +830,21 @@ export const useTerminalUiStateStore = create<TerminalUiStateStoreState>()(
     },
     {
       name: TERMINAL_UI_STATE_STORAGE_KEY,
-      version: 4,
+      version: 5,
       storage: createJSONStorage(createTerminalUiStateStorage),
-      migrate: migratePersistedTerminalUiStateStoreState,
+      // BlueCode: terminals moved to right panel tabs, so a drawer saved open stays shut.
+      migrate: (persistedState, version) => {
+        const migrated = migratePersistedTerminalUiStateStoreState(persistedState, version);
+        return {
+          ...migrated,
+          terminalUiStateByThreadKey: Object.fromEntries(
+            Object.entries(migrated.terminalUiStateByThreadKey ?? {}).map(([key, state]) => [
+              key,
+              { ...state, terminalOpen: false },
+            ]),
+          ),
+        };
+      },
       partialize: (state) => ({
         terminalUiStateByThreadKey: state.terminalUiStateByThreadKey,
         serverObservationsByThreadKey: Object.fromEntries(
