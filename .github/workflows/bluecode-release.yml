@@ -14,7 +14,10 @@ on:
       - ".github/ISSUE_TEMPLATE/**"
   workflow_dispatch:
 
+# release-desktop.yml reads this run's artifact list, and a called workflow
+# cannot ask for more than its caller holds.
 permissions:
+  actions: read
   contents: read
 
 # One release at a time, in push order. A burst of pushes folds into the run
