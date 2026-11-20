@@ -16,7 +16,7 @@ set -eu
 repo="Bluejay-io/bluecode"
 # SHA-1 of the release signing certificate. Every release carries it, which is
 # also what lets the app update itself.
-signing_leaf="81c245d7ee766e49cb568b3c1cfd2a71d1eb0276"
+signing_cert="81c245d7ee766e49cb568b3c1cfd2a71d1eb0276"
 
 fail() {
   printf 'BlueCode install: %s\n' "$1" >&2
@@ -59,7 +59,7 @@ app="$work/app/BlueCode.app"
 [ -d "$app" ] || fail "the download did not contain BlueCode.app."
 
 codesign --verify --deep --strict "$app" 2>/dev/null || fail "the download's signature is not valid."
-codesign -d -r- "$app" 2>&1 | grep -qi "certificate leaf = H\"$signing_leaf\"" ||
+codesign -d -r- "$app" 2>&1 | grep -qi "certificate root = H\"$signing_cert\"" ||
   fail "the download is not signed with BlueCode's release certificate."
 
 if pgrep -xq BlueCode; then

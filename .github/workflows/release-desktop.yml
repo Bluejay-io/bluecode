@@ -732,7 +732,8 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app"
           requirement="$(codesign -d -r- "$app" 2>&1 | sed -n 's/^designated => //p')"
           echo "Designated requirement: $requirement"
-          expected="certificate leaf = H\"$(echo "$BLUECODE_MAC_SIGN_IDENTITY" | tr 'A-F' 'a-f')\""
+          # A self-signed certificate is its own root, which is how codesign names it.
+          expected="certificate root = H\"$(echo "$BLUECODE_MAC_SIGN_IDENTITY" | tr 'A-F' 'a-f')\""
           if [[ "$requirement" != *"$expected"* ]]; then
             echo "The app is not signed with the BlueCode certificate." >&2
             exit 1
