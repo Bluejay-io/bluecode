@@ -95,6 +95,7 @@ import {
   whenNodeRemoveLabel,
 } from "./KeybindingsSettings.logic";
 import { SettingsGroup } from "./SettingsGroup";
+import { isTerminalSplitCommand, withoutTerminalSplitBindings } from "~/bluecode/terminalTabs";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 import { keybindingSearchAnchorId, useSearchableSetting } from "./settingsSearch";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -1492,10 +1493,13 @@ function keybindingAnchorIds(rows: ReturnType<typeof buildKeybindingRows>) {
 function useKeybindingCatalog() {
   const sendShortcut = useClientSettings((settings) => settings.sendShortcut);
   const serverKeybindings = useSettingsScope().environment?.serverConfig?.keybindings;
-  const merged = mergeWithDefaultKeybindings(serverKeybindings ?? []);
+  // BlueCode: split commands are unbound in the app, so Settings does not list them.
+  const merged = withoutTerminalSplitBindings(mergeWithDefaultKeybindings(serverKeybindings ?? []));
   const m = useMessages();
   return {
-    commandOptions: buildKeybindingCommandOptions(merged, m),
+    commandOptions: buildKeybindingCommandOptions(merged, m).filter(
+      (command) => !isTerminalSplitCommand(command),
+    ),
     allRows: buildKeybindingRows(merged, navigator.platform, sendShortcut, m),
   };
 }

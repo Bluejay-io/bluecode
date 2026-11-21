@@ -53,11 +53,11 @@ it("reaches Permissions with arrow keys, previews, and picks with Enter", async 
     .element(supervised)
     .toHaveAccessibleDescription("Ask before commands and file changes.");
 
-  await userEvent.keyboard("{ArrowRight}");
+  await userEvent.keyboard("{ArrowDown}");
   await expect
     .element(page.getByRole("menuitemradio", { name: "Auto-accept edits" }))
     .toHaveFocus();
-  await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+  await userEvent.keyboard("{ArrowUp}");
   await expect.element(page.getByRole("menuitemradio", { name: "Supervised" })).toHaveFocus();
 
   await userEvent.keyboard("{ArrowDown}{Enter}");
@@ -69,14 +69,17 @@ it("reaches Permissions with arrow keys, previews, and picks with Enter", async 
 });
 
 it("marks the current mode as checked and closes on Escape", async () => {
-  await using screen = await render(<OverflowMenu />, { router: false }); // no routes involved
+  const { handle, ui } = withComposer(<OverflowMenu />);
+  await using screen = await render(ui, { router: false }); // no routes involved
   await userEvent.tab();
   await userEvent.keyboard("{ArrowDown}");
   const fullAccess = page.getByRole("menuitemradio", { name: "Full access" });
   await expect.element(fullAccess).toHaveAttribute("aria-checked", "true");
   await userEvent.keyboard("{Escape}");
   await expect.element(fullAccess).not.toBeInTheDocument();
+  // Opened from the keyboard, Escape hands focus back to the trigger instead of the editor.
   await expect.element(screen.getByRole("button", { name: "More" })).toHaveFocus();
+  expect(handle.focusAtEnd).not.toHaveBeenCalled();
 });
 
 // The real composer menu focus rule (useComposerMenuProps), with a stub composer handle.

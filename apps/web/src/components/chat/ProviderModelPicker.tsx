@@ -33,6 +33,13 @@ import { takeOpenTarget, useComposerMenuProps } from "./composerEventScope";
 import { shortcutLabelForCommand } from "../../keybindings";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
+import {
+  DockedModelPanel,
+  MODEL_CARD_CONTROLS_FALLBACK,
+  type ModelCardControls,
+  ModelPickerTabs,
+  useDockedModelPanel,
+} from "../../bluecode/DockedModelPicker";
 
 /** Holds the page still behind the open picker; its lifetime is the popup element's. */
 function lockBackgroundScroll(popup: HTMLElement | null) {
@@ -53,7 +60,8 @@ function lockBackgroundScroll(popup: HTMLElement | null) {
     return (
       target instanceof Element &&
       target.closest(
-        "[data-model-picker-content], [data-model-picker-effort], [data-model-picker-option-menu]",
+        // BlueCode: the docked panel scrolls as a whole on a short window.
+        "[data-model-picker-content], [data-model-picker-effort], [data-model-picker-option-menu], [data-model-picker-card]",
       )
     );
   };
@@ -86,9 +94,10 @@ function lockBackgroundScroll(popup: HTMLElement | null) {
 }
 
 /** What a docked effort column needs from its picker: the model it serves. */
-export const DockedPickerContext = createContext<{ modelLabel: string; modelIcon?: ReactNode }>({
-  modelLabel: "",
-});
+export const DockedPickerContext = createContext<
+  // BlueCode: and where the panel's composer shortcuts land.
+  { modelLabel: string; modelIcon?: ReactNode } & ModelCardControls
+>({ modelLabel: "", ...MODEL_CARD_CONTROLS_FALLBACK });
 
 export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   environmentId: EnvironmentId | null;
@@ -125,8 +134,8 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   /** Composer shortcuts this trigger answers besides the picker's own. */
   triggerShortcuts?: string;
   /**
-   * Docks an effort column beside the list and a footer under both. The popup then stays open
-   * until Escape or an outside press, and picking a model moves focus to its levels.
+   * BlueCode: docks the selected model's reasoning and the footer under the list, in one panel.
+   * The popup then stays open after a pick, until Escape or an outside press.
    */
   effortColumn?: ReactNode;
   footer?: ReactNode;
@@ -158,6 +167,8 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   const isCoarsePointer = useMediaQuery({ pointer: "coarse" });
   const size = props.size ?? "sm";
   const docked = props.effortColumn !== undefined;
+  // BlueCode: one panel (bluecode/DockedModelPicker.tsx).
+  const panel = useDockedModelPanel({ popupRef, searchInputRef, isCoarsePointer });
 
   const activeEntry =
     props.instanceEntries.find((entry) => entry.instanceId === props.activeInstanceId) ?? null;
@@ -194,45 +205,11 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
     }
   };
 
-  /**
-   * Focuses the selected reasoning level, else the first level. With `rows: "any"` it falls back
-   * to the column's first enabled option. False when nothing took focus.
-   */
-  const focusEffort = (rows: "levels" | "any") => {
-    const column = popupRef.current?.querySelector("[data-model-picker-effort]");
-    const level =
-      column?.querySelector<HTMLElement>(
-        '[data-effort-level][aria-checked="true"]:not(:disabled)',
-      ) ?? column?.querySelector<HTMLElement>("[data-effort-level]:not(:disabled)");
-    // No aria-checked here: an On switch is checked but is not where focus belongs.
-    const row =
-      level ??
-      (rows === "any"
-        ? column?.querySelector<HTMLElement>("[data-effort-row]:not(:disabled)")
-        : null);
-    row?.focus({ preventScroll: true });
-    row?.scrollIntoView({ block: "nearest" });
-    return row != null;
-  };
-  const openTarget = (target: "effort" | "permissions") => {
-    if (target === "effort") {
-      focusEffort("any");
-      return;
-    }
-    popupRef.current
-      ?.querySelector<HTMLButtonElement>("[data-composer-permissions-trigger]")
-      ?.focus();
-  };
-
   const handleInstanceModelChange = (instanceId: ProviderInstanceId, model: string) => {
     if (props.disabled) return;
     props.onInstanceModelChange(instanceId, model);
-    if (!docked) {
-      setIsMenuOpen(false);
-      return;
-    }
-    // The column renders the new model's levels on commit.
-    window.requestAnimationFrame(() => focusEffort("levels"));
+    // BlueCode: docked, focus stays in the list; the new model's reasoning shows under it.
+    if (!docked) setIsMenuOpen(false);
   };
 
   const shortcutLabel = props.keybindings
@@ -324,7 +301,20 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
       {...(docked
         ? {
             docked,
-            onFocusEffort: () => void focusEffort("any"),
+            // BlueCode: provider tabs filter the list.
+            sectionFilter: panel.sectionFilter,
+            onSectionFilterChange: panel.setSectionFilter,
+            renderSectionTabs: (
+              sections: ReadonlyArray<{ id: string; title: string }>,
+              active: string | null,
+            ) => (
+              <ModelPickerTabs
+                sections={sections}
+                active={active}
+                entries={props.instanceEntries}
+                onChange={panel.setSectionFilter}
+              />
+            ),
             // Inside the fixed height, so switching to or from a ChatGPT plan never resizes it.
             ...(props.selectedModels === undefined
               ? { listFooter: <ChatGptSharingControl provider={activeEntry?.snapshot ?? null} /> }
@@ -345,8 +335,8 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
         setIsMenuOpen(open);
       }}
       onOpenChangeComplete={(open) => {
-        const target = takeOpenTarget(triggerRef.current);
-        if (open && docked && target) openTarget(target);
+        takeOpenTarget(triggerRef.current);
+        if (!open) panel.reset(); // BlueCode
       }}
     >
       <PopoverTrigger
@@ -363,14 +353,16 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
             data-chat-provider-model-picker="true"
             data-composer-shortcut={props.triggerShortcuts}
             onClick={(event) => {
-              if (!isMenuOpen || !docked) return;
+              if (!docked) return;
               const target = takeOpenTarget(triggerRef.current);
               if (!target) return;
               // A shortcut aimed at the open picker moves within it instead of closing it.
-              (
-                event as typeof event & { preventBaseUIHandler?: () => void }
-              ).preventBaseUIHandler?.();
-              openTarget(target);
+              if (isMenuOpen)
+                (
+                  event as typeof event & { preventBaseUIHandler?: () => void }
+                ).preventBaseUIHandler?.();
+              // BlueCode: aims the panel in the same update that opens it.
+              panel.openTarget(target);
             }}
             className={cn(
               "min-w-0 shrink justify-between whitespace-nowrap",
@@ -460,15 +452,16 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
             unlock?.();
           };
         }}
-        initialFocus={isCoarsePointer ? popupRef : searchInputRef}
+        initialFocus={
+          docked ? panel.initialFocus : isCoarsePointer ? popupRef : searchInputRef // BlueCode
+        }
         align={props.popupAlign ?? "start"}
         // Docked, the popup opens above the composer and slides over it when that space is short,
         // so a short window gets its full height (Floating UI sizes to the viewport) instead of a sliver.
         {...(docked
           ? { side: "top" as const, collisionAvoidance: { side: "shift", align: "shift" } as const }
           : {})}
-        // BlueCode: docked, the list and the model's options are two cards side by side, as in
-        // Capy's picker, so the popup itself draws nothing.
+        // BlueCode: docked, the panel draws its own surface, so the popup itself draws nothing.
         {...(props.effortColumn ? { variant: "bare" as const } : { className: "before:hidden" })}
         padding="none"
         touchBackdrop
@@ -488,33 +481,13 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
                   iconClassName="size-3.5"
                 />
               ) : undefined,
+              ...panel.controls,
             }}
           >
-            <div className="flex max-h-(--available-height) items-start gap-2 max-sm:flex-col max-sm:items-stretch">
-              {/* One fixed height, so a model with more options never resizes the list. Short
-                  windows shrink it. */}
-              <div
-                data-model-picker-card
-                className="flex h-86.5 max-h-(--available-height) min-h-0 flex-col overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg max-sm:h-auto"
-              >
-                {picker}
-              </div>
-              <div
-                data-model-picker-effort
-                data-model-picker-card
-                className="flex max-h-(--available-height) min-h-0 w-72 flex-col overflow-hidden rounded-lg border p-1 bg-popover text-popover-foreground shadow-lg max-sm:w-full"
-                onKeyDown={(event) => {
-                  if (event.key !== "ArrowLeft" || event.altKey || event.ctrlKey || event.metaKey)
-                    return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  searchInputRef.current?.focus();
-                }}
-              >
-                {props.effortColumn}
-                {props.footer}
-              </div>
-            </div>
+            <DockedModelPanel searchInputRef={searchInputRef} list={picker}>
+              {props.effortColumn}
+              {props.footer}
+            </DockedModelPanel>
           </DockedPickerContext>
         ) : (
           picker

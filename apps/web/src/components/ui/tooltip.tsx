@@ -150,6 +150,8 @@ function TooltipPopup({
             className,
           )}
           data-slot="tooltip-popup"
+          // BlueCode: styling hook for bluecode/menus.css.
+          data-variant={variant}
           {...props}
         >
           <div className="min-w-0 px-2 py-1" data-slot="tooltip-viewport">

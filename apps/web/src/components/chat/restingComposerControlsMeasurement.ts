@@ -86,7 +86,10 @@ export function measureRestingComposerControls(
   const separator = controls.querySelector<HTMLElement>("[data-resting-controls-separator]");
   const separatorWidth = separator ? elementOuterWidth(separator) : 0;
   const overflow = controls.querySelector<HTMLElement>("[data-resting-controls-overflow]");
-  const separatorAndGapWidth = separatorWidth > 0 ? separatorWidth + gap : 0;
+  // BlueCode: the context ring sits beside the model picker and never moves into the overflow.
+  const ring = controls.querySelector<HTMLElement>("[data-composer-context-ring]");
+  const ringAndGapWidth = ring ? elementOuterWidth(ring) + gap : 0;
+  const separatorAndGapWidth = (separatorWidth > 0 ? separatorWidth + gap : 0) + ringAndGapWidth;
   const blocks = Array.from(controls.querySelectorAll<HTMLElement>("[data-resting-block]"));
   const widths = blocks.map(controlBlockWidths);
   return {

@@ -343,24 +343,9 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     if (hasTerminalWriteAccess()) addTerminalSurface();
   };
   const toggleTerminalVisibilityStable = useStableCallback(toggleTerminalVisibility);
-  const splitPanelTerminal = (direction: "horizontal" | "vertical" = "horizontal") => {
-    if (
-      !activeThreadRef ||
-      activeRightPanelSurface?.kind !== "terminal" ||
-      activeRightPanelSurface.terminalIds.length >= MAX_TERMINALS_PER_GROUP
-    ) {
-      return;
-    }
-    const surfaceId = activeRightPanelSurface.id;
-    const launched = terminalActions.launchTerminal({
-      place: (terminalId) =>
-        useRightPanelStore
-          .getState()
-          .splitTerminal(activeThreadRef, surfaceId, terminalId, direction),
-    });
-    if (!launched) return;
-    focusTerminal(activeThreadRef, launched.terminalId);
-    void launched.result;
+  // BlueCode: a panel tab holds one terminal, so every split entry point opens a new tab instead.
+  const splitPanelTerminal = (_direction: "horizontal" | "vertical" = "horizontal") => {
+    addTerminalSurface();
   };
   const splitPanelTerminalStable = useStableCallback(splitPanelTerminal);
   const splitPanelTerminalVertical = () => {

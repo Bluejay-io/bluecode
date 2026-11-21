@@ -4,11 +4,15 @@ import {
   scopeThreadRef,
 } from "@t3tools/client-runtime/environment";
 import { EnvironmentId, RunId, ThreadId, type ScopedThreadRef } from "@t3tools/contracts";
+import * as Schema from "effect/Schema";
 import { msg } from "gt-react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import { PANEL_LAYOUT_STORAGE_KEY, type PanelLayout } from "./bluecode/panelView";
+import { oneTerminalPerTab, selectedTerminalTab } from "./bluecode/terminalTabs";
 import { useClosedViewStore } from "./closedViewStore";
+import { getLocalStorageItem } from "./hooks/useLocalStorage";
 import { m } from "./i18n/messages";
 import { resolveStorage } from "./lib/storage";
 import type { LinkedThreadTarget } from "@t3tools/client-runtime/linked-thread";
@@ -133,7 +137,9 @@ const RIGHT_PANEL_STORAGE_KEY = "t3code:right-panel-state:v2";
 const RIGHT_PANEL_STORAGE_VERSION = 16;
 // BlueCode: bump when the fork changes what it saves. Kept apart from upstream's number so a
 // bump on either side still sends the fork's saved panels through the migration.
-const BLUECODE_RIGHT_PANEL_STORAGE_REVISION = 1;
+const BLUECODE_RIGHT_PANEL_STORAGE_REVISION = 2;
+const RIGHT_PANEL_PERSIST_VERSION =
+  RIGHT_PANEL_STORAGE_VERSION + 1000 * BLUECODE_RIGHT_PANEL_STORAGE_REVISION;
 
 export const PULL_REQUESTS_PANEL_REF = scopeThreadRef(
   EnvironmentId.make("pull-requests-panel"),
@@ -159,6 +165,8 @@ export interface ThreadRightPanelState {
   surfaces: RightPanelSurface[];
   dismissedDeviceSurfaceIds?: string[];
   maximized?: true;
+  /** BlueCode: full width, the panel's tab row is on screen with its chat tab selected. */
+  chatTab?: true;
   proactiveDiffTurnId?: RunId;
 }
 
@@ -200,7 +208,7 @@ interface RightPanelStoreState {
   setLinkedThreadTitle: (ref: ScopedThreadRef, surfaceId: string, title: string) => void;
   openDevice: (ref: ScopedThreadRef, target: DeviceTabTarget, automatic?: boolean) => void;
   renameDevice: (ref: ScopedThreadRef, surfaceId: string, title: string) => void;
-  openBrowser: (ref: ScopedThreadRef, tabId: string | null) => void;
+  openBrowser: (ref: ScopedThreadRef, tabId: string | null, automatic?: boolean) => void;
   openFile: (ref: ScopedThreadRef, relativePath: string, line?: number) => void;
   /** Moves in place; "" opens the root explorer. folderTrail keeps the return path; keepSource opens beside the source. */
   navigateFolder: (
@@ -245,6 +253,8 @@ interface RightPanelStoreState {
   activateSurface: (ref: ScopedThreadRef, surfaceId: string) => void;
   /** Agent-driven activation. Not a user action, so it does not move keyboard focus. */
   revealSurface: (ref: ScopedThreadRef, surfaceId: string) => void;
+  /** BlueCode: the user brings a tab back without moving focus (minimize); lifts its dismissal. */
+  restoreSurface: (ref: ScopedThreadRef, surfaceId: string) => void;
   closeSurface: (ref: ScopedThreadRef, surfaceId: string) => void;
   closeOtherSurfaces: (ref: ScopedThreadRef, surfaceId: string) => void;
   closeSurfacesToRight: (ref: ScopedThreadRef, surfaceId: string) => void;
@@ -259,8 +269,13 @@ interface RightPanelStoreState {
   show: (ref: ScopedThreadRef) => void;
   close: (ref: ScopedThreadRef) => void;
   setMaximized: (ref: ScopedThreadRef, maximized: boolean) => void;
-  /** BlueCode: moving to another thread keeps the panel open or shut as it was, if it has tabs. */
-  carryPanel: (from: ScopedThreadRef, to: ScopedThreadRef) => void;
+  /** BlueCode: full width, selects the chat tab, keeping the panel's tab row on screen. */
+  showChatTab: (ref: ScopedThreadRef) => void;
+  /**
+   * BlueCode: moving to another thread keeps the panel shown or hidden as it was, if it has tabs.
+   * Full width, a shown panel arrives on its chat tab.
+   */
+  carryPanel: (from: ScopedThreadRef, to: ScopedThreadRef, fullWidth: boolean) => void;
   toggleVisibility: (ref: ScopedThreadRef) => void;
   toggle: (
     ref: ScopedThreadRef,
@@ -432,13 +447,26 @@ const upsertSurface = (
   activeSurfaceId: activate ? surface.id : current.activeSurfaceId,
 });
 
+const withoutChatTab = ({
+  chatTab: _chatTab,
+  ...rest
+}: ThreadRightPanelState): ThreadRightPanelState => rest;
+
 const updateThreadStateMap = (
   byThreadKey: Record<string, ThreadRightPanelState>,
   threadKey: string,
   updater: (current: ThreadRightPanelState) => ThreadRightPanelState,
 ): Record<string, ThreadRightPanelState> => {
   const current = byThreadKey[threadKey] ?? EMPTY_THREAD_STATE;
-  const next = updater(current);
+  const updated = updater(current);
+  // BlueCode: a panel with no tabs is the chat, so it is never open.
+  const closed =
+    updated.isOpen && updated.surfaces.length === 0 ? { ...updated, isOpen: false } : updated;
+  // BlueCode: the chat tab is selected only while no panel tab is.
+  const next =
+    closed.chatTab && (closed.isOpen || closed.surfaces.length === 0)
+      ? withoutChatTab(closed)
+      : closed;
   if (
     !next.isOpen &&
     next.activeSurfaceId === null &&
@@ -498,10 +526,8 @@ const updateThread = (
     threadPanelVisibilityByThreadKey = updateThreadPanelVisibilityMap(
       threadPanelVisibilityByThreadKey,
       threadKey,
-      (visibility) =>
-        visibility.popoverOpen && !visibility.inlineOpen
-          ? { ...visibility, inlineOpen: true }
-          : visibility,
+      // BlueCode: close the popover rather than turn it into an inline card the user never opened.
+      (visibility) => (visibility.popoverOpen ? { ...visibility, popoverOpen: false } : visibility),
     );
   }
 
@@ -553,19 +579,28 @@ const userActionOnThread = (
   ...updateThread(state, threadKey, (current) => {
     const next = updater(current);
     if (next === current) return current;
-    const removedDevices = current.surfaces.filter(
+    // BlueCode: a browser tab the user closes, or closes the panel on, stays shut to agent
+    // reveals until the user shows it again.
+    const closedPanelOn = current.isOpen && !next.isOpen ? current.activeSurfaceId : null;
+    const shown = next.isOpen ? next.activeSurfaceId : null;
+    const dismissed = current.surfaces.filter(
       (surface) =>
-        surface.kind === "device" && !next.surfaces.some((entry) => entry.id === surface.id),
+        (surface.kind === "device" && !next.surfaces.some((entry) => entry.id === surface.id)) ||
+        (surface.kind === "preview" &&
+          surface.resourceId !== null &&
+          (surface.id === closedPanelOn ||
+            !next.surfaces.some((entry) => entry.id === surface.id))),
     );
-    if (removedDevices.length === 0) return next;
+    const reshown = shown !== null && next.dismissedDeviceSurfaceIds?.includes(shown);
+    if (dismissed.length === 0 && !reshown) return next;
     return {
       ...next,
       dismissedDeviceSurfaceIds: [
         ...new Set([
           ...(next.dismissedDeviceSurfaceIds ?? []),
-          ...removedDevices.map((surface) => surface.id),
+          ...dismissed.map((surface) => surface.id),
         ]),
-      ],
+      ].filter((id) => id !== shown),
     };
   }),
   userActionRevisionByThreadKey: {
@@ -598,13 +633,32 @@ function normalizeRevealLine(line: number | undefined): number | null {
   return Math.max(1, Math.trunc(line));
 }
 
-export function migratePersistedRightPanelState(persistedState: unknown): {
+function savedPanelLayout(): PanelLayout {
+  try {
+    return getLocalStorageItem(PANEL_LAYOUT_STORAGE_KEY, Schema.Boolean) === false
+      ? "full"
+      : "split";
+  } catch {
+    return "split";
+  }
+}
+
+/**
+ * BlueCode: before revision 2 a full-width thread with tabs and its panel shut showed the chat
+ * tab, so `legacyLayout` (the saved layout preference) restores `chatTab` for that state.
+ */
+export function migratePersistedRightPanelState(
+  persistedState: unknown,
+  version = RIGHT_PANEL_PERSIST_VERSION,
+  legacyLayout: PanelLayout = "split",
+): {
   byThreadKey: Record<string, ThreadRightPanelState>;
   threadPanelVisibilityByThreadKey: Record<string, ThreadPanelVisibility>;
 } {
   if (!persistedState || typeof persistedState !== "object") {
     return { byThreadKey: {}, threadPanelVisibilityByThreadKey: {} };
   }
+  const legacyChatTab = version < 2000 && legacyLayout === "full";
   const byThreadKey =
     "byThreadKey" in persistedState &&
     persistedState.byThreadKey &&
@@ -711,16 +765,20 @@ export function migratePersistedRightPanelState(persistedState: unknown): {
                       terminalIds.includes(surface.activeTerminalId)
                         ? surface.activeTerminalId
                         : (terminalIds[0] ?? surface.resourceId);
-                    return [
-                      {
-                        ...surface,
-                        terminalIds: terminalIds.length > 0 ? terminalIds : [surface.resourceId],
-                        activeTerminalId,
-                      },
-                    ];
+                    // BlueCode: one terminal per tab, so a saved split reopens as a tab per pane.
+                    return oneTerminalPerTab({
+                      ...surface,
+                      terminalIds: terminalIds.length > 0 ? terminalIds : [surface.resourceId],
+                      activeTerminalId,
+                    });
                   })
                 : [];
-              const savedActiveSurfaceId = validThreadState?.activeSurfaceId;
+              // BlueCode: a selected split tab reopens on its active pane's tab.
+              const savedActiveSurfaceId = selectedTerminalTab(
+                validThreadState?.surfaces,
+                surfaces,
+                validThreadState?.activeSurfaceId,
+              );
               const rawActiveSurfaceId =
                 typeof savedActiveSurfaceId === "string" &&
                 savedActiveSurfaceId.startsWith("side-chat:")
@@ -759,6 +817,11 @@ export function migratePersistedRightPanelState(persistedState: unknown): {
                       }
                     : {}),
                   ...(validThreadState?.maximized === true ? { maximized: true as const } : {}),
+                  ...((validThreadState?.chatTab === true || legacyChatTab) &&
+                  surfaces.length > 0 &&
+                  !isOpen
+                    ? { chatTab: true as const }
+                    : {}),
                 },
               ];
             }),
@@ -938,9 +1001,10 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
             ),
           })),
         ),
-      openBrowser: (ref, tabId) =>
+      // BlueCode: `automatic` opens an agent's browser without counting as a user action.
+      openBrowser: (ref, tabId, automatic = false) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => {
+          (automatic ? automaticUpdate : userAction)(state, scopedThreadKey(ref), (current) => {
             const surface = browserSurface(tabId);
             const withoutPlaceholder = tabId
               ? current.surfaces.filter((entry) => entry.id !== "browser:new")
@@ -1172,6 +1236,20 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         set((state) =>
           automaticUpdate(state, scopedThreadKey(ref), (current) => activated(current, surfaceId)),
         ),
+      restoreSurface: (ref, surfaceId) =>
+        set((state) =>
+          automaticUpdate(state, scopedThreadKey(ref), (current) => {
+            const next = activated(current, surfaceId);
+            if (next === current || !current.dismissedDeviceSurfaceIds?.includes(surfaceId))
+              return next;
+            return {
+              ...next,
+              dismissedDeviceSurfaceIds: current.dismissedDeviceSurfaceIds.filter(
+                (id) => id !== surfaceId,
+              ),
+            };
+          }),
+        ),
       closeSurface: (ref, surfaceId) =>
         set((state) =>
           closeAction(state, scopedThreadKey(ref), (current) => {
@@ -1305,7 +1383,15 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
       close: (ref) =>
         set((state) =>
           userAction(state, scopedThreadKey(ref), (current) =>
-            current.isOpen ? { ...current, isOpen: false } : current,
+            current.isOpen || current.chatTab
+              ? { ...withoutChatTab(current), isOpen: false }
+              : current,
+          ),
+        ),
+      showChatTab: (ref) =>
+        set((state) =>
+          userAction(state, scopedThreadKey(ref), (current) =>
+            current.chatTab ? current : { ...current, isOpen: false, chatTab: true },
           ),
         ),
       setMaximized: (ref, maximized) =>
@@ -1316,12 +1402,18 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
             return maximized ? { ...rest, maximized: true } : rest;
           }),
         ),
-      carryPanel: (from, to) =>
+      carryPanel: (from, to, fullWidth) =>
         set((state) => {
-          const fromOpen = selectThreadRightPanelState(state.byThreadKey, from).isOpen;
+          const fromState = selectThreadRightPanelState(state.byThreadKey, from);
+          // BlueCode: a thread with no tabs never showed the panel, so it has no say.
+          if (fromState.surfaces.length === 0) return state;
+          const shown = fromState.isOpen || (fullWidth && fromState.chatTab === true);
           return automaticUpdate(state, scopedThreadKey(to), (current) => {
-            const isOpen = fromOpen && current.surfaces.length > 0;
-            return current.isOpen === isOpen ? current : { ...current, isOpen };
+            const isOpen = shown && !fullWidth;
+            const chatTab = shown && fullWidth;
+            if (current.isOpen === isOpen && (current.chatTab ?? false) === chatTab) return current;
+            const rest = withoutChatTab(current);
+            return chatTab ? { ...rest, isOpen, chatTab: true } : { ...rest, isOpen };
           });
         }),
       toggleVisibility: (ref) =>
@@ -1397,7 +1489,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
     }),
     {
       name: RIGHT_PANEL_STORAGE_KEY,
-      version: RIGHT_PANEL_STORAGE_VERSION + 1000 * BLUECODE_RIGHT_PANEL_STORAGE_REVISION,
+      version: RIGHT_PANEL_PERSIST_VERSION,
       storage: createJSONStorage(() =>
         resolveStorage(typeof window !== "undefined" ? window.localStorage : undefined),
       ),
@@ -1421,7 +1513,8 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
           ),
         ),
       }),
-      migrate: migratePersistedRightPanelState,
+      migrate: (persistedState, version) =>
+        migratePersistedRightPanelState(persistedState, version, savedPanelLayout()),
     },
   ),
 );

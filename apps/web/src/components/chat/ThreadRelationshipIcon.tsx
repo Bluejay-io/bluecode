@@ -68,13 +68,14 @@ export function ThreadRelationshipIcon({
   status: string | null;
   fallbackIcon?: LucideIcon;
 }) {
-  const iconClassName = "size-4 shrink-0 text-muted-foreground";
+  // BlueCode: the details card's 14px icons.
+  const iconClassName = "size-3.5 shrink-0 text-icon-muted";
   const entry = driver
     ? providerEntries.find((candidate) => candidate.instanceId === provider?.instanceId)
     : undefined;
   const showInstanceBadge = entry !== undefined && shouldShowInstanceBadge(entry, providerEntries);
   return (
-    <span className="relative inline-flex size-4 shrink-0 items-center justify-center">
+    <span className="relative inline-flex size-3.5 shrink-0 items-center justify-center">
       {driver ? (
         <ProviderInstanceIcon
           driverKind={driver}
@@ -91,6 +92,8 @@ export function ThreadRelationshipIcon({
         <FallbackIcon className={iconClassName} />
       )}
       <span
+        // BlueCode: styling hook for bluecode/thread-details.css.
+        data-details-status-dot
         className={cn(
           "absolute -right-1 size-2 rounded-full border-2 border-card",
           anyInstanceBadge ? "-top-1" : "-bottom-1",

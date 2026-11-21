@@ -1,0 +1,5 @@
+/* The docked model panel's accent (ModelCard.tsx): the theme's primary pulled toward the text
+   color, so the reasoning heading reads on every theme's popover. */
+[data-model-picker-card] {
+  --model-card-accent: color-mix(in oklab, var(--primary) 86%, var(--foreground));
+}

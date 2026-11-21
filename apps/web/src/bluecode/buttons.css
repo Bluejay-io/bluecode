@@ -1,0 +1,84 @@
+@reference "../index.css";
+
+/* Capy's solid button, measured live: a hairline border a shade darker than the fill, a top
+   highlight and a plate shadow, a darker fill on hover, and a press that dims instead of
+   shrinking. The app's Button takes it through its default variant (components/ui/button.tsx);
+   the composer's primary slot (send, Stop and the mic standing in for send) takes it here. */
+
+:root {
+  --bluecode-highlight-top: transparent;
+  --bluecode-plate: 0 1px 2px oklch(0% 0 0 / 5%);
+
+  @variant dark {
+    --bluecode-highlight-top: oklch(100% 0 0 / 4%);
+    --bluecode-plate: 0 0.5px 1px 1px oklch(0% 0 0 / 30%);
+  }
+}
+
+/* The primary slot uses the message action color; Stop uses destructive. */
+[data-primary-action] {
+  --bluecode-solid: var(--message-action);
+  --bluecode-solid-text: var(--message-action-foreground);
+  --bluecode-solid-hover: color-mix(in oklch, var(--bluecode-solid) 92%, black);
+}
+[data-primary-action="destructive"] {
+  --bluecode-solid: var(--destructive);
+  --bluecode-solid-text: var(--color-white);
+  --bluecode-solid-hover: color-mix(in oklch, var(--destructive) 92%, white);
+}
+
+[data-primary-action]:not([data-primary-action="stage"]) {
+  border: 0.5px solid color-mix(in oklch, var(--bluecode-solid) 80%, black);
+  background-color: var(--bluecode-solid);
+  color: var(--bluecode-solid-text);
+}
+[data-primary-action]:not([data-primary-action="stage"]):is(:hover, [data-pressed]):not(
+    :disabled,
+    [aria-disabled="true"]
+  ) {
+  background-color: var(--bluecode-solid-hover);
+  color: var(--bluecode-solid-text);
+}
+
+/* The stage-backdrop send keeps its painted art and white icon, and takes only the finish. */
+[data-primary-action="stage"] {
+  --bluecode-solid-text: var(--color-white);
+}
+[data-primary-action] {
+  box-shadow:
+    inset 0 1px var(--bluecode-highlight-top),
+    var(--bluecode-plate);
+  scale: none;
+  transition-property: color, background-color, border-color, outline-color;
+  transition-duration: 100ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-primary-action]:is(:active, [data-pressed]) {
+  box-shadow: none;
+  filter: brightness(0.97);
+}
+[data-primary-action]:focus-visible {
+  outline: 1px solid var(--bluecode-solid-text);
+  outline-offset: -1px;
+}
+[data-primary-action]:is(:disabled, [aria-disabled="true"]) {
+  opacity: 0.55;
+}
+
+/* Square, 6px corners everywhere a send or Stop appears, not only in the composer footer. */
+:is(
+  [data-primary-action="solid"],
+  [data-primary-action="stage"],
+  [data-primary-action="destructive"]
+) {
+  border-radius: 0.375rem;
+}
+/* The pending-question pill keeps its width and these corners where composer.css rounds sends. */
+[data-chat-composer-footer] button[data-primary-action="text"] {
+  width: auto;
+  border-radius: 0.375rem;
+}
+/* Capy's arrow is drawn at 2 on a 24 grid; ours is on a 14 grid. */
+[data-primary-action] svg[viewBox="0 0 14 14"] path {
+  stroke-width: 1.1667;
+}

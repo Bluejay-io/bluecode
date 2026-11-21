@@ -18,6 +18,10 @@ import {
 
 import { useOpenLink } from "~/browser/useOpenLink";
 import { cn } from "~/lib/utils";
+import {
+  PULL_REQUEST_COLUMN_CLASS,
+  PULL_REQUEST_HEADER_INSET_CLASS,
+} from "~/bluecode/pullRequestColumn";
 import { RelativeTime } from "~/components/RelativeTime";
 
 import { Button, InlineButton } from "../ui/button";
@@ -150,7 +154,14 @@ export function PullRequestDetailGhost({
         !seed && "motion-safe:animate-skeleton",
       )}
     >
-      <div className="@container/pr-header grid min-w-0 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 border-b border-border/60">
+      <div
+        className={cn(
+          "@container/pr-header grid min-w-0 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 border-b border-border/60",
+          // BlueCode: matches PullRequestDetailPanel's header inset and column.
+          PULL_REQUEST_HEADER_INSET_CLASS,
+          PULL_REQUEST_COLUMN_CLASS,
+        )}
+      >
         <div className="pl-4 grid h-7 min-w-0 items-center overflow-hidden">
           <div className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground sm:text-xs">
             {onBack ? (
@@ -360,7 +371,7 @@ export function PullRequestDetailGhost({
       <div
         tabIndex={-1}
         data-workspace-focus-default
-        className="min-h-0 flex-1 overflow-hidden outline-none"
+        className={cn("min-h-0 flex-1 overflow-hidden outline-none", PULL_REQUEST_COLUMN_CLASS)}
       >
         <section className="px-4 pt-2.5 pb-1">
           <div className="space-y-2">

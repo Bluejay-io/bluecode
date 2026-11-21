@@ -1,7 +1,7 @@
 import { resolveEnvironmentMachineKind } from "@t3tools/contracts";
 import { fileDisplayName } from "@t3tools/shared/path";
 import { useLocation } from "@tanstack/react-router";
-import { CheckIcon, ChevronDownIcon, FolderIcon, LayersIcon } from "lucide-react";
+import { ChevronDownIcon, FolderIcon, LayersIcon } from "lucide-react";
 import { Fragment, useState, type ReactNode } from "react";
 import { T, useGT, useMessages, Var } from "gt-react";
 
@@ -245,9 +245,6 @@ function ScopeMenu({
             {(option: ScopeOption) => (
               <ComboboxItem key={option.value} value={option}>
                 <ScopeOptionLabel option={option} />
-                {option.value === value ? (
-                  <CheckIcon aria-hidden className="size-3.5 shrink-0" />
-                ) : null}
               </ComboboxItem>
             )}
           </ComboboxList>

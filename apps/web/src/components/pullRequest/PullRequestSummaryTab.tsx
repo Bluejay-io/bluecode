@@ -32,6 +32,7 @@ import { m, type MessageResolver } from "~/i18n/messages";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useLocalStorage } from "~/hooks/useLocalStorage";
 import { cn } from "~/lib/utils";
+import { PULL_REQUEST_COLUMN_CLASS } from "~/bluecode/pullRequestColumn";
 import { useOpenLink } from "~/browser/useOpenLink";
 import { RelativeTime } from "~/components/RelativeTime";
 import { useClientSettings } from "~/hooks/useSettings";
@@ -873,7 +874,8 @@ export function PullRequestSummaryTab({
       }}
       tabIndex={-1}
       data-workspace-focus-default
-      className="h-full overflow-y-auto outline-none"
+      // BlueCode: centre at the chat column's width.
+      className={cn("h-full overflow-y-auto outline-none", PULL_REQUEST_COLUMN_CLASS)}
       data-pull-request-summary-scroll
     >
       <section className="px-4 pt-2.5 pb-1">

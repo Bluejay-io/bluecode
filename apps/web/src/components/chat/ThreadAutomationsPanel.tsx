@@ -178,11 +178,12 @@ export function ThreadAutomationsPanel(props: {
           <li
             key={task.id}
             className={cn(
-              "group flex items-center rounded-lg py-1.5",
+              // BlueCode: 6px corners, a 14px icon and 12px values, like the card's other rows.
+              "group flex items-center rounded-md py-1.5",
               THREAD_DETAILS_PANEL_ROW_CONTENT_CLASS,
             )}
           >
-            <span className="relative inline-flex size-4 shrink-0 items-center justify-center">
+            <span className="relative inline-flex size-3.5 shrink-0 items-center justify-center">
               <CalendarClockIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} />
               <span
                 className={cn(
@@ -197,7 +198,7 @@ export function ThreadAutomationsPanel(props: {
                 <span className="block truncate text-sm font-medium text-foreground/80">
                   {task.title}
                 </span>
-                <p className="truncate text-2xs text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground">
                   {taskScheduleLine(task, tasksQuery.data?.timeZone, m)}
                 </p>
               </TooltipTrigger>
@@ -270,7 +271,8 @@ export function ThreadAutomationsPanel(props: {
       </ul>
       {/* Kept last: the details card treats a section whose last child is empty as empty. */}
       {tasksQuery.error !== null ? (
-        <p className="px-2.5 py-1.5 text-2xs text-destructive">
+        // BlueCode: the card's 8px inset and 12px secondary text.
+        <p className="px-2 py-1.5 text-xs text-destructive">
           <T>
             Could not load automations: <Var>{tasksQuery.error}</Var>
           </T>

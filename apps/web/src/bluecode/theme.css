@@ -1,5 +1,7 @@
-/* BlueCode's shape and finish, measured against Capy. Colors stay in the theme system
-   (index.css and themePalette.ts); rules here read its tokens, so every theme gets them. */
+@reference "../index.css";
+
+/* BlueCode's shape and finish. Colors stay in the theme system (index.css and themePalette.ts);
+   rules here read its tokens, so every theme gets them. */
 
 :root {
   --font-weight-semibold: 560;
@@ -11,96 +13,80 @@ body {
 }
 
 /* Conversation text one step below the interface size, set tighter. Tool lines match it. */
-[data-work-log-line],
-.chat-markdown.text-sm {
+[data-work-log-line] {
   font-size: 0.8125rem;
   line-height: 1.5;
   letter-spacing: -0.01em;
 }
-
-/* Inner corners stay smaller than the card's. ::after outlines inherit. */
-[data-slot="composer-shell"]::before,
-[data-slot="composer-host"],
-[data-slot="composer-host"]::before,
-[data-chat-composer-main-surface],
-[data-chat-composer-surface] {
-  border-radius: 0.5rem;
+[data-chat-markdown-body] {
+  --text-sm: 0.8125rem;
+  letter-spacing: -0.01em;
 }
 
-/* Composer, measured against Capy: 6px controls, 14px icons, small muted model and permissions
-   labels sitting left beside the attach button, and a square send button. */
-[data-chat-composer-footer] {
-  --control-radius: 0.375rem;
+/* The icon-button hover fill, the same on every theme. */
+:root {
+  --control-hover: oklch(0% 0 0 / 5%);
+
+  @variant dark {
+    --control-hover: oklch(100% 0 0 / 8%);
+  }
 }
-[data-chat-composer-footer] :is(button, [role="button"]) svg,
-[data-chat-composer-footer] [data-slot="popover-trigger"] > span span.size-4 {
-  width: 0.875rem;
-  height: 0.875rem;
+
+/* Text buttons: the run-context pickers and the composer's model and permissions controls.
+   Muted until hovered or open, no fill, and a press darkens instead of shrinking. */
+[data-composer-control] {
+  color: var(--contrast-muted-foreground);
+  transition: color 0.1s;
 }
-[data-chat-composer-footer-controls] {
-  justify-content: flex-start;
+[data-composer-control]:not([aria-pressed="true"]) {
+  background-color: transparent;
 }
-[data-chat-composer-footer] :is(.group\/model-trigger, [data-composer-shortcut="composer.mode"]) {
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
+[data-composer-control]:is(:hover, [data-popup-open]) {
+  color: var(--contrast-foreground);
 }
-[data-chat-composer-footer]
-  :is(.group\/model-trigger, [data-composer-shortcut="composer.mode"]):is(
-    :hover,
-    [data-popup-open]
-  ) {
-  color: var(--foreground);
-}
-[data-chat-composer-footer] button.rounded-full {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.375rem;
+[data-composer-control]:active {
   scale: none;
+  filter: brightness(0.97);
 }
-[data-chat-composer-body] .leading-relaxed {
-  line-height: 1.5;
+[data-composer-control="xs"] {
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
-[data-chat-composer-body] .text-placeholder {
-  color: var(--muted-foreground);
+[data-chat-provider-model-picker][data-popup-open] {
+  background-color: var(--control-hover);
 }
 
-/* Model picker: 28px rows in 13px type with a quieter highlight. */
-[data-model-picker-content] [data-slot="combobox-item"] {
-  min-height: 1.75rem;
+/* The start page's pickers line their icons up with the prompt text below (16px in) and their
+   chevrons with its right edge, each with a 4px hit margin instead of padding. */
+[data-draft-hero-controls] {
+  padding-inline: 0.75rem;
+  padding-bottom: 0.375rem;
+}
+[data-draft-hero-controls] [data-composer-control] {
   height: auto;
-  padding-block: 0;
-  border-radius: 0.375rem;
-  font-size: 0.8125rem;
-  letter-spacing: -0.01em;
+  padding: 0.25rem;
 }
-[data-model-picker-content] [data-slot="combobox-item"] .text-sm,
-[data-model-picker-content] [data-slot="combobox-input"] {
-  font-size: 0.8125rem;
+[data-slot="composer-shell"] [data-slot="composer-context-strip"] {
+  min-height: 2rem;
+  padding-top: 0;
 }
-[data-model-picker-content] [data-slot="combobox-item"]:is([data-highlighted], :hover) {
-  background-color: color-mix(in oklab, var(--foreground) 5%, transparent);
-}
-[data-model-picker-content] .focus-within\:border-ring:focus-within {
-  border-color: color-mix(in oklab, var(--border) 70%, transparent);
+div:has(> [data-slot="composer-shell"][data-context-row]) + [data-composer-bottom-spacer] {
+  height: env(safe-area-inset-bottom);
 }
 
-/* Light appearance: menus and popovers get a hairline edge and a soft layered shadow. */
-:root:not(.dark) :is(.dropdown-glass, [data-model-picker-card]) {
-  border: 0.5px solid color-mix(in oklab, var(--foreground) 11%, transparent);
-  box-shadow:
-    0 6px 18px oklch(0% 0 0 / 3%),
-    0 3px 9px oklch(0% 0 0 / 4%),
-    0 1px 1px oklch(0% 0 0 / 5%);
+/* Light appearance: glass surfaces get a hairline edge and a soft layered shadow. Menus and
+   popovers get theirs in menus.css. */
+.dropdown-glass {
+  @variant light {
+    border: 0.5px solid color-mix(in oklab, var(--foreground) 11%, transparent);
+    box-shadow:
+      0 6px 18px oklch(0% 0 0 / 3%),
+      0 3px 9px oklch(0% 0 0 / 4%),
+      0 1px 1px oklch(0% 0 0 / 5%);
+  }
 }
 
-/* The reasoning slider's fill carries a fading dot texture, as in Capy's. */
-[data-slider-texture] {
-  background-image: radial-gradient(circle, white 0.6px, transparent 0.75px);
-  background-size: 3px 3px;
-  mask-image: linear-gradient(to right, black, transparent);
-}
-
-/* Chrome at Capy's scale: 44px top bars, 14px icons in 28px controls, 12–13px labels. */
+/* Chrome at a compact scale: 44px top bars, 14px icons in 28px controls, 12–13px labels. */
 :root {
   --workspace-topbar-height: 44px;
 }
@@ -117,7 +103,7 @@ body {
   font-size: 0.8125rem;
 }
 [data-app-sidebar] [data-thread-title],
-[data-app-sidebar] .font-medium.truncate.text-foreground {
+[data-app-sidebar] [data-sidebar-search-title] {
   letter-spacing: -0.02em;
 }
 
@@ -126,11 +112,10 @@ body {
   display: none;
 }
 
-/* Chat, measured against Capy: prompts at 14px over 13px replies, and links and file references
+/* Chat: prompts at 14px over 13px replies, and links and file references
    in the theme's link color. */
-.chat-markdown.user-message-markdown.text-sm {
+.user-message-markdown[data-chat-markdown-body] {
   font-size: 0.875rem;
-  line-height: 1.5;
   letter-spacing: normal;
 }
 .chat-markdown {
@@ -205,30 +190,25 @@ body {
     display: flex;
     align-items: center;
     visibility: hidden;
-    translate: calc(var(--sidebar-width) + 0.5px) calc(0.5rem + 0.5px);
+    translate: calc(var(--sidebar-width) + 0.5px);
   }
+  /* Closed, the card fills the window with no left edge. */
   [data-sidebar-state="collapsed"] [data-sidebar-toggle-slot="card"] {
     visibility: visible;
-    translate: calc(0.5rem + 0.5px) calc(0.5rem + 0.5px);
+    translate: 0;
   }
-  /* Capy's titlebar: the sidebar's own toggle sits at the sidebar's right end, before back and
-     forward on desktop. The fixed control row starts at the window controls' inset. */
+  /* The sidebar's own toggle sits at the sidebar's right end. The fixed control
+     row starts at the window controls' inset. */
   [data-sidebar-toggle-slot="sidebar"] {
     --bluecode-sidebar-toggle-x: calc(
       var(--bluecode-live-sidebar-width, var(--sidebar-width)) - var(--workspace-controls-left) -
-        1px - 0.5rem - var(--workspace-titlebar-control-size) -
-        var(--bluecode-titlebar-history-width, 0px)
+        1px - 0.5rem - var(--workspace-titlebar-control-size)
     );
-    translate: var(--bluecode-sidebar-toggle-x) calc(0.5rem + 0.5px);
-  }
-  /* The sidebar's titlebar row drops by the card's inset, onto the card header's line. */
-  [data-sidebar-chrome-header] {
-    box-sizing: content-box;
-    padding-top: calc(0.5rem + 0.5px);
+    translate: var(--bluecode-sidebar-toggle-x);
   }
   [data-sidebar-state="collapsed"] [data-sidebar-toggle-slot="sidebar"] {
     visibility: hidden;
-    translate: calc(var(--bluecode-sidebar-toggle-x) - var(--sidebar-width)) calc(0.5rem + 0.5px);
+    translate: calc(var(--bluecode-sidebar-toggle-x) - var(--sidebar-width));
   }
   [data-panel-animations="true"] [data-sidebar-toggle-slot] {
     transition:
@@ -247,15 +227,61 @@ body {
   --bluecode-moon-lit: color-mix(in srgb, var(--primary) 45%, white);
   --bluecode-moon-mid: var(--primary);
   --bluecode-moon-shadow: color-mix(in srgb, var(--primary) 60%, black);
-}
-:root.dark [data-bluecode-moon="accent"] {
-  --bluecode-moon-lit: color-mix(in srgb, var(--primary) 30%, white);
-  --bluecode-moon-mid: color-mix(in srgb, var(--primary) 82%, white);
-  --bluecode-moon-shadow: color-mix(in srgb, var(--primary) 60%, transparent);
+
+  @variant dark {
+    --bluecode-moon-lit: color-mix(in srgb, var(--primary) 30%, white);
+    --bluecode-moon-mid: color-mix(in srgb, var(--primary) 82%, white);
+    --bluecode-moon-shadow: color-mix(in srgb, var(--primary) 60%, transparent);
+  }
 }
 /* In icon rows the moon takes the row's text color, in the same three steps. */
 [data-bluecode-moon="current"] {
   --bluecode-moon-lit: currentColor;
   --bluecode-moon-mid: color-mix(in srgb, currentColor 60%, transparent);
   --bluecode-moon-shadow: color-mix(in srgb, currentColor 25%, transparent);
+}
+
+/* The content card's left edge. A left-only border thins to nothing around the rounded corners,
+   so this draws a full rounded outline 1px past the top and bottom, where the card clips it: the
+   curve keeps its width all the way into the window's edges. */
+@media (width >= 48rem) {
+  .bluecode-card-edge {
+    position: relative;
+  }
+  .bluecode-card-edge::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    left: 0;
+    width: calc(var(--bluecode-composer-radius) + 1px);
+    border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    border-right: 0;
+    border-radius: var(--bluecode-composer-radius) 0 0 var(--bluecode-composer-radius);
+    pointer-events: none;
+    z-index: 50;
+  }
+  [data-sidebar-state="collapsed"] .bluecode-card-edge::after {
+    display: none;
+  }
+}
+
+/* The start-page wallpaper dissolves into the page along an eased curve rather than a straight
+   ramp, so there is no visible line where the fade begins or ends. */
+[data-photo-backdrop] {
+  --wallpaper-fade: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 100%) 0%,
+    rgb(0 0 0 / 97%) 18%,
+    rgb(0 0 0 / 89%) 32%,
+    rgb(0 0 0 / 76%) 44%,
+    rgb(0 0 0 / 60%) 55%,
+    rgb(0 0 0 / 43%) 65%,
+    rgb(0 0 0 / 27%) 74%,
+    rgb(0 0 0 / 14%) 83%,
+    rgb(0 0 0 / 5%) 92%,
+    rgb(0 0 0 / 0%) 100%
+  );
+  -webkit-mask-image: var(--wallpaper-fade);
+  mask-image: var(--wallpaper-fade);
 }

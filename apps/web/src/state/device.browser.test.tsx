@@ -17,7 +17,7 @@ import {
   startAgentOpenedPreviews,
   resetDeviceSessionBaselinesForTests,
 } from "../components/preview/agentOpenedPreviews";
-import { usePreviewMiniPlayerStore } from "../previewMiniPlayerStore";
+import { useRightPanelStore } from "../rightPanelStore";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { deviceEnvironment, useDeviceState } from "./device";
 
@@ -27,12 +27,6 @@ vi.mock(import("./presentation"), async (original) => ({
     ...(await original()).environmentSummaries,
     connectedEnvironmentIdsAtom: Atom.make([EnvironmentId.make("device-loading")]),
   },
-}));
-vi.mock(import("../hooks/useSettings"), () => ({
-  getClientSettings: (() => ({ browserAutoShowFloatingPreview: true })) as never,
-  useClientSettings: ((
-    select: (settings: { browserAutoShowFloatingPreview: boolean }) => unknown,
-  ) => select({ browserAutoShowFloatingPreview: true })) as never,
 }));
 vi.mock(import("./use-atom-command"), () => {
   const run = () => Promise.resolve({ _tag: "Success", value: {} });
@@ -88,7 +82,7 @@ it("baselines the first device snapshot without reopening dismissed devices", as
   const stateAtom = Atom.make<AsyncResult.AsyncResult<DeviceServiceState>>(AsyncResult.initial());
   using _subscription = vi.spyOn(deviceEnvironment, "state").mockReturnValue(stateAtom);
   using _store = {
-    [Symbol.dispose]: () => usePreviewMiniPlayerStore.getState().removeThread(threadRef),
+    [Symbol.dispose]: () => useRightPanelStore.getState().removeThread(threadRef),
   };
   using _following = { [Symbol.dispose]: startAgentOpenedPreviews() };
   let loaded = false;
@@ -106,7 +100,7 @@ it("baselines the first device snapshot without reopening dismissed devices", as
   );
   const initiallyLoaded = loaded;
   await act(() => registry.set(stateAtom, AsyncResult.success(snapshot)));
-  expect(usePreviewMiniPlayerStore.getState().byThreadKey[threadKey]).toBeUndefined();
+  expect(useRightPanelStore.getState().byThreadKey[threadKey]).toBeUndefined();
   expect(initiallyLoaded).toBe(false);
   expect(loaded).toBe(true);
 
@@ -125,13 +119,17 @@ it("baselines the first device snapshot without reopening dismissed devices", as
       }),
     ),
   );
-  expect(usePreviewMiniPlayerStore.getState().byThreadKey[threadKey]?.source).toEqual({
-    kind: "device",
-    hostId: "local",
-    deviceId: "tablet",
-    platform: "ios",
-    name: "Tablet",
-  });
+  const devices = useRightPanelStore
+    .getState()
+    .byThreadKey[threadKey]?.surfaces.filter((surface) => surface.kind === "device");
+  expect(devices?.map((surface) => surface.target)).toEqual([
+    {
+      hostId: "local",
+      deviceId: "tablet",
+      platform: "ios",
+      name: "Tablet",
+    },
+  ]);
 });
 
 it("reports a failed first device load and retries it", async () => {

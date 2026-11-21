@@ -734,6 +734,8 @@ function GuestComposer({
           type="submit"
           aria-label={gt("Send", { $context: "verb, sends the message" })}
           disabled={sending || (text.trim() === "" && files.length === 0)}
+          // BlueCode: Capy's solid button look (buttons.css).
+          data-primary-action="solid"
           className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-message-action text-message-action-foreground shadow-xs hover:bg-message-action-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-64"
         >
           <ArrowUpIcon aria-hidden className="size-4" />

@@ -262,7 +262,8 @@ export function ThreadDetailsPrRow({
   const icon = statePresentation ? (
     <statePresentation.Icon
       aria-hidden
-      className={cn("size-4 shrink-0", statePresentation.toneClassName)}
+      // BlueCode: 14px, like the card's other icons.
+      className={cn("size-3.5 shrink-0", statePresentation.toneClassName)}
     />
   ) : pr && status ? (
     <ChangeRequestStatusIcon
@@ -471,17 +472,9 @@ export function ThreadDetailsPrRow({
             />
           }
         >
-          <EyeIcon
-            aria-hidden
-            className={cn(part === "icon" ? "size-3.5" : "size-4", "group-hover/watch:hidden")}
-          />
-          <EyeOffIcon
-            aria-hidden
-            className={cn(
-              part === "icon" ? "size-3.5" : "size-4",
-              "hidden group-hover/watch:block",
-            )}
-          />
+          {/* BlueCode: 14px in every part, like the card's other icons. */}
+          <EyeIcon aria-hidden className="size-3.5 group-hover/watch:hidden" />
+          <EyeOffIcon aria-hidden className="hidden size-3.5 group-hover/watch:block" />
         </TooltipTrigger>
         <TooltipPopup side="top">
           <T>
@@ -531,7 +524,8 @@ export function ThreadDetailsPrRow({
       {detail !== null && (showChecks || trailingAction !== null || watching) ? (
         <div className="pb-1.5">
           {openRow(detail.title, "row", true)}
-          <div className="flex h-5 min-w-0 items-center gap-0.5 ps-9 pe-2.5 text-xs text-muted-foreground">
+          {/* BlueCode: the number lines up under the title text: 8px inset, 14px icon, 8px gap. */}
+          <div className="flex h-5 min-w-0 items-center gap-0.5 ps-7.5 pe-2 text-xs text-muted-foreground">
             <span aria-hidden className="me-1 shrink-0 tabular-nums">
               #{number}
             </span>

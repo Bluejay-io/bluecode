@@ -1259,6 +1259,8 @@ interface TerminalActionButtonProps {
   onClick: () => void;
   children: ReactNode;
   disabled?: boolean;
+  /** BlueCode: hides an action the fork does not offer, leaving upstream's markup in place. */
+  hidden?: boolean;
 }
 
 function TerminalActionButton({
@@ -1267,7 +1269,9 @@ function TerminalActionButton({
   onClick,
   children,
   disabled,
+  hidden,
 }: TerminalActionButtonProps) {
+  if (hidden) return null;
   return (
     <Popover>
       <PopoverTrigger
@@ -1665,6 +1669,8 @@ export default function ThreadTerminalDrawer({
     resolvedTerminalGroups.length > 1 ||
     resolvedTerminalGroups.some((terminalGroup) => terminalGroup.terminalIds.length > 1);
   const hasReachedSplitLimit = visibleTerminalIds.length >= MAX_TERMINALS_PER_GROUP;
+  // BlueCode: one terminal per tab, so "+" is offered and splitting is not.
+  const offersSplit = false;
   const resolveTerminalLaunchLocation = (terminalId: string): TerminalLaunchLocation =>
     terminalLaunchLocationsById?.get(terminalId) ?? {
       cwd,
@@ -1857,7 +1863,8 @@ export default function ThreadTerminalDrawer({
     >
       {resizeHandle}
 
-      {!hasTerminalSidebar && (
+      {/* BlueCode: a panel tab is one terminal; the tab row's "+" and close button stand in. */}
+      {!isPanel && !hasTerminalSidebar && (
         <div className="pointer-events-none absolute right-2 top-2 z-20">
           <div className="pointer-events-auto inline-flex items-center overflow-hidden rounded-md border border-border/80 bg-background shadow-xs">
             <TerminalActionButton
@@ -1869,10 +1876,11 @@ export default function ThreadTerminalDrawer({
               }`}
               onClick={onSplitTerminalAction}
               label={splitTerminalActionLabel}
+              hidden={!offersSplit}
             >
               <SquareSplitHorizontal className="size-3.25" />
             </TerminalActionButton>
-            <div className="h-4 w-px bg-border/80" />
+            {offersSplit ? <div className="h-4 w-px bg-border/80" /> : null}
             <TerminalActionButton
               disabled={!canOperateTerminal}
               className={`p-1 text-foreground/90 transition-colors ${
@@ -1882,10 +1890,11 @@ export default function ThreadTerminalDrawer({
               }`}
               onClick={onSplitTerminalVerticalAction}
               label={splitTerminalVerticalActionLabel}
+              hidden={!offersSplit}
             >
               <SquareSplitVertical className="size-3.25" />
             </TerminalActionButton>
-            <div className="h-4 w-px bg-border/80" />
+            {offersSplit ? <div className="h-4 w-px bg-border/80" /> : null}
             <TerminalActionButton
               disabled={!canOperateTerminal}
               className="p-1 text-foreground/90 transition-colors hover:bg-accent"
@@ -1946,6 +1955,7 @@ export default function ThreadTerminalDrawer({
                     }`}
                     onClick={onSplitTerminalAction}
                     label={splitTerminalActionLabel}
+                    hidden={!offersSplit}
                   >
                     <SquareSplitHorizontal className="size-3.25" />
                   </TerminalActionButton>
@@ -1958,6 +1968,7 @@ export default function ThreadTerminalDrawer({
                     }`}
                     onClick={onSplitTerminalVerticalAction}
                     label={splitTerminalVerticalActionLabel}
+                    hidden={!offersSplit}
                   >
                     <SquareSplitVertical className="size-3.25" />
                   </TerminalActionButton>

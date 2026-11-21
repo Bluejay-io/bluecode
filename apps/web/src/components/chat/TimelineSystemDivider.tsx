@@ -18,6 +18,7 @@ export function TimelineSystemDivider(props: {
   const content = (
     <>
       <span
+        data-timeline-divider-label=""
         className={cn(
           "inline-flex items-baseline gap-1.5 align-baseline font-medium",
           props.wrapDetail && "shrink-0 whitespace-nowrap",
@@ -28,6 +29,7 @@ export function TimelineSystemDivider(props: {
       </span>
       {props.detail ? (
         <span
+          data-timeline-divider-detail={props.wrapDetail ? "prose" : "value"}
           className={cn(
             "min-w-0 opacity-70",
             props.wrapDetail ? "ml-1.5 wrap-anywhere" : "inline-flex items-center",
@@ -44,6 +46,8 @@ export function TimelineSystemDivider(props: {
 
   return (
     <div
+      // BlueCode: hooks for the theme accents in bluecode/timeline-accents.css.
+      data-timeline-divider={props.tone ?? "neutral"}
       className={cn(
         "flex min-w-0 items-center gap-2 py-2 text-2xs text-muted-foreground",
         props.tone === "danger" && "text-destructive",

@@ -14,7 +14,6 @@ import {
   THREAD_DETAILS_PANEL_META_ACTION_CLASS,
   THREAD_DETAILS_PANEL_CHEVRON_CLASS,
   THREAD_DETAILS_PANEL_SELECT_LABEL_CLASS,
-  THREAD_DETAILS_PANEL_SELECT_ICON_CLASS,
 } from "./threadDetailsPanelStyles";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
@@ -22,7 +21,8 @@ const parts = {
   row: THREAD_DETAILS_PANEL_ROW_CLASS,
   title: cn(
     THREAD_DETAILS_PANEL_ROW_CLASS,
-    "h-auto min-h-8 items-start pt-1.5 pb-0 disabled:opacity-100 sm:h-auto [&>svg]:mt-px",
+    // BlueCode: 28px rows; a wrapped title keeps its icon on the first line.
+    "h-auto min-h-7 items-start py-1 disabled:opacity-100 sm:h-auto [&>svg]:mt-px",
   ),
   select: THREAD_DETAILS_PANEL_SELECT_ROW_CLASS,
   primary: THREAD_DETAILS_PANEL_SPLIT_PRIMARY_CLASS,
@@ -48,17 +48,21 @@ export function ThreadDetailsControl({
   multiline?: boolean;
   tone?: "default" | "muted" | "primary" | "destructive";
 }) {
+  // BlueCode: bluecode/thread-details.css styles split segments and selects by part.
+  const partAttribute = { "data-details-part": part };
   const control = useRender({
     defaultTagName: "button",
     render,
     props: mergeProps<"button">(
       {
         type: render ? undefined : "button",
+        ...partAttribute,
+        // BlueCode: unsized icons are 14px.
         // The touch target stays centered within the panel's 32px rows; spilling past them makes scrolling lists overflow.
         className: cn(
-          "relative inline-flex shrink-0 cursor-pointer items-center whitespace-nowrap border outline-none transition-[box-shadow,scale] [&:not([aria-haspopup]):not(:disabled):not([aria-disabled=true])]:will-change-[scale] [&:active:not([aria-haspopup])]:scale-[0.97] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-full pointer-coarse:after:min-h-8 pointer-coarse:after:min-w-8 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 disabled:pointer-events-none disabled:opacity-64 aria-disabled:cursor-not-allowed aria-disabled:opacity-64 [&_svg]:shrink-0",
+          "relative inline-flex shrink-0 cursor-pointer items-center whitespace-nowrap border outline-none transition-[box-shadow,scale] [&:not([aria-haspopup]):not(:disabled):not([aria-disabled=true])]:will-change-[scale] [&:active:not([aria-haspopup])]:scale-[0.97] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-full pointer-coarse:after:min-h-8 pointer-coarse:after:min-w-8 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-3.5 disabled:pointer-events-none disabled:opacity-64 aria-disabled:cursor-not-allowed aria-disabled:opacity-64 [&_svg]:shrink-0",
           parts[part],
-          multiline && "h-auto min-h-8 py-1.5 disabled:opacity-100 sm:h-auto",
+          multiline && "h-auto min-h-7 py-1.5 disabled:opacity-100 sm:h-auto",
           tone === "muted" && "text-muted-foreground hover:text-foreground/80",
           tone === "primary" &&
             // The row surface forces a faint hover fill with !important; the pill keeps its own.
@@ -83,7 +87,7 @@ export function ThreadDetailsControl({
               <span data-slot="select-label" className={THREAD_DETAILS_PANEL_SELECT_LABEL_CLASS}>
                 {children}
               </span>
-              <span data-slot="select-icon" className={THREAD_DETAILS_PANEL_SELECT_ICON_CLASS}>
+              <span data-slot="select-icon">
                 <ChevronDownIcon className={THREAD_DETAILS_PANEL_CHEVRON_CLASS} />
               </span>
             </>
@@ -128,7 +132,7 @@ export function ThreadDetailsMoreButton({
       tone="muted"
       className="w-full active:scale-100"
     >
-      <Icon aria-hidden className="size-4 shrink-0" />
+      <Icon aria-hidden className="size-3.5 shrink-0" />
       {expanded ? (
         <T>Show less</T>
       ) : (

@@ -750,8 +750,17 @@ it("a shortcut conditioned on rightPanelOpen sees the thread's open right panel"
   const composer = page.getByTestId("composer-editor");
   const toggle = page.getByRole("button", { name: "Toggle right panel", exact: true });
   await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
+  // With no tabs, the toggle and its shortcut list the surfaces instead of opening the panel.
   await toggle.click();
-  await page.getByRole("button", { name: /^Files/ }).click();
+  await expect.element(page.getByRole("menuitem", { name: /^Files/ })).toBeVisible();
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
+  await userEvent.keyboard("{Escape}");
+  await expect.element(page.getByRole("menuitem", { name: /^Files/ })).not.toBeInTheDocument();
+  await expect.element(toggle).toHaveFocus();
+  await composer.click();
+  await userEvent.keyboard("{Control>}t{/Control}");
+  await page.getByRole("menuitem", { name: /^Files/ }).click();
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
   await composer.click();
   await userEvent.keyboard("{Control>}t{/Control}");
   await expect.element(page.getByRole("menuitem", { name: /Files/ })).toBeVisible();

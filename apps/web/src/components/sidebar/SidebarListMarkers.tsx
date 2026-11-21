@@ -138,7 +138,12 @@ export function SidebarSectionHeader(props: {
         expanded={props.toggle.expanded}
         tone={props.isDropTarget ? "accent" : props.dragging ? "emphasized" : "muted"}
         data-testid={`sidebar-${shelf}-shelf-toggle`}
-        accessory={<span className="font-normal tabular-nums">{props.count}</span>}
+        // BlueCode: the count a step lighter than the label.
+        accessory={
+          <span className="font-normal tabular-nums text-(--muted-foreground-3)">
+            {props.count}
+          </span>
+        }
       >
         {props.label}
       </CollapsibleSectionHeader>

@@ -109,6 +109,8 @@ import { useBrowserSurfaceStore } from "~/browser/browserSurfaceStore";
 import { usePreviewSession } from "./usePreviewSession";
 import { ZoomIndicator } from "./ZoomIndicator";
 import { AgentBrowserCursor } from "./AgentBrowserCursor";
+import { useAgentDriving } from "~/bluecode/agentBrowserActivity";
+import { AgentDrivingFrame } from "~/bluecode/AgentDrivingBadge";
 import { PreviewFindBar } from "./PreviewFindBar";
 import {
   findActiveBrowserRecordingRuntimeTabId,
@@ -233,6 +235,8 @@ export function PreviewView({
         : findActiveBrowserRecordingRuntimeTabId(threadRef, tabId)
       : null;
   const snapshot = tabId ? (previewState.sessions[tabId] ?? null) : null;
+  // BlueCode: the page an agent drives gets an accent frame.
+  const agentDriving = useAgentDriving(threadRef.environmentId, previewState.sessions);
   const nativeServerTab = useRendersServerTabNatively(threadRef.environmentId, snapshot);
   const isServerTab = snapshot?.runtime === "server" && !nativeServerTab;
   const serverOwnsRendering = snapshot?.runtime === "server";
@@ -1206,6 +1210,9 @@ export function PreviewView({
             zoomFactor={layoutZoomFactor}
             controller={controller}
           />
+        ) : null}
+        {snapshot && !showEmptyState ? (
+          <AgentDrivingFrame active={agentDriving !== null && agentDriving.tabId === tabId} />
         ) : null}
         {find && canFindInPage && find.tabId === runtimeTabId ? (
           <PreviewFindBar

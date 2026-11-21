@@ -306,6 +306,8 @@ function UsageRow({
   const gt = useGT();
   const rowProps = {
     "aria-label": gt("{label}: {value}", { label, value: ariaValue }),
+    // BlueCode: styling hooks for bluecode/thread-details.css.
+    "data-thread-details-meter": tone ?? (muted ? "muted" : "neutral"),
     className: cn(
       "col-span-3 grid h-6 grid-cols-subgrid items-center rounded-lg px-2.5 outline-none hover:bg-black/[0.035] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-popup-open:bg-black/[0.035] dark:hover:bg-white/[0.08] dark:data-popup-open:bg-white/[0.08]",
       opensUsage
@@ -324,9 +326,13 @@ function UsageRow({
           {label}
         </span>
         {fill !== null ? (
-          <span className="relative h-[3px] rounded-full bg-muted-foreground/30 dark:bg-muted-foreground/20">
+          <span
+            data-meter-part="track"
+            className="relative h-[3px] rounded-full bg-muted-foreground/30 dark:bg-muted-foreground/20"
+          >
             {fill > 0 ? (
               <span
+                data-meter-part="fill"
                 className={cn(
                   "absolute inset-y-0 left-0 rounded-full",
                   tone === "error"
@@ -343,6 +349,7 @@ function UsageRow({
             {tick !== null ? (
               <span
                 aria-hidden
+                data-meter-part="tick"
                 className="absolute -top-[3px] h-[9px] w-px -translate-x-1/2 bg-foreground/75"
                 style={{ left: `clamp(0.5px, ${tick}%, calc(100% - 0.5px))` }}
               />
@@ -350,6 +357,7 @@ function UsageRow({
           </span>
         ) : null}
         <span
+          data-meter-part={fill === null ? "text" : "value"}
           className={cn(
             // Text-only rows span the bar column so they never widen the shared value column.
             "text-end font-medium tabular-nums",

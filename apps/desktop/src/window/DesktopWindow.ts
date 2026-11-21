@@ -59,9 +59,6 @@ class ContextMenuImageCopyError extends Schema.TaggedError<ContextMenuImageCopyE
 // buttons stay 14 points at any zoom.
 const MACOS_WORKSPACE_TOPBAR_HEIGHT = 44;
 const MACOS_WINDOW_BUTTON_RADIUS = 7;
-// BlueCode: the content card sits 0.5rem + 0.5px below the window's top (cardLayout.ts), and the
-// buttons centre on its header row.
-const MACOS_CARD_INSET = 8.5;
 
 function parseMailtoAddress(rawUrl: string): Option.Option<string> {
   let url: URL;
@@ -83,7 +80,7 @@ function syncMacosWindowButtons(window: Electron.BrowserWindow): void {
   window.setWindowButtonPosition({
     x: 16,
     y: Math.round(
-      (MACOS_CARD_INSET + MACOS_WORKSPACE_TOPBAR_HEIGHT / 2) * window.webContents.getZoomFactor() -
+      (MACOS_WORKSPACE_TOPBAR_HEIGHT * window.webContents.getZoomFactor()) / 2 -
         MACOS_WINDOW_BUTTON_RADIUS,
     ),
   });
@@ -332,9 +329,7 @@ function getWindowTitleBarOptions(
       titleBarStyle: "hiddenInset",
       trafficLightPosition: {
         x: 16,
-        y: Math.round(
-          MACOS_CARD_INSET + MACOS_WORKSPACE_TOPBAR_HEIGHT / 2 - MACOS_WINDOW_BUTTON_RADIUS,
-        ),
+        y: MACOS_WORKSPACE_TOPBAR_HEIGHT / 2 - MACOS_WINDOW_BUTTON_RADIUS,
       },
     };
   }

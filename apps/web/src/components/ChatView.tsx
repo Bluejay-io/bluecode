@@ -292,7 +292,7 @@ import {
 import { useEnvironmentShellHasSnapshot } from "../state/shell";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
 import { DraftHeroHeadline } from "./chat/DraftHeroHeadline";
-import { DitherBackdrop } from "~/bluecode/backdrop/DitherBackdrop";
+import { PhotoBackdrop } from "~/bluecode/backdrop/PhotoBackdrop";
 import { ExpandedImageDialogHost, openExpandedImagePreview } from "./chat/ExpandedImageDialog";
 import {
   BranchRestoreConfirmHost,
@@ -322,6 +322,16 @@ import {
   SplitViewToggle,
   WorkspaceTitlebarControls,
 } from "./chat/PanelLayoutControls";
+import { useAgentDriving } from "~/bluecode/agentBrowserActivity";
+import { useAgentBrowserScreen } from "~/bluecode/agentTakeoverPanel";
+import { AddSurfaceMenu } from "~/bluecode/AddSurfaceMenu";
+import { panelToggleOpensMenu } from "~/bluecode/AddSurfaceMenu.logic";
+import {
+  PANEL_LAYOUT_STORAGE_KEY,
+  type PanelState,
+  resolvePanelView,
+  toggleLayout,
+} from "~/bluecode/panelView";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
 import { ThreadDetailsPanel } from "./chat/ThreadDetailsPanel";
 import { ThreadActionsButton } from "./chat/ThreadActionsButton";
@@ -1121,39 +1131,45 @@ export default function ChatView(props: ChatViewProps) {
   );
   // BlueCode: split view puts the panel beside the chat; full width puts the chat and the panel's
   // tabs in one row. With no tabs there is only the chat.
-  const [splitView, setSplitView] = useLocalStorage(
-    "t3code:bluecode-split-view",
-    true,
-    Schema.Boolean,
-  );
+  const [splitView, setSplitView] = useLocalStorage(PANEL_LAYOUT_STORAGE_KEY, true, Schema.Boolean);
   const hasPanelTabs = rightPanelState.surfaces.length > 0;
-  const tabbedFullscreen = !embedded && hasPanelTabs && !splitView;
-  const lastPanelTabs = useRef({ threadKey: activeThreadKey, hasPanelTabs });
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- BlueCode: tabs close from many places (a tab's close button, a shortcut, a browser session ending); once a thread's last one goes, the next tab opens beside the chat.
-  useEffect(() => {
-    const previous = lastPanelTabs.current;
-    lastPanelTabs.current = { threadKey: activeThreadKey, hasPanelTabs };
-    if (embedded || previous.threadKey !== activeThreadKey) return;
-    if (previous.hasPanelTabs && !hasPanelTabs) setSplitView(true);
-  }, [activeThreadKey, embedded, hasPanelTabs, setSplitView]);
+  const panelState = {
+    hasTabs: hasPanelTabs,
+    isOpen: rightPanelState.isOpen,
+    chatTab: rightPanelState.chatTab === true,
+    layout: embedded || splitView ? "split" : "full",
+  } satisfies PanelState;
+  const panelView = resolvePanelView(panelState);
+  const tabbedFullscreen = panelView === "full-chat" || panelView === "full-surface";
   const [threadRenameOpen, setThreadRenameOpen] = useState(false);
+  const [addSurfaceMenuOpen, setAddSurfaceMenuOpen] = useState(false);
   const showChatTab = () => {
     if (!activeThreadRef) return;
-    useRightPanelStore.getState().close(activeThreadRef);
+    useRightPanelStore.getState().showChatTab(activeThreadRef);
     requestWorkspaceContentFocus();
   };
   // Maximize shows the panel's tab at full width; minimize puts it beside the chat.
   const toggleSplitView = () => {
     if (!activeThreadRef || !hasPanelTabs) return;
-    setSplitView(tabbedFullscreen);
-    useRightPanelStore.getState().show(activeThreadRef);
+    const next = toggleLayout(panelState);
+    setSplitView(next.layout === "split");
+    if (!next.isOpen || rightPanelState.isOpen) return;
+    const { surfaces, activeSurfaceId } = rightPanelState;
+    const surfaceId =
+      surfaces.find((surface) => surface.id === activeSurfaceId)?.id ?? surfaces[0]?.id;
+    // Restored rather than shown, so changing the layout leaves focus where it is.
+    if (surfaceId) useRightPanelStore.getState().restoreSurface(activeThreadRef, surfaceId);
   };
-  const leaveTabbedFullscreen = () => setSplitView(true);
   const shouldUsePlanSidebarSheet = prefersPlanSidebarSheet && !tabbedFullscreen;
   const activeRightPanelSurface = useRightPanelStore((state) =>
     selectActiveRightPanelSurface(state.byThreadKey, activeThreadRef),
   );
   const activePreviewState = useThreadPreviewState(activeThreadRef);
+  // BlueCode: the right panel toggle shows the agent driving a browser tab behind it.
+  const agentDriving = useAgentDriving(
+    activeThreadRef?.environmentId ?? null,
+    activePreviewState.sessions,
+  );
   const activePreviewServerEpoch = activePreviewState.serverEpoch;
   const resolvePreviewRuntimeTabId = activeThreadRef
     ? (tabId: string) => previewRuntimeTabId(activeThreadRef, activePreviewServerEpoch, tabId)
@@ -1168,9 +1184,9 @@ export default function ChatView(props: ChatViewProps) {
   );
   const canReuseTerminal = activeThreadKnownSessionsRaw !== null;
   const previewPanelOpen = activeRightPanelKind === "preview" && browserAvailable;
-  const rightPanelOpen = rightPanelState.isOpen;
-  // Full width, a closed panel is the chat tab, so the tab row stays on screen.
-  const panelShown = tabbedFullscreen || rightPanelOpen;
+  const rightPanelOpen = panelView === "split" || panelView === "full-surface"; // BlueCode: from the panel view
+  // Full width, the chat tab keeps the panel's tab row on screen.
+  const panelShown = panelView !== "chat";
   const panelThreadKey = useRef<string | null>(null);
   // Each thread's panel revision as it was left, to tell a panel opened on the way in.
   const panelRevisionsAtLeave = useRef(new Map<string, number>());
@@ -1191,9 +1207,8 @@ export default function ChatView(props: ChatViewProps) {
       (panelRevisionsAtLeave.current.get(activeThreadKey) ?? 0)
     )
       return;
-    // Full width, a thread opens on its chat; split view keeps the panel open or shut.
-    if (tabbedFullscreen) useRightPanelStore.getState().close(next);
-    else useRightPanelStore.getState().carryPanel(previous, next);
+    // The panel stays shown or hidden; full width, a shown panel arrives on the chat tab.
+    useRightPanelStore.getState().carryPanel(previous, next, panelState.layout === "full");
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- the shape is read at the switch, not watched; changing it alone must not reset the open tab.
   }, [activeThreadKey, embedded]);
   const { active: panelAnimationsActive, durationMs: panelAnimationDurationMs } =
@@ -1222,10 +1237,10 @@ export default function ChatView(props: ChatViewProps) {
   const canMaximizeRightPanel = rightPanelOpen;
   // BlueCode: full width is its own shape, so a maximized flag saved by the old layout or a
   // maximize request must not cover the chat in split view.
-  const rightPanelMaximized = tabbedFullscreen && rightPanelOpen;
+  const rightPanelMaximized = panelView === "full-surface";
   const inlineRightPanelOwnsTitleBar = panelShown && !shouldUsePlanSidebarSheet;
   // Full width, a closed panel is the chat tab: the chat covers the panel below its tab row.
-  const chatShownInPanel = tabbedFullscreen && !rightPanelOpen;
+  const chatShownInPanel = panelView === "full-chat";
   const [threadPanelPopoverHandle] = useState(PopoverCreateHandle);
   // BlueCode: with no chat header, the details popover hangs from a top bar spanning the view.
   const threadDetailsAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -1789,6 +1804,12 @@ export default function ChatView(props: ChatViewProps) {
   });
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const backgroundThread = use(BackgroundThreadContext);
+  // BlueCode: an agent's browser opens beside this chat; sheet and full width keep the chat, and
+  // a chat kept mounted behind another page (Settings) is not on screen.
+  useAgentBrowserScreen(
+    embedded || backgroundThread ? null : activeThreadRef,
+    !prefersPlanSidebarSheet && panelState.layout === "split",
+  );
   const scriptKeybindings =
     useAtomValue(serverEnvironment.configValueAtom(environmentId))?.keybindings ??
     DEFAULT_RESOLVED_KEYBINDINGS;
@@ -2115,9 +2136,7 @@ export default function ChatView(props: ChatViewProps) {
   const linkedItemsSurfaceAvailable =
     pullRequestsSurfaceAvailable ||
     (isServerThread && (activeThreadShell?.issues?.length ?? 0) > 0);
-  const { state: deviceState, loaded: deviceStateLoaded } = useDeviceState(
-    activeThreadRef?.environmentId ?? null,
-  );
+  const { state: deviceState } = useDeviceState(activeThreadRef?.environmentId ?? null);
   // The thread's own change request, placed against the project it belongs to. Without a
   // project there is nothing to resolve it against, so the caller falls back to the browser.
   const activeProjectRepository = sourceControlClients.repositorySelector(
@@ -2534,7 +2553,6 @@ export default function ChatView(props: ChatViewProps) {
     activeRightPanelSurface,
     activePreviewState,
     deviceState,
-    deviceStateLoaded,
     pullRequestPanelTarget,
     threadPanelPresentation,
     isServerThread,
@@ -2544,7 +2562,6 @@ export default function ChatView(props: ChatViewProps) {
     canOperatePreview,
     diffOpen,
     previewPanelOpen,
-    rightPanelOpen,
     canMaximizeRightPanel,
     rightPanelMaximized,
     supportsPullRequests,
@@ -2555,7 +2572,14 @@ export default function ChatView(props: ChatViewProps) {
     closeRightPanelSurface,
     onToggleSplitView: toggleSplitView,
     onShowChat: tabbedFullscreen && rightPanelOpen ? showChatTab : undefined,
-    onLeaveTabbedFullscreen: tabbedFullscreen ? leaveTabbedFullscreen : undefined,
+    panelState,
+  });
+  // BlueCode: with no tabs the toggle and its shortcut list the surfaces, so the panel never opens empty.
+  const surfaceMenuOnToggle = !embedded && panelToggleOpensMenu(panelState);
+  if (!surfaceMenuOnToggle && addSurfaceMenuOpen) setAddSurfaceMenuOpen(false);
+  const toggleRightPanelOrMenuStable = useStableCallback(() => {
+    if (!surfaceMenuOnToggle) toggleRightPanelStable();
+    else if (activeThreadRef && activeProject) setAddSurfaceMenuOpen((open) => !open);
   });
   const pullRequestSurfaceAvailable = supportsPullRequests && pullRequestPanelTarget !== null;
   const {
@@ -2906,6 +2930,7 @@ export default function ChatView(props: ChatViewProps) {
     commands: {
       ...terminalShortcuts,
       ...rightPanelShortcuts,
+      "rightPanel.toggle": () => toggleRightPanelOrMenuStable(), // BlueCode: see surfaceMenuOnToggle
       ...threadLifecycleShortcuts,
       "thread.copyReference": ({ event }) => {
         if (!event.repeat) copyActiveThreadReference();
@@ -2953,14 +2978,14 @@ export default function ChatView(props: ChatViewProps) {
   useEffect(() => {
     if (embedded || backgroundThread) return;
     return window.desktopBridge?.onMenuAction((action) => {
-      if (action === "rightPanel.toggle") toggleRightPanelStable();
+      if (action === "rightPanel.toggle") toggleRightPanelOrMenuStable();
       else if (action === "rightPanel.toggleMaximized") toggleRightPanelMaximizedStable();
       else if (action === "rightPanel.close") closeActiveRightPanelSurfaceStable();
     });
   }, [
     embedded,
     backgroundThread,
-    toggleRightPanelStable,
+    toggleRightPanelOrMenuStable,
     toggleRightPanelMaximizedStable,
     closeActiveRightPanelSurfaceStable,
   ]);
@@ -3531,8 +3556,40 @@ export default function ChatView(props: ChatViewProps) {
     threadPanelPopoverHandle,
     threadPanelShortcutLabel: shortcutLabelForCommand(keybindings, "threadPanel.toggle"),
     rightPanelAvailable: activeProject !== null,
-    rightPanelOpen,
+    // BlueCode: pressed while the panel shows, the full-width chat tab included.
+    rightPanelOpen: panelShown,
     rightPanelShortcutLabel: shortcutLabelForCommand(keybindings, "rightPanel.toggle"),
+    agentDriving,
+    // BlueCode: the same surfaces, availability and handlers as the panel's + menu below.
+    rightPanelMenu: surfaceMenuOnToggle
+      ? (trigger) => (
+          <AddSurfaceMenu
+            open={addSurfaceMenuOpen}
+            onOpenChange={setAddSurfaceMenuOpen}
+            trigger={trigger}
+            surfaces={{
+              onAddBrowser: () => createBrowserSurface(),
+              onAddBrowserInProfile: createBrowserSurfaceStable,
+              onAddTerminal: addTerminalSurfaceStable,
+              onAddFiles: addFilesSurfaceStable,
+              onAddDiff: addDiffSurfaceStable,
+              onAddPullRequest: addPullRequestSurfaceStable,
+              onAddPullRequests: addPullRequestsSurfaceStable,
+              onAddDevice: addDeviceSurfaceStable,
+              onAddSideChat: sideChatsOffered ? openSideChatStable : undefined,
+              browserAvailable: canOperatePreview && browserAvailable,
+              terminalAvailable: activeProject !== null && canOperateTerminal,
+              filesAvailable: activeProject !== null,
+              diffAvailable: isServerThread && isGitRepo,
+              pullRequestAvailable: pullRequestSurfaceAvailable,
+              pullRequestsAvailable: linkedItemsSurfaceAvailable,
+              deviceAvailable: activeThreadRef !== null,
+              sideChatAvailable: sideChat.available,
+              sideChatDisabledReason,
+            }}
+          />
+        )
+      : undefined,
     onToggleTerminal: toggleTerminalVisibilityStable,
     onToggleThreadPanel: toggleThreadPanelStable,
     onToggleRightPanel: toggleRightPanelStable,
@@ -3563,7 +3620,6 @@ export default function ChatView(props: ChatViewProps) {
       )}
       <PanelLayoutControls
         {...panelToggleControlProps}
-        rightPanelOpen={panelShown}
         showThreadPanelControl={false}
         showTerminalControl={false}
       />
@@ -3634,8 +3690,9 @@ export default function ChatView(props: ChatViewProps) {
         inert={rightPanelMaximized && !chatShownInPanel}
         onMouseUp={preventMiddleClickPasteOutsideEditable}
       >
+        {/* BlueCode: the start page's dithered photo wallpaper */}
         {isDraftHeroState && !embedded ? (
-          <DitherBackdrop className="inset-x-0 top-0 h-[min(42%,30rem)]" />
+          <PhotoBackdrop className="inset-x-0 top-(--workspace-topbar-height) h-[min(42%,30rem)]" />
         ) : null}
         {embedded || tabbedFullscreen ? null : (
           <header
@@ -3680,7 +3737,7 @@ export default function ChatView(props: ChatViewProps) {
             />
             {chatControls}
             {/* The side panel toggle stays in the window's corner, over this header's end. */}
-            {inlineRightPanelOwnsTitleBar ? null : <span aria-hidden className="w-8 shrink-0" />}
+            {inlineRightPanelOwnsTitleBar ? null : <span aria-hidden className="w-6.25 shrink-0" />}
           </header>
         )}
 
@@ -3904,7 +3961,10 @@ export default function ChatView(props: ChatViewProps) {
                     <ChildThreadApprovals threadRef={activeThreadRef} />
                     {isDraftHeroState ? (
                       // BlueCode: Capy's start page puts the project and run context above the composer.
-                      <div className="@container/composer-surface mx-auto flex w-full min-w-0 items-center gap-1 px-2 pb-2">
+                      <div
+                        data-draft-hero-controls
+                        className="@container/composer-surface mx-auto flex w-full min-w-0 items-center gap-1 px-2 pb-2"
+                      >
                         <DraftHeroHeadline
                           variant="control"
                           draftId={draftId}
@@ -4066,6 +4126,8 @@ export default function ChatView(props: ChatViewProps) {
                                 permissionsShownInStrip={
                                   showComposerContextStrip && !isServerThread
                                 }
+                                // BlueCode: the footer's context ring.
+                                contextWindow={activeContextWindow}
                                 promptRef={promptRef}
                                 composerImagesRef={composerImagesRef}
                                 composerFilesRef={composerFilesRef}
@@ -4129,6 +4191,8 @@ export default function ChatView(props: ChatViewProps) {
                     </div>
                     <div
                       aria-hidden
+                      // BlueCode: styling hook for theme.css.
+                      data-composer-bottom-spacer
                       className="h-[calc(env(safe-area-inset-bottom)+1rem)] sm:h-[calc(env(safe-area-inset-bottom)+1.25rem)]"
                     />
                   </div>

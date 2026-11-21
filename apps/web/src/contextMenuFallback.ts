@@ -183,6 +183,8 @@ function createIconElement(name: string, tone: "neutral" | "destructive"): SVGSV
   svg.setAttribute("stroke-width", "2");
   svg.setAttribute("stroke-linecap", "round");
   svg.setAttribute("stroke-linejoin", "round");
+  // BlueCode: styling hook for bluecode/menus.css.
+  svg.dataset.contextMenuIcon = tone;
   svg.setAttribute(
     "class",
     tone === "destructive"
@@ -255,6 +257,8 @@ export function showContextMenuFallback<T extends string>(
     const previouslyFocusedElement = focusedElement instanceof HTMLElement ? focusedElement : null;
     const menuStack: HTMLDivElement[] = [];
     const submenuTriggerStack: Array<HTMLButtonElement | undefined> = [];
+    // BlueCode: an open submenu keeps its trigger highlighted, so closing one repaints it.
+    const refreshTriggerHighlight = new WeakMap<HTMLButtonElement, () => void>();
     let isDisposed = false;
     let canDismissFromPointer = false;
 
@@ -374,7 +378,9 @@ export function showContextMenuFallback<T extends string>(
 
     const closeMenusFromLevel = (level: number) => {
       while (menuStack.length > level) {
-        submenuTriggerStack.pop()?.setAttribute("aria-expanded", "false");
+        const trigger = submenuTriggerStack.pop();
+        trigger?.setAttribute("aria-expanded", "false");
+        if (trigger) refreshTriggerHighlight.get(trigger)?.();
         menuStack.pop()?.remove();
       }
     };
@@ -391,8 +397,9 @@ export function showContextMenuFallback<T extends string>(
       const menu = document.createElement("div");
       menu.className =
         "dropdown-glass fixed z-[10000] min-w-32 max-w-sm overflow-hidden rounded-lg bg-clip-padding text-popover-foreground outline-none";
+      // BlueCode: menus start at 14rem.
       menu.style.cssText =
-        "position:fixed;z-index:10000;min-width:8rem;max-width:24rem;overflow:hidden;border-radius:var(--radius-lg);background-clip:padding-box;color:var(--contrast-popover-foreground);outline:none;pointer-events:auto;";
+        "position:fixed;z-index:10000;min-width:min(14rem,calc(100vw - 2rem));max-width:24rem;overflow:hidden;border-radius:var(--radius-lg);background-clip:padding-box;color:var(--contrast-popover-foreground);outline:none;pointer-events:auto;";
       menu.style.left = `${preferredLeft}px`;
       menu.style.top = `${preferredTop}px`;
       menu.dataset.level = String(level);
@@ -411,8 +418,9 @@ export function showContextMenuFallback<T extends string>(
         if (item.separatorBefore === true && inner.children.length > 0) {
           const separator = document.createElement("div");
           separator.className = "mx-2 my-1 h-px bg-border";
+          // BlueCode: separators run to the menu's edge in the menus' hairline.
           separator.style.cssText =
-            "height:1px;margin:0.25rem 0.5rem;background:var(--contrast-border);";
+            "height:1px;margin:0.25rem -0.25rem;background:var(--border-1);";
           separator.dataset.contextMenuSeparator = "true";
           separator.setAttribute("role", "separator");
           inner.appendChild(separator);
@@ -421,6 +429,8 @@ export function showContextMenuFallback<T extends string>(
         if (item.header === true) {
           const header = document.createElement("div");
           header.className = "px-2 py-1.5 font-medium text-muted-foreground text-xs";
+          // BlueCode: styling hook for bluecode/menus.css.
+          header.dataset.contextMenuHeader = "true";
           header.textContent = item.label;
           inner.appendChild(header);
           continue;
@@ -444,8 +454,9 @@ export function showContextMenuFallback<T extends string>(
           : isLeafDestructive
             ? `${rowBase} text-destructive-foreground hover:bg-destructive/10 hover:text-destructive-foreground`
             : `${rowBase} text-foreground hover:bg-accent hover:text-accent-foreground`;
+        // BlueCode: bluecode/menus.css sets the row and detail sizes through these variables.
         button.style.cssText =
-          "display:flex;width:100%;min-height:1.75rem;align-items:center;gap:0.5rem;border:0;border-radius:var(--radius-sm);background:transparent;padding:0.25rem 0.5rem;color:var(--contrast-foreground);font-family:var(--font-sans,system-ui,sans-serif);font-size:0.875rem;line-height:1.25rem;text-align:left;cursor:default;";
+          "display:flex;width:100%;min-height:1.75rem;align-items:center;gap:0.5rem;border:0;border-radius:var(--radius-sm);background:transparent;padding:0.25rem 0.5rem;color:var(--contrast-foreground);font-family:var(--font-sans,system-ui,sans-serif);font-size:var(--context-menu-font-size,0.875rem);line-height:1.25rem;text-align:left;cursor:default;";
         if (isLeafDestructive) {
           button.style.color = "var(--destructive-foreground)";
         }
@@ -486,7 +497,7 @@ export function showContextMenuFallback<T extends string>(
           const detail = document.createElement("span");
           detail.className = "ms-auto shrink-0 ps-4 text-muted-foreground text-xs";
           detail.style.cssText =
-            "margin-inline-start:auto;flex-shrink:0;padding-inline-start:1rem;color:var(--contrast-muted-foreground);font-size:0.75rem;";
+            "margin-inline-start:auto;flex-shrink:0;padding-inline-start:1rem;color:var(--contrast-muted-foreground);font-size:var(--context-menu-detail-font-size,0.75rem);";
           detail.textContent = item.detail;
           button.appendChild(detail);
         }
@@ -510,7 +521,9 @@ export function showContextMenuFallback<T extends string>(
           let isHovered = false;
           let isFocused = false;
           const updateHighlight = () => {
-            const isHighlighted = isHovered || isFocused;
+            // BlueCode: an open submenu keeps its trigger highlighted.
+            const isHighlighted =
+              isHovered || isFocused || button.getAttribute("aria-expanded") === "true";
             button.style.background = isHighlighted
               ? isLeafDestructive
                 ? "color-mix(in srgb, var(--destructive) 10%, transparent)"
@@ -524,6 +537,7 @@ export function showContextMenuFallback<T extends string>(
                 ? "var(--destructive-foreground)"
                 : "var(--contrast-foreground)";
           };
+          if (hasChildren) refreshTriggerHighlight.set(button, updateHighlight);
           button.addEventListener("mouseenter", () => {
             button.focus({ preventScroll: true });
             isHovered = true;

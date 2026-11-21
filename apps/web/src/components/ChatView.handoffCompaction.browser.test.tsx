@@ -96,15 +96,16 @@ it("sends a Codex follow-up on a cold Claude thread without compacting first", a
     router: false,
   });
   await expect.element(page.getByText(`Answer 2 for ${thread.id}.`)).toBeVisible();
-  const compactAndSend = page.getByRole("button", { name: "Compact and send" });
-  await expect.element(compactAndSend).toBeVisible();
+  // An empty composer shows the mic in the send's place, so the chip carries the compact offer.
+  const chip = page.getByRole("button", { name: "Compact 250k tokens of history before sending" });
+  await expect.element(chip).toBeVisible();
 
   await page.getByRole("button", { name: "Claude Opus 4.6", exact: true }).click();
-  // The picker lists only the active provider's models until you search.
-  await userEvent.type(page.getByPlaceholder("Search models..."), "GPT-5.4");
+  // The picker opens on its model card; typing there searches the list.
+  await userEvent.keyboard("GPT-5.4");
   await page.getByRole("option", { name: "GPT-5.4", exact: false }).click();
   await expect.element(page.getByRole("button", { name: "GPT-5.4", exact: true })).toBeVisible();
-  await expect.element(compactAndSend).not.toBeInTheDocument();
+  await expect.element(chip).not.toBeInTheDocument();
   // Picking a model leaves the composer's settings menu open.
   await userEvent.keyboard("{Escape}");
 
@@ -150,13 +151,14 @@ it("drops the compact offer on a cold Claude thread while /clear is armed", asyn
   const chip = page.getByRole("button", { name: "Compact 250k tokens of history before sending" });
   const compactAndSend = page.getByRole("button", { name: "Compact and send" });
   await expect.element(chip).toBeVisible();
-  await expect.element(compactAndSend).toBeVisible();
 
   const editor = page.getByTestId("composer-editor");
   await userEvent.click(editor);
   await userEvent.type(editor, "/clear");
   await userEvent.keyboard("{Enter}");
   await expect.element(page.getByText("Your next message starts a fresh session")).toBeVisible();
+  // The send button only shows with a draft; an empty composer shows the mic in its place.
+  await userEvent.type(editor, "start over");
   await expect.element(chip).not.toBeInTheDocument();
   await expect.element(compactAndSend).not.toBeInTheDocument();
   await expect.element(page.getByRole("button", { name: "Submit message" })).toBeVisible();

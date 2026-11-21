@@ -51,8 +51,11 @@ import { observeResize } from "~/lib/observeResize";
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   isElectron,
+  renderActions,
 }: {
   isElectron: boolean;
+  /** BlueCode: the row's own buttons, before the sidebar toggle. */
+  renderActions: (options: { onBackdrop: boolean }) => ReactNode;
 }) {
   const stageLabel = useEnvironmentStageLabel();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
@@ -63,7 +66,6 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   );
   return (
     <div
-      data-sidebar-chrome-header
       className={cn(
         "relative flex h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center gap-2 pr-2",
         isElectron && "drag-region",
@@ -78,29 +80,32 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
         />
       </div>
       {isElectron ? null : (
-        // BlueCode: on the web the mark leads the titlebar; desktop's window controls hold that
-        // corner, so there it leads the sidebar's next row instead.
+        // BlueCode: on the web the mark leads the titlebar. Desktop's window controls hold that
+        // corner, leaving no room for it beside the buttons at the sidebar's minimum width.
         <div className="relative z-10 ml-1 md:ml-3.5">
           <SidebarBrand />
         </div>
       )}
-      <div className="flex-1" />
-      {isElectron ? (
-        // BlueCode: Capy's titlebar ends with the sidebar toggle, then back and forward.
-        <div className="relative z-10 hidden items-center md:flex">
-          <HistoryNavigationButton direction="back" onBackdrop={backdropVariant !== null} />
-          <HistoryNavigationButton direction="forward" onBackdrop={backdropVariant !== null} />
-        </div>
-      ) : null}
+      {/* BlueCode: Capy's titlebar ends with Search, New thread, then the sidebar toggle. The
+          toggle is fixed in AppSidebarLayout; its gap here is that width. */}
+      <div className="relative z-10 ml-auto flex shrink-0 items-center">
+        {renderActions({ onBackdrop: backdropVariant !== null })}
+        {isElectron ? (
+          // BlueCode: Capy's titlebar has no back and forward; the shortcuts and swipes still work.
+          <div className="hidden">
+            <HistoryNavigationButton direction="back" onBackdrop={backdropVariant !== null} />
+            <HistoryNavigationButton direction="forward" onBackdrop={backdropVariant !== null} />
+          </div>
+        ) : null}
+        <span aria-hidden className="hidden size-(--workspace-titlebar-control-size) md:block" />
+      </div>
     </div>
   );
 });
 
 export function SidebarBrandWidthProbe({
-  isElectron,
   onWidthChange,
 }: {
-  isElectron: boolean;
   onWidthChange: (width: number) => void;
 }) {
   const observeWidth = (probe: HTMLDivElement) => {
@@ -115,9 +120,8 @@ export function SidebarBrandWidthProbe({
       className="pointer-events-none invisible fixed top-0 left-0 flex w-max border-r border-transparent pr-3"
       ref={observeWidth}
     >
-      <div className="ml-[var(--workspace-titlebar-content-left)] flex gap-1">
-        {isElectron ? <div className="w-[calc(2*var(--workspace-titlebar-control-size))]" /> : null}
-      </div>
+      {/* BlueCode: the titlebar's Search, New thread and sidebar toggle, after the window controls. */}
+      <div className="ml-[var(--workspace-controls-left)] w-[calc(3*var(--workspace-titlebar-control-size))]" />
     </div>
   );
 }
@@ -165,15 +169,27 @@ function HistoryNavigationButton({
   );
 }
 
-/** BlueCode: the moon mark, and the environment pill when that mode is on, as in Capy's sidebar. */
-export function SidebarBrand() {
-  const gt = useGT();
+/** BlueCode: the environment pill's label, when that identification mode is on. */
+export function useEnvironmentPillLabel() {
   const stageLabel = useEnvironmentStageLabel();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const pillLabel =
-    environmentIdentificationMode === "pill"
-      ? resolveEnvironmentIdentificationPillLabel(stageLabel)
-      : null;
+  return environmentIdentificationMode === "pill"
+    ? resolveEnvironmentIdentificationPillLabel(stageLabel)
+    : null;
+}
+
+export function EnvironmentPill({ label }: { label: string }) {
+  return (
+    <Badge data-environment-identification="pill" size="sm" variant="secondary">
+      {label}
+    </Badge>
+  );
+}
+
+/** BlueCode: the moon mark, and the environment pill when that mode is on, as in Capy's sidebar. */
+function SidebarBrand() {
+  const gt = useGT();
+  const pillLabel = useEnvironmentPillLabel();
   return (
     <div className="flex min-w-0 items-center gap-2">
       <Link
@@ -183,11 +199,7 @@ export function SidebarBrand() {
       >
         <BlueCodeMoonMark className="size-7" label={null} />
       </Link>
-      {pillLabel ? (
-        <Badge data-environment-identification="pill" size="sm" variant="secondary">
-          {pillLabel}
-        </Badge>
-      ) : null}
+      {pillLabel ? <EnvironmentPill label={pillLabel} /> : null}
     </div>
   );
 }

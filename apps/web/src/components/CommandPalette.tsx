@@ -255,6 +255,8 @@ import {
 } from "./CommandPaletteAddProject";
 import { useCommandPaletteThreadItems } from "./CommandPaletteThreadItems";
 import { useCommandPaletteThemeItems } from "./CommandPaletteThemeItems";
+import { isThemeListView } from "../bluecode/themeBrowsePreview";
+import { useThemeBrowsePreview } from "../bluecode/useThemeBrowsePreview";
 import {
   PORT_FORWARD_GROUP_PREFIX,
   useCommandPalettePortForwardItem,
@@ -556,6 +558,8 @@ function OpenCommandPaletteDialog(props: {
     query: deferredQuery,
   });
   const currentView = viewStack.at(-1)?.view ?? null;
+  // BlueCode: the highlighted theme previews live while browsing the theme list.
+  useThemeBrowsePreview(highlightedItemValue, isThemeListView(currentView));
   const threadSearchQuery = currentView === null && !isActionsOnly ? deferredQuery : "";
   const [browseGeneration, setBrowseGeneration] = useState(0);
   const [browseNavigation] = useState(createBrowseNavigationCoordinator);

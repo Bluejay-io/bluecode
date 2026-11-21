@@ -356,7 +356,8 @@ function GitActionProgressButtonContent({
       </p>
       <GitActionElapsedTime
         startedAtMs={progress.startedAtMs}
-        className="col-start-3 row-start-1 self-baseline text-2xs font-normal tabular-nums text-muted-foreground"
+        // BlueCode: the details card's trailing values are 12px.
+        className="col-start-3 row-start-1 self-baseline text-xs font-normal tabular-nums text-muted-foreground"
       />
       <div
         className={cn(
@@ -368,7 +369,8 @@ function GitActionProgressButtonContent({
           <Tooltip>
             <TooltipTrigger
               render={
-                <p className="truncate pt-0.5 text-left text-2xs font-normal text-muted-foreground" />
+                // BlueCode: the details card's secondary text is 12px.
+                <p className="truncate pt-0.5 text-left text-xs font-normal text-muted-foreground" />
               }
             >
               {progress.output}
@@ -406,7 +408,8 @@ function GitActionSuccessButtonContent({ success }: { success: InlineGitActionSu
           <Tooltip>
             <TooltipTrigger
               render={
-                <p className="truncate pt-0.5 text-left text-2xs font-normal text-muted-foreground" />
+                // BlueCode: the details card's secondary text is 12px.
+                <p className="truncate pt-0.5 text-left text-xs font-normal text-muted-foreground" />
               }
             >
               {success.description}
@@ -1816,8 +1819,10 @@ function CheckoutGitActionsControl({
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
-              <span className="ml-auto flex shrink-0 items-baseline gap-2 ps-2 font-mono tabular-nums">
+              {/* BlueCode: counts read as row text; bluecode/thread-details.css tones them. */}
+              <span className="ml-auto flex shrink-0 items-baseline gap-2 ps-2 tabular-nums">
                 <span
+                  data-details-diff={changesTotals.insertions ? "addition" : undefined}
                   className={
                     changesTotals.insertions
                       ? "text-diff-addition-foreground"
@@ -1827,6 +1832,7 @@ function CheckoutGitActionsControl({
                   +{formatDiffCount(changesTotals.insertions)}
                 </span>
                 <span
+                  data-details-diff={changesTotals.deletions ? "deletion" : undefined}
                   className={
                     changesTotals.deletions
                       ? "text-diff-deletion-foreground"

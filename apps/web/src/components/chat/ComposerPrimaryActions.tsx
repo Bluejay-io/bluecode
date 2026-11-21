@@ -24,6 +24,7 @@ import { StageBackdropButtonArt, useSidebarStageBackdropVariant } from "../Sideb
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { ComposerPrimarySlot } from "~/bluecode/composerPrimarySlot";
 import {
   alternateComposerDispatchAction,
   resolveComposerDispatchMode,
@@ -163,6 +164,8 @@ function StopGenerationButton({
               "flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive/90 text-white shadow-xs shadow-destructive/24 inset-shadow-control-highlight transition-colors duration-150 hover:bg-destructive active:inset-shadow-control-pressed active:shadow-none disabled:cursor-default disabled:opacity-64 disabled:hover:bg-destructive/90 [&_svg]:pointer-events-none",
               insidePendingAction ? "size-8 sm:size-7" : "size-8 sm:h-8 sm:w-8",
             )}
+            // BlueCode: Capy's solid button look (buttons.css).
+            data-primary-action="destructive"
             onPointerDown={preserveComposerFocusOnPointerDown ? preventPointerFocus : undefined}
             disabled={!canOperateThread || isStopDisabled}
             onClick={() => {
@@ -333,6 +336,8 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         <button
           type="submit"
           className={cn(messageActionPillClassName, "h-8 sm:h-7", compact ? "px-3" : "px-4")}
+          // BlueCode: Capy's solid button look (buttons.css).
+          data-primary-action="text"
           {...pointerFocusProps}
           onClick={(event) => {
             if (stopPhase === "landed") event.preventDefault();
@@ -439,6 +444,8 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
           ? "bg-transparent text-white enabled:shadow-black/24 enabled:hover:brightness-110 disabled:opacity-64"
           : "bg-message-action text-message-action-foreground enabled:shadow-message-action/24 enabled:ring-1 enabled:ring-inset enabled:ring-black/10 hover:bg-message-action-hover disabled:bg-foreground/12 disabled:text-muted-foreground",
       )}
+      // BlueCode: Capy's solid button look (buttons.css).
+      data-primary-action={stageBackdropVariant ? "stage" : "solid"}
       {...pointerFocusProps}
       onClick={(event) => {
         if (stopPhase === "landed") {
@@ -491,13 +498,24 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
       <TooltipPopup>{submitTooltip}</TooltipPopup>
     </Tooltip>
   );
+  // BlueCode: with nothing to send, the mic in children takes the send's place (composerPrimarySlot).
+  const micHoldsSlot =
+    children != null &&
+    !hasSendableContent &&
+    !showResume &&
+    !isSendBusy &&
+    !isRunning &&
+    !isEditingQueuedMessage;
+  const primarySlot = micHoldsSlot ? (
+    <ComposerPrimarySlot value={submit}>{children}</ComposerPrimarySlot>
+  ) : (
+    <>
+      {children}
+      {submit}
+    </>
+  );
   if (compactTokens === null || hideCompactToggle) {
-    return withStopButton(
-      <>
-        {children}
-        {submit}
-      </>,
-    );
+    return withStopButton(primarySlot);
   }
 
   return withStopButton(
@@ -537,8 +555,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
           </div>
         </TooltipPopup>
       </Tooltip>
-      {children}
-      {submit}
+      {primarySlot}
     </div>,
   );
 });

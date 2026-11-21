@@ -62,7 +62,9 @@ function PopoverPopup({
 }) {
   // Viewport rekeys on close; persistent single-trigger forms need stable containers for drafts and submit
   // guards.
-  const Viewport = keepMounted ? "div" : PopoverPrimitive.Viewport;
+  // BlueCode: Viewport sizes the positioner once per open, so a bare popup whose cards reflow while
+  // open (search, the phone breakpoint) would keep a stale box; a plain div lets it follow content.
+  const Viewport = keepMounted || variant === "bare" ? "div" : PopoverPrimitive.Viewport;
   return (
     <PopoverPrimitive.Portal keepMounted={keepMounted}>
       {touchBackdrop ? (

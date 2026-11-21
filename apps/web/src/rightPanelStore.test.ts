@@ -1,8 +1,11 @@
-import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { EnvironmentId, RunId, ThreadId } from "@t3tools/contracts";
+import * as Schema from "effect/Schema";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
+import { PANEL_LAYOUT_STORAGE_KEY, resolvePanelView } from "./bluecode/panelView";
 import { useClosedViewStore } from "./closedViewStore";
+import { removeLocalStorageItem, setLocalStorageItem } from "./hooks/useLocalStorage";
 import { linkedThreadTitle } from "./linkedThreadSurface";
 import { reopenClosedView } from "./reopenClosedView";
 import {
@@ -160,14 +163,58 @@ describe("rightPanelStore", () => {
     store.open(refB, "files");
     store.close(refB);
     store.open(refA, "diff");
-    store.carryPanel(refA, refB);
+    store.carryPanel(refA, refB, false);
     let next = selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refB);
     expect(next).toMatchObject({ isOpen: true, activeSurfaceId: "files" });
     expect(next.surfaces.map((surface) => surface.id)).toEqual(["files"]);
     store.close(refB);
-    store.carryPanel(refB, refA);
+    store.carryPanel(refB, refA, false);
     next = selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA);
     expect(next.isOpen).toBe(false);
+  });
+
+  it("lets a thread with no tabs leave the next thread's panel open or shut", () => {
+    const store = useRightPanelStore.getState();
+    store.open(refA, "diff");
+    store.carryPanel(refB, refA, false);
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).isOpen,
+    ).toBe(true);
+  });
+
+  it("full width, selects the chat tab until a panel tab is shown or the panel hides", () => {
+    const store = useRightPanelStore.getState();
+    const panel = () =>
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA);
+    store.open(refA, "diff");
+    store.showChatTab(refA);
+    expect(panel()).toMatchObject({ isOpen: false, chatTab: true, activeSurfaceId: "diff" });
+    store.activateSurface(refA, "diff");
+    expect(panel()).toMatchObject({ isOpen: true });
+    expect(panel().chatTab).toBeUndefined();
+    store.showChatTab(refA);
+    store.close(refA);
+    expect(panel()).toMatchObject({ isOpen: false });
+    expect(panel().chatTab).toBeUndefined();
+    store.showChatTab(refA);
+    store.closeSurface(refA, "diff");
+    expect(panel().chatTab).toBeUndefined();
+  });
+
+  it("full width, carries a shown panel to the next thread's chat tab and a hidden one hidden", () => {
+    const store = useRightPanelStore.getState();
+    const panel = (ref: typeof refA) =>
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, ref);
+    store.open(refB, "files");
+    store.open(refA, "diff");
+    store.carryPanel(refA, refB, true);
+    expect(panel(refB)).toMatchObject({ isOpen: false, chatTab: true, activeSurfaceId: "files" });
+    store.carryPanel(refB, refA, true);
+    expect(panel(refA)).toMatchObject({ isOpen: false, chatTab: true });
+    store.close(refA);
+    store.carryPanel(refA, refB, true);
+    expect(panel(refB).isOpen).toBe(false);
+    expect(panel(refB).chatTab).toBeUndefined();
   });
 
   it("drops the retired Overview tab from saved panels", () => {
@@ -381,10 +428,12 @@ describe("rightPanelStore", () => {
 
       store.close(refA);
       expect(store.openProactive(refA, surface, store.getUserActionRevision(refA))).toBe(false);
-      expect(selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA)).toEqual({
-        ...chosen,
-        isOpen: false,
-      });
+      // BlueCode: closing the panel on a browser tab also records it as dismissed.
+      const { dismissedDeviceSurfaceIds: _dismissed, ...closed } = selectThreadRightPanelState(
+        useRightPanelStore.getState().byThreadKey,
+        refA,
+      );
+      expect(closed).toEqual({ ...chosen, isOpen: false });
     },
   );
 
@@ -540,6 +589,46 @@ describe("rightPanelStore", () => {
     expect(store.getUserActionRevision(refA)).toBe(revision);
   });
 
+  it("reopens a full-width chat tab saved before the chat tab had its own field", async () => {
+    const { storage, name } = useRightPanelStore.persist.getOptions();
+    const closedPanel = {
+      isOpen: false,
+      surfaces: [{ id: "diff", kind: "diff" }],
+      activeSurfaceId: "diff",
+    };
+    const resolvedView = (fullWidth: boolean) => {
+      const thread = selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA);
+      return resolvePanelView({
+        hasTabs: thread.surfaces.length > 0,
+        isOpen: thread.isOpen,
+        chatTab: thread.chatTab === true,
+        layout: fullWidth ? "full" : "split",
+      });
+    };
+    try {
+      for (const [savedSplitView, expected] of [
+        [false, "full-chat"],
+        [true, "chat"],
+        [null, "chat"],
+      ] as const) {
+        if (savedSplitView === null) removeLocalStorageItem(PANEL_LAYOUT_STORAGE_KEY);
+        else setLocalStorageItem(PANEL_LAYOUT_STORAGE_KEY, savedSplitView, Schema.Boolean);
+        useRightPanelStore.setState(useRightPanelStore.getInitialState());
+        await storage!.setItem(name!, {
+          state: {
+            byThreadKey: { [scopedThreadKey(refA)]: closedPanel },
+            threadPanelVisibilityByThreadKey: {},
+          },
+          version: 1016,
+        });
+        await useRightPanelStore.persist.rehydrate();
+        expect(resolvedView(savedSplitView === false)).toBe(expected);
+      }
+    } finally {
+      removeLocalStorageItem(PANEL_LAYOUT_STORAGE_KEY);
+    }
+  });
+
   it("restores a saved maximized panel during migration", () => {
     const migrated = migratePersistedRightPanelState({
       byThreadKey: {
@@ -552,6 +641,20 @@ describe("rightPanelStore", () => {
       },
     });
     expect(selectThreadRightPanelState(migrated.byThreadKey, refA).maximized).toBe(true);
+  });
+
+  it("restores a saved chat tab during migration only while no panel tab is shown", () => {
+    const saved = (isOpen: boolean) => ({
+      isOpen,
+      activeSurfaceId: "diff",
+      surfaces: [{ id: "diff", kind: "diff" }],
+      chatTab: true,
+    });
+    const migrated = migratePersistedRightPanelState({
+      byThreadKey: { "env-1:thread-A": saved(false), "env-1:thread-B": saved(true) },
+    });
+    expect(selectThreadRightPanelState(migrated.byThreadKey, refA).chatTab).toBe(true);
+    expect(selectThreadRightPanelState(migrated.byThreadKey, refB).chatTab).toBeUndefined();
   });
 
   it("opens a linked thread once per thread and environment it is read through", () => {
@@ -725,6 +828,44 @@ describe("rightPanelStore", () => {
     });
   });
 
+  it("BlueCode: reopens a saved split terminal tab as one tab per pane, on its active pane", () => {
+    expect(
+      migratePersistedRightPanelState({
+        byThreadKey: {
+          "env-1:thread-A": {
+            isOpen: true,
+            activeSurfaceId: "terminal:term-1",
+            surfaces: [
+              {
+                id: "terminal:term-1",
+                kind: "terminal",
+                resourceId: "term-1",
+                terminalIds: ["term-1", "term-2"],
+                activeTerminalId: "term-2",
+                splitDirection: "vertical",
+              },
+            ],
+          },
+        },
+      }),
+    ).toEqual({
+      byThreadKey: {
+        "env-1:thread-A": {
+          isOpen: true,
+          activeSurfaceId: "terminal:term-2",
+          surfaces: ["term-1", "term-2"].map((terminalId) => ({
+            id: `terminal:${terminalId}`,
+            kind: "terminal",
+            resourceId: terminalId,
+            terminalIds: [terminalId],
+            activeTerminalId: terminalId,
+          })),
+        },
+      },
+      threadPanelVisibilityByThreadKey: {},
+    });
+  });
+
   it("upgrades the legacy singleton pull request surface to a reference-keyed tab", () => {
     const id = pullRequestSurfaceId({
       projectId: "project-a",
@@ -876,7 +1017,7 @@ describe("rightPanelStore", () => {
     ).toEqual({ inlineOpen: false, popoverOpen: false });
   });
 
-  it("keeps an open popover visible by promoting it to inline when the real panel closes", () => {
+  it("BlueCode: closes an open popover without opening the inline card when the real panel closes", () => {
     const store = useRightPanelStore.getState();
     store.open(refA, "diff");
     store.setThreadPanelOpen(refA, "inline", false);
@@ -888,7 +1029,7 @@ describe("rightPanelStore", () => {
         useRightPanelStore.getState().threadPanelVisibilityByThreadKey,
         refA,
       ),
-    ).toEqual({ inlineOpen: true, popoverOpen: true });
+    ).toEqual({ inlineOpen: false, popoverOpen: false });
   });
 
   it("opens workspace-root links as the singleton files explorer", () => {
@@ -1413,6 +1554,17 @@ describe("rightPanelStore", () => {
     expect(
       selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA),
     ).toMatchObject({ isOpen: true, activeSurfaceId: "diff" });
+  });
+
+  it("BlueCode: closes the panel when reconciliation drops its last tab, a `browser:new` placeholder", () => {
+    const store = useRightPanelStore.getState();
+    store.open(refA, "preview");
+    store.reconcileBrowserSurfaces(refA, []);
+    expect(selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA)).toEqual({
+      isOpen: false,
+      activeSurfaceId: null,
+      surfaces: [],
+    });
   });
 
   it("moves a surface to a new index and keeps it there through browser reconciliation", () => {
