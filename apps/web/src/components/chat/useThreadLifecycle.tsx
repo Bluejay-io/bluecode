@@ -79,7 +79,8 @@ import { useAtomValue } from "@effect/atom-react";
 import type { RunStopPresentation } from "@t3tools/client-runtime/state/thread-execution";
 import { Atom } from "effect/reactivity";
 import { environmentThreadDetails } from "../../state/threads";
-import { resolveThreadOpenRoute } from "../../lib/sideChatPane";
+import { type SideThreadOpenIntent, sideThreadKindOf } from "@t3tools/client-runtime/side-thread";
+import { openSideThread, resolveThreadOpenRoute } from "../../lib/sideChatPane";
 import type { useLocalDispatchState } from "./useLocalDispatchState";
 const RELATED_THREAD_SHELL_WAIT_MS = 1_000;
 
@@ -94,8 +95,6 @@ type PendingThreadRequests = ReturnType<typeof usePendingThreadRequests>;
 type LocalDispatchState = ReturnType<typeof useLocalDispatchState>;
 
 interface ThreadLifecycleInput {
-  /** BlueCode: subagents open as read-only tabs beside the chat instead of their own page. */
-  readonly onOpenSubagentTab?: ((subagent: ScopedThreadRef) => void) | undefined;
   readonly environmentId: EnvironmentId;
   readonly routeThreadKey: string;
   readonly currentRouteThreadKeyRef: { readonly current: string | null };
@@ -152,7 +151,6 @@ interface ThreadLifecycleInput {
  */
 export function useThreadLifecycle(input: ThreadLifecycleInput) {
   const {
-    onOpenSubagentTab,
     environmentId,
     routeThreadKey,
     currentRouteThreadKeyRef,
@@ -477,9 +475,11 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
   const handleStopBackgroundWorkStable = useStableCallback(handleStopBackgroundWork);
   const openRelatedThreadGenerationRef = useRef(0);
   // A task delegated to a linked environment opens there; the default is this thread's own.
+  // `intent` comes from the rows that open a subagent, and says the thread is one.
   const onOpenRelatedThread = async (
     threadId: ThreadId,
     threadEnvironmentId: EnvironmentId = environmentId,
+    intent?: SideThreadOpenIntent,
   ) => {
     const generation = ++openRelatedThreadGenerationRef.current;
     const threadRef = scopeThreadRef(threadEnvironmentId, threadId);
@@ -507,15 +507,23 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       toastManager.add({ type: "info", title: m(msg("This thread is no longer available")) });
       return;
     }
-    const routeRef = resolveThreadOpenRoute(threadRef, shell);
-    if (scopedThreadKey(routeRef) === routeThreadKey) return;
-    // Only idle subagent children are left out of the shell.
-    const isSubagent =
-      shell === null ? shellOmitsChildren : shell.lineage.relationshipToParent === "subagent";
-    if (isSubagent && onOpenSubagentTab) {
-      onOpenSubagentTab(routeRef);
+    // A subagent or side chat opens beside this thread or in its place; its own parent, like any
+    // other thread, only in its place.
+    if (
+      (intent !== undefined || sideThreadKindOf(shell) !== null) &&
+      activeThread?.lineage.parentThreadId !== threadId
+    ) {
+      openSideThread({
+        threadRef,
+        panelRef: activeThreadRef,
+        intent: intent ?? "primary",
+        navigate: (ref) =>
+          void navigate({ to: "/$environmentId/$threadId", params: buildThreadRouteParams(ref) }),
+      });
       return;
     }
+    const routeRef = resolveThreadOpenRoute(threadRef, shell);
+    if (scopedThreadKey(routeRef) === routeThreadKey) return;
     void navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(routeRef),

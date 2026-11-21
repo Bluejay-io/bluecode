@@ -12,8 +12,8 @@ import type {
 } from "@t3tools/contracts";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { lazy, Suspense } from "react";
-import SideChatPane from "./SideChatPane";
-import SubagentPane from "./SubagentPane";
+import { LinkedThreadPane } from "./LinkedThreadPane";
+import SideThreadPane from "./SideThreadPane";
 import type { ComposerImageAttachment, DraftId } from "../../composerDraftStore";
 import type { ShortcutMatchContext } from "../../keybindings";
 import type { SideChatParentPanel } from "../../lib/sideChatPane";
@@ -85,7 +85,7 @@ export function RightPanelSurfaceContent(props: {
   readonly files: RightPanelFileProps;
   readonly sideChatParentPanel: SideChatParentPanel;
 }) {
-  const { surface, threadRef, visible } = props;
+  const { surface, threadRef, visible, onCloseSurface } = props;
   const gt = useGT();
   if (surface === null) return null;
   switch (surface.kind) {
@@ -213,24 +213,24 @@ export function RightPanelSurfaceContent(props: {
       );
     case "pull-requests":
       return <ThreadPullRequestsPanel threadRef={threadRef} />;
-    case "side-chat":
+    case "thread":
       // Not lazy: revealing a suspended tiptap editor tears down its view and crashes the composer.
       return (
-        <SideChatPane
+        <SideThreadPane
           key={surface.id}
           parentRef={threadRef}
-          threadId={surface.threadId}
+          surface={surface}
           parentPanel={props.sideChatParentPanel}
+          onClose={() => onCloseSurface(surface)}
         />
       );
-    case "subagent":
+    case "linked-thread":
       return (
-        <SubagentPane
+        <LinkedThreadPane
           key={surface.id}
-          parentRef={threadRef}
-          environmentId={surface.environmentId as EnvironmentId}
-          threadId={surface.threadId}
-          parentPanel={props.sideChatParentPanel}
+          panelRef={threadRef}
+          surface={surface}
+          visible={visible && props.activeSurfaceId === surface.id}
         />
       );
     case "device":

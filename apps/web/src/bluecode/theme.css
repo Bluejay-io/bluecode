@@ -121,6 +121,11 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* A side chat tab is just its chat: the tab already carries the title and close. */
+[data-side-chat-header] {
+  display: none;
+}
+
 /* Chat, measured against Capy: prompts at 14px over 13px replies, and links and file references
    in the theme's link color. */
 .chat-markdown.user-message-markdown.text-sm {
