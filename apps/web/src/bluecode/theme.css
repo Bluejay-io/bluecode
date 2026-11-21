@@ -214,11 +214,16 @@ body {
         1px - 0.5rem - var(--workspace-titlebar-control-size) -
         var(--bluecode-titlebar-history-width, 0px)
     );
-    translate: var(--bluecode-sidebar-toggle-x) 0;
+    translate: var(--bluecode-sidebar-toggle-x) calc(0.5rem + 0.5px);
+  }
+  /* The sidebar's titlebar row drops by the card's inset, onto the card header's line. */
+  [data-sidebar-chrome-header] {
+    box-sizing: content-box;
+    padding-top: calc(0.5rem + 0.5px);
   }
   [data-sidebar-state="collapsed"] [data-sidebar-toggle-slot="sidebar"] {
     visibility: hidden;
-    translate: calc(var(--bluecode-sidebar-toggle-x) - var(--sidebar-width)) 0;
+    translate: calc(var(--bluecode-sidebar-toggle-x) - var(--sidebar-width)) calc(0.5rem + 0.5px);
   }
   [data-panel-animations="true"] [data-sidebar-toggle-slot] {
     transition:
