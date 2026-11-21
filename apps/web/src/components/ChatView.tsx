@@ -4223,6 +4223,8 @@ export default function ChatView(props: ChatViewProps) {
                 <ThreadDetailsPanel
                   anchor={tabbedFullscreen ? threadDetailsAnchorRef : threadPanelPopoverAnchorRef}
                   handle={threadPanelPopoverHandle}
+                  // BlueCode: another full-width tab covers the chat.
+                  covered={rightPanelMaximized && !chatShownInPanel}
                   forceNewWorktree={multipleModelSelections !== null}
                   environmentId={activeThread.environmentId}
                   threadId={activeThread.id}

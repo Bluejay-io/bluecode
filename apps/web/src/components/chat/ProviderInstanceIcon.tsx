@@ -166,7 +166,15 @@ export const ProviderInstanceIcon = memo(function ProviderInstanceIcon(props: {
           aria-hidden
         />
       ) : Icon ? (
-        <Icon className={cn("size-5 shrink-0", iconClassName)} aria-hidden />
+        <Icon
+          className={cn(
+            "size-5 shrink-0",
+            // BlueCode: monochrome logos take the theme text, not a muted parent's (dark on dark).
+            !BUNDLED_LOGO_COLOR_BY_PROVIDER[props.driverKind] && "text-foreground",
+            iconClassName,
+          )}
+          aria-hidden
+        />
       ) : (
         <span className={cn("text-3xs font-semibold leading-none", iconClassName)}>
           {providerInstanceInitials(props.displayName)}

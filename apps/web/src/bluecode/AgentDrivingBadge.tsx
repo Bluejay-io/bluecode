@@ -16,30 +16,37 @@ export function AgentDrivingBadge(props: { readonly driving: AgentDriving }) {
     .get(props.driving.environmentId)
     ?.find((candidate) => candidate.instanceId === props.driving.providerInstanceId);
   return (
-    <span
-      className="relative inline-flex size-4.5 shrink-0 items-center justify-center"
-      data-agent-driving-badge
-      aria-hidden
-    >
-      {provider ? (
-        <ProviderInstanceIcon
-          driverKind={provider.driver}
-          displayName={resolveProviderInstanceDisplayName(provider)}
-          accentColor={provider.accentColor}
-          acpRegistryIconUrl={provider.iconUrl}
-          className="!size-3 z-auto"
-          iconClassName="!size-3"
-        />
-      ) : (
-        <MousePointer2 className="!size-3 text-primary" />
-      )}
+    <span data-agent-driving-badge aria-hidden>
+      <span data-agent-logo>
+        {provider ? (
+          <ProviderInstanceIcon
+            driverKind={provider.driver}
+            displayName={resolveProviderInstanceDisplayName(provider)}
+            accentColor={provider.accentColor}
+            acpRegistryIconUrl={provider.iconUrl}
+            className="size-3 z-auto"
+            iconClassName="size-3"
+          />
+        ) : (
+          <MousePointer2 className="text-primary" />
+        )}
+      </span>
+      {/* Radius (18 - 1.5) / 2: the stroke sits inside the 18px box, concentric with the logo. */}
       <svg
         viewBox="0 0 18 18"
         data-agent-ring
         ref={observeVisibleAnimation}
-        className="pointer-events-none absolute inset-0 !size-4.5 text-primary motion-safe:visible-animate-spin"
+        className="text-primary motion-safe:visible-animate-spin"
       >
-        <circle cx="9" cy="9" r="8.25" fill="none" stroke="currentColor" strokeOpacity="0.18" />
+        <circle
+          cx="9"
+          cy="9"
+          r="8.25"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeOpacity="0.18"
+        />
         <circle
           data-agent-ring-arc
           cx="9"
@@ -47,7 +54,7 @@ export function AgentDrivingBadge(props: { readonly driving: AgentDriving }) {
           r="8.25"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.25"
+          strokeWidth="1.5"
           strokeLinecap="round"
           pathLength="100"
           strokeDasharray="30 70"
