@@ -3202,7 +3202,12 @@ it.effect("a desktop tab reports the size the desktop draws after a resize", () 
             .invoke<PreviewAutomationResizeResult>({ scope, tabId, operation: "resize", input })
             .pipe(Effect.forkScoped);
           let event = yield* PubSub.take(events);
-          while (event.type !== "resized" || event.tabId !== tabId) {
+          // BlueCode: the agent's activity mark is also a `resized` event, ahead of the resize's.
+          while (
+            event.type !== "resized" ||
+            event.tabId !== tabId ||
+            Manager.isMetadataOnlyEvent(event)
+          ) {
             event = yield* PubSub.take(events);
           }
           Object.assign(context.cssViewport, { width, height });
