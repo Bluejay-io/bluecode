@@ -221,24 +221,21 @@ div:has(> [data-slot="composer-shell"][data-context-row]) + [data-composer-botto
   }
 }
 
-/* The moon mark in the theme's accent, toned like the app icon: a pale lit side, the accent in
-   the middle, and a deep shadow side. */
+/* The moon mark in the theme's accent, toned like the app icon: pale at the top, fading into the
+   accent toward its banded bottom. */
 [data-bluecode-moon="accent"] {
-  --bluecode-moon-lit: color-mix(in srgb, var(--primary) 45%, white);
+  --bluecode-moon-lit: color-mix(in srgb, var(--primary) 55%, white);
   --bluecode-moon-mid: var(--primary);
-  --bluecode-moon-shadow: color-mix(in srgb, var(--primary) 60%, black);
 
   @variant dark {
-    --bluecode-moon-lit: color-mix(in srgb, var(--primary) 30%, white);
+    --bluecode-moon-lit: color-mix(in srgb, var(--primary) 12%, white);
     --bluecode-moon-mid: color-mix(in srgb, var(--primary) 82%, white);
-    --bluecode-moon-shadow: color-mix(in srgb, var(--primary) 60%, transparent);
   }
 }
-/* In icon rows the moon takes the row's text color, in the same three steps. */
+/* In icon rows the moon takes the row's text color. */
 [data-bluecode-moon="current"] {
   --bluecode-moon-lit: currentColor;
-  --bluecode-moon-mid: color-mix(in srgb, currentColor 60%, transparent);
-  --bluecode-moon-shadow: color-mix(in srgb, currentColor 25%, transparent);
+  --bluecode-moon-mid: color-mix(in srgb, currentColor 70%, transparent);
 }
 
 /* The content card's left edge. A left-only border thins to nothing around the rounded corners,

@@ -1,9 +1,34 @@
+import { useId } from "react";
+
 import { cn } from "~/lib/utils";
 
-import { MOON_MARK_SIZE, moonLayers } from "./moonCells";
+const SIZE = 28;
+const CENTER = 14;
+const RADIUS = 13;
+// The small app icon's three bands (assets/bluecode/generate-moon-icons.py), on whole and half
+// pixels so the cuts stay crisp at 1x and 2x.
+const SLICES = [
+  [CENTER - RADIUS, 15],
+  [16, 20],
+  [21.5, 23.5],
+  [25.5, CENTER + RADIUS],
+] as const;
+
+function halfWidth(y: number) {
+  return Math.sqrt(Math.max(0, RADIUS * RADIUS - (y - CENTER) * (y - CENTER)));
+}
+
+const MOON_PATH = SLICES.map(([top, bottom]) => {
+  const a = halfWidth(top);
+  const b = halfWidth(bottom);
+  return (
+    `M${CENTER - a} ${top}H${CENTER + a}A${RADIUS} ${RADIUS} 0 0 1 ${CENTER + b} ${bottom}` +
+    `H${CENTER - b}A${RADIUS} ${RADIUS} 0 0 1 ${CENTER - a} ${top}Z`
+  );
+}).join("");
 
 /**
- * BlueCode's mark: the app icon's dithered moon without its tile. `accent` shades it in the theme's
+ * BlueCode's mark: the app icon's striped moon without its tile. `accent` shades it in the theme's
  * accent color; `current` in the surrounding text color, for icon rows.
  */
 export function BlueCodeMoonMark({
@@ -16,18 +41,28 @@ export function BlueCodeMoonMark({
   /** Accessible name; pass null where a parent already names it. */
   label?: string | null;
 }) {
-  const layers = moonLayers();
+  const gradientId = useId();
   return (
     <svg
-      viewBox={`0 0 ${MOON_MARK_SIZE} ${MOON_MARK_SIZE}`}
-      shapeRendering="crispEdges"
+      viewBox={`0 0 ${SIZE} ${SIZE}`}
       data-bluecode-moon={tone}
       className={cn("shrink-0", className)}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     >
-      <path fill="var(--bluecode-moon-shadow)" d={layers.shadow} />
-      <path fill="var(--bluecode-moon-mid)" d={layers.mid} />
-      <path fill="var(--bluecode-moon-lit)" d={layers.lit} />
+      <defs>
+        <linearGradient
+          id={gradientId}
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1={CENTER - RADIUS}
+          x2="0"
+          y2={CENTER + RADIUS}
+        >
+          <stop offset="0" style={{ stopColor: "var(--bluecode-moon-lit)" }} />
+          <stop offset="1" style={{ stopColor: "var(--bluecode-moon-mid)" }} />
+        </linearGradient>
+      </defs>
+      <path fill={`url(#${gradientId})`} d={MOON_PATH} />
     </svg>
   );
 }
