@@ -55,8 +55,9 @@ class ContextMenuImageCopyError extends Schema.TaggedError<ContextMenuImageCopyE
     return "Could not copy the context-menu image.";
   }
 }
-// Match --workspace-topbar-height in apps/web/src/index.css; native macOS buttons stay 14 points at any zoom.
-const MACOS_WORKSPACE_TOPBAR_HEIGHT = 52;
+// Match --workspace-topbar-height (BlueCode: 44px in apps/web/src/bluecode/theme.css); native macOS
+// buttons stay 14 points at any zoom.
+const MACOS_WORKSPACE_TOPBAR_HEIGHT = 44;
 const MACOS_WINDOW_BUTTON_RADIUS = 7;
 // BlueCode: the content card sits 0.5rem + 0.5px below the window's top (cardLayout.ts), and the
 // buttons centre on its header row.
