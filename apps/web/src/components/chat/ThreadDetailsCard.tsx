@@ -25,6 +25,7 @@ export function ThreadDetailsCard({
   anchor,
   handle,
   contentKey,
+  covered = false,
   onContextMenu,
   children,
 }: {
@@ -33,6 +34,9 @@ export function ThreadDetailsCard({
   handle: ReturnType<typeof PopoverCreateHandle>;
   /** Changes when the set of rendered items changes, so cached heights are measured again. */
   contentKey: string;
+  // BlueCode: a full-width tab hides the chat with `visibility: hidden`, which can leave the
+  // card's backdrop-filter layer painted (Electron), so a covered inline card unmounts.
+  covered?: boolean | undefined;
   onContextMenu?: MouseEventHandler<HTMLDivElement>;
   children: (density: "full" | "compact" | "essential") => ReactNode;
 }) {
@@ -148,7 +152,7 @@ export function ThreadDetailsCard({
         useRightPanelStore.getState().setThreadPanelOpen(threadRef, "popover", open);
       }}
     >
-      {placement && inlineOpen ? (
+      {placement && inlineOpen && !covered ? (
         <aside
           {...detailsArea}
           data-workspace-focus-key={`details:${threadRef.environmentId}:${threadRef.threadId}`}
