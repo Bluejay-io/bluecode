@@ -6,8 +6,10 @@ import {
   Minimize2Icon,
 } from "lucide-react";
 import { useGT } from "gt-react";
-import { memo, type ReactNode, useLayoutEffect, useRef } from "react";
+import { memo, type ReactElement, type ReactNode, useLayoutEffect, useRef } from "react";
 
+import type { AgentDriving } from "~/bluecode/agentBrowserActivity";
+import { AgentDrivingBadge } from "~/bluecode/AgentDrivingBadge";
 import { cn } from "~/lib/utils";
 
 import type { ThreadPanelPresentation } from "../../rightPanelLayout";
@@ -34,6 +36,10 @@ export interface PanelLayoutControlsProps {
   rightPanelOpen: boolean;
   rightPanelShortcutLabel: string | null;
   rightPanelUnavailableLabel?: string;
+  /** BlueCode: the agent driving a browser tab, shown on the toggle while the panel is shut. */
+  agentDriving?: AgentDriving | null;
+  /** BlueCode: wraps the right panel toggle as a menu's trigger, replacing its toggle action. */
+  rightPanelMenu?: ((trigger: ReactElement) => ReactNode) | undefined;
   onToggleTerminal: () => void;
   onToggleThreadPanel: () => void;
   onToggleRightPanel: () => void;
@@ -54,6 +60,8 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
   rightPanelOpen,
   rightPanelShortcutLabel,
   rightPanelUnavailableLabel,
+  agentDriving = null,
+  rightPanelMenu,
   onToggleTerminal,
   onToggleThreadPanel,
   onToggleRightPanel,
@@ -86,6 +94,28 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
           : gt("Toggle thread details")}
       </TooltipPopup>
     </Tooltip>
+  );
+
+  const rightPanelToggle = (
+    <Toggle
+      className="shrink-0 [-webkit-app-region:no-drag]"
+      pressed={rightPanelOpen}
+      onPressedChange={rightPanelMenu ? undefined : onToggleRightPanel}
+      aria-label={gt("Toggle right panel")}
+      aria-description={
+        agentDriving && !rightPanelOpen ? gt("Agent is using a browser tab") : undefined
+      }
+      data-right-panel-toggle
+      variant="ghost"
+      size="sm"
+      disabled={!rightPanelAvailable}
+    >
+      {agentDriving && !rightPanelOpen ? (
+        <AgentDrivingBadge driving={agentDriving} />
+      ) : (
+        <PanelRightIcon className="size-4" />
+      )}
+    </Toggle>
   );
 
   return (
@@ -121,18 +151,8 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
       {showRightPanelControl ? (
         <Tooltip>
           <TooltipTrigger render={<span className="flex shrink-0" />}>
-            <Toggle
-              className="shrink-0 [-webkit-app-region:no-drag]"
-              pressed={rightPanelOpen}
-              onPressedChange={onToggleRightPanel}
-              aria-label={gt("Toggle right panel")}
-              data-right-panel-toggle
-              variant="ghost"
-              size="sm"
-              disabled={!rightPanelAvailable}
-            >
-              <PanelRightIcon className="size-4" />
-            </Toggle>
+            {/* BlueCode: the add-surface menu can wrap the toggle as its trigger. */}
+            {rightPanelMenu ? rightPanelMenu(rightPanelToggle) : rightPanelToggle}
           </TooltipTrigger>
           <TooltipPopup side="bottom">
             {rightPanelAvailable

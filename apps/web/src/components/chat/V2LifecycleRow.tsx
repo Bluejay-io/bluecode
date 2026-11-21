@@ -690,7 +690,11 @@ export function HandoffRow(props: {
       showDetailSeparator={false}
       tone={props.failed ? "danger" : "neutral"}
       detail={
-        <span className="inline-flex min-w-0 flex-wrap items-center justify-center gap-1.5">
+        <span
+          // BlueCode: hooks for the theme accents in bluecode/timeline-accents.css.
+          data-handoff-state={props.pending ? "pending" : "done"}
+          className="inline-flex min-w-0 flex-wrap items-center justify-center gap-1.5"
+        >
           {fromEndpoints.map((endpoint, index) => (
             <span
               key={`${endpoint.instanceId}:${endpoint.model ?? ""}`}
@@ -709,7 +713,7 @@ export function HandoffRow(props: {
             </span>
           ))}
           {fromEndpoints.length > 0 ? (
-            <ArrowRightIcon aria-hidden="true" className="size-3 shrink-0" />
+            <ArrowRightIcon data-handoff-arrow="" aria-hidden="true" className="size-3 shrink-0" />
           ) : null}
           <HandoffEndpoint entries={entries} instanceId={to.instanceId} model={to.model} />
         </span>

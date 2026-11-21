@@ -1573,6 +1573,173 @@ it.effect("a first still that never returns does not stall the tab's later captu
   ).pipe(Effect.provide(layer)),
 );
 
+it.effect("an agent's page action marks its tab active, and a person's resize does not", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const { broker, tabId } = yield* ready;
+      const manager = yield* Manager.PreviewManager;
+      const current = manager
+        .list({ threadId: scope.thread.threadId })
+        .pipe(Effect.map((list) => list.sessions.find((session) => session.tabId === tabId)!));
+      const opened = yield* current;
+      expect(opened.agentActiveAt).toBeDefined();
+
+      yield* TestClock.adjust("1 second");
+      yield* manager.resize({
+        threadId: scope.thread.threadId,
+        tabId,
+        viewport: { _tag: "freeform", width: 390, height: 844 },
+      });
+      const resized = yield* current;
+      expect(resized.updatedAt).not.toBe(opened.updatedAt);
+      expect(resized.agentActiveAt).toBe(opened.agentActiveAt);
+
+      yield* TestClock.adjust("1 second");
+      yield* broker.invoke({
+        scope,
+        tabId,
+        operation: "evaluate",
+        input: { expression: "type()" },
+      });
+      const acted = yield* current;
+      expect(acted.navStatus).toEqual(resized.navStatus);
+      expect(Date.parse(acted.agentActiveAt!)).toBeGreaterThan(Date.parse(opened.agentActiveAt!));
+    }),
+  ).pipe(Effect.provide(layer)),
+);
+
+it.effect("a viewer's takeover marks its tab human-controlled until release or disconnect", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const { browser, tabId } = yield* ready;
+      const manager = yield* Manager.PreviewManager;
+      const events = yield* manager.subscribeEvents;
+      const nextControl = Effect.gen(function* () {
+        let event = yield* PubSub.take(events);
+        while (event.type !== "resized" || event.tabId !== tabId) {
+          event = yield* PubSub.take(events);
+        }
+        return event.snapshot.humanControlled;
+      });
+
+      const viewer = yield* browser.attachViewer(viewerInput(tabId, true));
+      yield* viewer.input({ type: "takeControl" });
+      expect(yield* nextControl).toBe(true);
+      yield* viewer.input({ type: "releaseControl" });
+      expect(yield* nextControl).toBe(false);
+
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          const leaving = yield* browser.attachViewer(viewerInput(tabId, true));
+          yield* leaving.input({ type: "takeControl" });
+          expect(yield* nextControl).toBe(true);
+        }),
+      );
+      expect(yield* nextControl).toBe(false);
+    }),
+  ).pipe(Effect.provide(layer)),
+);
+
+it.effect("an agent's long action on one tab does not hold back another tab's resize", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const { broker, tabId } = yield* ready;
+      const manager = yield* Manager.PreviewManager;
+      const other = yield* broker.invoke<PreviewAutomationStatus>({
+        scope,
+        operation: "open",
+        input: { reuseExistingTab: false, show: false },
+      });
+      const cdp = contexts[0]!.sessions[0]!;
+      const send = cdp.send.getMockImplementation()!;
+      const started = Promise.withResolvers<void>();
+      const held = Promise.withResolvers<void>();
+      yield* Effect.addFinalizer(() => Effect.sync(() => held.resolve()));
+      cdp.send.mockImplementation(async (method, input) => {
+        if (method === "Runtime.evaluate") {
+          started.resolve();
+          await held.promise;
+        }
+        return send(method, input);
+      });
+      const acting = yield* broker
+        .invoke({ scope, tabId, operation: "evaluate", input: { expression: "type()" } })
+        .pipe(Effect.forkScoped);
+      yield* Effect.promise(() => started.promise);
+
+      const otherPage = contexts[1]!.page;
+      const resized = Promise.withResolvers<void>();
+      otherPage.setViewportSize.mockImplementation(async (size) => {
+        if (size?.width === 390) resized.resolve();
+      });
+      yield* manager.resize({
+        threadId: scope.thread.threadId,
+        tabId: other.tabId!,
+        viewport: { _tag: "freeform", width: 390, height: 844 },
+      });
+      yield* Effect.promise(() => resized.promise);
+
+      held.resolve();
+      yield* Fiber.join(acting);
+    }),
+  ).pipe(Effect.provide(layer)),
+);
+
+it.effect("applies a desktop tab's colour change that keeps its size and zoom", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const manager = yield* Manager.PreviewManager;
+      const { tabId, context } = yield* openDesktopViewer;
+      // Electron owns a desktop tab's zoom, so the server tab's zoom stays at 1 throughout.
+      yield* manager.adjust({ threadId: scope.thread.threadId, tabId, zoomFactor: 0.8 });
+      const dark = Promise.withResolvers<void>();
+      context.page.emulateMedia.mockImplementation(async (...args: ReadonlyArray<unknown>) => {
+        const options = args[0] as { readonly colorScheme?: string | null } | undefined;
+        if (options?.colorScheme === "dark") dark.resolve();
+      });
+      yield* manager.adjust({ threadId: scope.thread.threadId, tabId, colorScheme: "dark" });
+      yield* Effect.promise(() => dark.promise);
+    }),
+  ).pipe(Effect.provide(layer)),
+);
+
+it.effect("retries a rendering change that failed part-way", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const { tabId } = yield* ready;
+      const manager = yield* Manager.PreviewManager;
+      const { page, sessions } = contexts[0]!;
+      const cdp = sessions[0]!;
+      const failed = Promise.withResolvers<void>();
+      page.emulateMedia.mockImplementationOnce(async () => {
+        failed.resolve();
+        throw new Error("emulation failed");
+      });
+      const change = {
+        threadId: scope.thread.threadId,
+        tabId,
+        colorScheme: "dark",
+        zoomFactor: 0.8,
+      } as const;
+      yield* manager.adjust(change);
+      yield* Effect.promise(() => failed.promise);
+
+      const send = cdp.send.getMockImplementation()!;
+      const zoomed = Promise.withResolvers<void>();
+      cdp.send.mockImplementation(async (method, input) => {
+        if (method === "Emulation.setDeviceMetricsOverride") zoomed.resolve();
+        return send(method, input);
+      });
+      yield* manager.adjust(change);
+      yield* Effect.promise(() => zoomed.promise);
+      expect(cdp.send).toHaveBeenCalledWith(
+        "Emulation.setDeviceMetricsOverride",
+        expect.objectContaining({ deviceScaleFactor: 1.6 }),
+      );
+    }),
+  ).pipe(Effect.provide(layer)),
+);
+
 it.effect("keeps a tab's zoom when its viewer resizes", () =>
   Effect.scoped(
     Effect.gen(function* () {

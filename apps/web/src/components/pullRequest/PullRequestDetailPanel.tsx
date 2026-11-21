@@ -65,6 +65,10 @@ import {
 import { offHeadPullRequestCheckoutToast } from "./pullRequestCheckoutToast";
 import { usePreparePullRequestThreadAction } from "~/state/sourceControlActions";
 import { cn } from "~/lib/utils";
+import {
+  PULL_REQUEST_COLUMN_CLASS,
+  PULL_REQUEST_HEADER_INSET_CLASS,
+} from "~/bluecode/pullRequestColumn";
 import { readLocalApi } from "~/localApi";
 import type { ReviewCommentContext } from "~/reviewCommentContext";
 import { useProjects, useServerConfigs } from "~/state/entities";
@@ -1562,6 +1566,9 @@ export function PullRequestDetailPanel({
       <div
         className={cn(
           "@container/pr-header grid min-w-0 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2",
+          // BlueCode: clear the tab row and centre at the chat column's width.
+          PULL_REQUEST_HEADER_INSET_CLASS,
+          PULL_REQUEST_COLUMN_CLASS,
           detail && "border-b border-border/60",
           !detail && !onClose && "hidden",
         )}

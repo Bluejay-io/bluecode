@@ -62,7 +62,12 @@ function LinkedIssueRow({
       aria-hidden={state === null ? true : undefined}
       role={state === null ? undefined : "img"}
       aria-label={state?.label}
-      className={cn("size-4 shrink-0", state?.toneClassName ?? "text-muted-foreground")}
+      // BlueCode: 14px in the details card, like its other icons.
+      className={cn(
+        compact ? "size-3.5" : "size-4",
+        "shrink-0",
+        state?.toneClassName ?? "text-muted-foreground",
+      )}
     />
   );
   const comments =
@@ -123,7 +128,8 @@ function LinkedIssueRow({
           <div className="flex min-w-0 items-center gap-2">{lines}</div>
         </TooltipPopup>
       </Tooltip>
-      <div className="flex h-5 min-w-0 items-center gap-1.5 ps-9 pe-2.5 text-xs text-muted-foreground">
+      {/* BlueCode: the key lines up under the title text: 8px inset, 14px icon, 8px gap. */}
+      <div className="flex h-5 min-w-0 items-center gap-1.5 ps-7.5 pe-2 text-xs text-muted-foreground">
         <span aria-hidden className="shrink-0 tabular-nums">
           {link.displayKey}
         </span>

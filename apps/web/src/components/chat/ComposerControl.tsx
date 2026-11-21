@@ -31,6 +31,8 @@ export function ComposerControl({
 }: ComposerControlProps) {
   const defaultProps = {
     className: composerControlClassName(size, className),
+    // BlueCode: bluecode/theme.css gives these Capy's text-button look.
+    "data-composer-control": size,
     type: render ? undefined : ("button" as const),
   };
   return useRender({
@@ -74,7 +76,11 @@ export function ComposerSelectControl({
   size?: ComposerControlSize;
 }) {
   return (
-    <SelectPrimitive.Trigger className={composerControlClassName(size, className)} {...props}>
+    <SelectPrimitive.Trigger
+      className={composerControlClassName(size, className)}
+      data-composer-control={size}
+      {...props}
+    >
       {children}
     </SelectPrimitive.Trigger>
   );

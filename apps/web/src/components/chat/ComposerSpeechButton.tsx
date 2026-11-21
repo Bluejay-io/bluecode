@@ -1,12 +1,13 @@
 import type { VoiceInputState } from "@t3tools/client-runtime/voice-input";
 import { msg, useGT, useMessages } from "gt-react";
 import { CheckIcon, MicIcon, XIcon } from "lucide-react";
-import { useEffect, useState, type PointerEvent, type ReactElement } from "react";
+import { use, useEffect, useState, type PointerEvent, type ReactElement } from "react";
 
 import { VoiceInputErrorPill } from "./VoiceInputErrorPill";
 import { VoiceInputPill, VoiceWaveform } from "./VoiceInputPill";
 import { m, type MessageResolver } from "~/i18n/messages";
 import { cn } from "~/lib/utils";
+import { ComposerPrimarySlot } from "~/bluecode/composerPrimarySlot";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -119,19 +120,26 @@ export function ComposerSpeechButton(props: {
   disabled?: boolean;
   /** Compact matches the `xs` buttons beside text-field editors. */
   size?: "default" | "compact";
+  /** BlueCode: primary stands in for an idle send; inside ComposerPrimaryActions it is implied. */
+  appearance?: "quiet" | "primary";
   onStart(): void;
 }) {
   const gt = useGT();
-  if (props.state.phase !== "idle") return null;
+  const idleSend = use(ComposerPrimarySlot); // BlueCode
+  if (props.state.phase !== "idle") return idleSend;
   const label = gt("Start voice input");
+  const primary = (props.appearance ?? (idleSend ? "primary" : "quiet")) === "primary";
 
   return (
     <ShortcutTooltip label={label} shortcut={props.shortcutLabel}>
       <Button
         type="button"
         size={props.size === "compact" ? "icon-xs" : "icon-sm"}
-        variant="ghost"
+        // BlueCode: Capy's composer icon buttons, or the solid send look (buttons.css).
+        variant={primary ? "default" : "quiet"}
+        data-primary-action={primary ? "solid" : undefined}
         aria-label={label}
+        data-composer-mic
         disabled={props.disabled}
         onPointerDown={keepFocus}
         onClick={() => {

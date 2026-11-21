@@ -1,3 +1,5 @@
+import { type FocusEvent, useRef } from "react";
+
 import { useComposerHandleContext } from "../../composerHandleContext";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 
@@ -10,16 +12,38 @@ export const composerFloatingLayerProps = {
   "data-chat-composer-floating-layer": "true",
 } as const;
 
+// BlueCode: the key behind the latest input, or null after a pointer press: tells a keyboard open from a click.
+let lastKey: string | null = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (event) => (lastKey = event.key), true);
+  window.addEventListener("pointerdown", () => (lastKey = null), true);
+}
+
 export function useComposerMenuProps() {
   const composerRef = useComposerHandleContext();
   const isCoarsePointer = useMediaQuery({ pointer: "coarse" });
+  // The control a keyboard user opened the menu from; undefined until focus first enters it.
+  const openerRef = useRef<HTMLElement | null | undefined>(undefined);
 
   return {
     ...composerFloatingLayerProps,
+    onFocusCapture: (event: FocusEvent<HTMLElement>) => {
+      if (openerRef.current !== undefined) return;
+      const from = event.relatedTarget;
+      openerRef.current =
+        lastKey !== null && from instanceof HTMLElement && !from.isContentEditable ? from : null;
+    },
     // Focusing the editor on a touch device opens the on-screen keyboard, so the menu keeps its own focus return.
     finalFocus:
       composerRef && !isCoarsePointer
         ? () => {
+            const opener = openerRef.current;
+            openerRef.current = undefined;
+            // Escape cancels: a menu opened from the keyboard hands focus back to its trigger.
+            // Some popups close themselves on Escape, so the key is read here, not the close type.
+            if (lastKey === "Escape" && opener?.isConnected) {
+              return opener;
+            }
             const activeElement = document.activeElement;
             if (activeElement !== document.body && !isInsideComposerFloatingLayer(activeElement)) {
               return false;

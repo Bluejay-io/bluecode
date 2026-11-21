@@ -21,6 +21,7 @@ import {
   TurnItemId,
   WS_METHODS,
   WsRpcGroup,
+  type ServerConfigStreamEvent,
   type VcsStatusStreamEvent,
   type ModelSelection,
   type OrchestrationProjectShell,
@@ -445,6 +446,17 @@ const subscribe = <A>(first: ReadonlyArray<A>, register?: (queue: Queue.Queue<A>
     }),
   );
 
+// BlueCode: the connection outlives each test, so a new scenario's config reaches the app as an update.
+const serverConfigSubscribers = new Set<Queue.Queue<ServerConfigStreamEvent>>();
+const subscribeServerConfig = () =>
+  subscribe<ServerConfigStreamEvent>(
+    [{ version: 1, type: "snapshot", config: serverConfig() }],
+    (queue) => {
+      serverConfigSubscribers.add(queue);
+      return () => serverConfigSubscribers.delete(queue);
+    },
+  );
+
 const handlers: Record<string, (input: never) => unknown> = {
   // Recorded, and accepted only when the scenario asks, since a pending command holds every
   // later command on its thread. Accepted commands' events never arrive.
@@ -545,8 +557,7 @@ const handlers: Record<string, (input: never) => unknown> = {
         if (vcsStatusSubscriber === queue) vcsStatusSubscriber = null;
       };
     }),
-  [WS_METHODS.subscribeServerConfig]: () =>
-    subscribe([{ version: 1 as const, type: "snapshot" as const, config: serverConfig() }]),
+  [WS_METHODS.subscribeServerConfig]: subscribeServerConfig,
 };
 
 // Unanswered calls stay pending, like a server that has not replied yet.
@@ -562,8 +573,7 @@ const client = new Proxy(handlers, {
 const session: EnvironmentConnectionLease["session"] = {
   client: client as unknown as WsRpcProtocolClient,
   initialConfig: Effect.sync(serverConfig),
-  subscribeServerConfig: () =>
-    subscribe([{ version: 1 as const, type: "snapshot" as const, config: serverConfig() }]),
+  subscribeServerConfig,
   ready: Effect.void,
   probe: Effect.void,
   inboundFrames: Effect.succeed(0),
@@ -628,6 +638,9 @@ export function installFakeEnvironment(
     })),
   ];
   holdCommand = options?.holdCommand ?? (() => false);
+  for (const queue of serverConfigSubscribers) {
+    Queue.offerUnsafe(queue, { version: 1, type: "snapshot", config: serverConfig() });
+  }
   globalThis.fetch = async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
     if (url.origin !== window.location.origin) return realFetch(input, init);

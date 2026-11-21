@@ -1,0 +1,159 @@
+@reference "../index.css";
+
+/* BlueCode's composer, after the Codex app: one card with 12px corners and a hairline edge, the
+   prompt on top, and a footer of "+" and the permission mode on the left, then the context ring,
+   model, mic and a round send on the right. Colors are theme tokens, so every theme gets it. */
+
+:root {
+  --bluecode-composer-radius: 0.75rem;
+  --bluecode-composer-surface: var(--card);
+
+  /* Dark cards sit only a step above the page; Codex's reads clearly lighter, so lift it a
+     little toward the text color. Attached panels and detached notices share the surface. */
+  @variant dark {
+    --bluecode-composer-surface: color-mix(in oklab, var(--card) 95%, var(--foreground));
+  }
+}
+[data-slot="composer-shell"] {
+  --chat-composer-glass-surface: var(--bluecode-composer-surface);
+}
+[data-composer-banner-surface="detached"] {
+  --chat-composer-attached-surface: var(--bluecode-composer-surface);
+}
+
+/* The card and every layer painted with it share its corners. ::after outlines inherit. */
+[data-slot="composer-shell"]::before,
+[data-slot="composer-host"],
+[data-slot="composer-host"]::before,
+[data-chat-composer-main-surface],
+[data-chat-composer-surface] {
+  border-radius: var(--bluecode-composer-radius);
+}
+
+/* 14px of padding around the prompt; the footer sits 8px off the card's bottom and sides, so its
+   round controls nest in the corners. The start page keeps a taller prompt. */
+[data-chat-composer-body] {
+  padding-top: 0.875rem;
+  padding-bottom: 0;
+}
+[data-chat-composer-body] .composer-tiptap {
+  min-height: 2rem;
+}
+[data-draft-hero-controls] ~ * [data-chat-composer-body] .composer-tiptap {
+  min-height: 3rem;
+}
+
+/* Footer: 28px pill controls with 16px icons, text at 13px. */
+[data-chat-composer-footer] {
+  --control-radius: 9999px;
+  padding: 0.25rem 0.5rem 0.5rem;
+}
+[data-chat-composer-footer] :is(button, [role="button"]) svg.lucide {
+  width: 1rem;
+  height: 1rem;
+}
+[data-chat-composer-footer] [data-primary-action] svg,
+[data-chat-composer-footer] [data-composer-context-ring] svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+[data-chat-composer-footer-controls] {
+  justify-content: flex-start;
+}
+
+/* The permission mode is muted text, as Codex's "Approve for me"; the model reads in the
+   foreground with its effort muted after it. Both brighten while hovered or open. */
+[data-chat-composer-footer] [data-composer-shortcut="composer.mode"] {
+  padding-inline: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 450;
+  color: var(--muted-foreground);
+}
+[data-chat-composer-footer] [data-chat-provider-model-picker] {
+  padding-inline: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 450;
+  color: var(--foreground);
+}
+[data-chat-composer-footer]
+  [data-chat-provider-model-picker]
+  [data-composer-control-icon]:not(svg.lucide) {
+  color: var(--muted-foreground);
+}
+[data-chat-composer-footer]
+  :is([data-chat-provider-model-picker], [data-composer-shortcut="composer.mode"]):is(
+    :hover,
+    [data-popup-open]
+  ) {
+  color: var(--foreground);
+}
+
+/* Send, Stop and the mic standing in for send (ComposerPrimaryActions) are one 28px circle in the
+   message-action color. Stop is that circle with a square, as Codex's, instead of a red button. */
+[data-chat-composer-form] [data-primary-action="destructive"] {
+  --bluecode-solid: var(--message-action);
+  --bluecode-solid-text: var(--message-action-foreground);
+  --bluecode-solid-hover: color-mix(in oklch, var(--bluecode-solid) 92%, black);
+}
+[data-chat-composer-form]
+  :is(
+    [data-primary-action="solid"],
+    [data-primary-action="stage"],
+    [data-primary-action="destructive"],
+    [data-primary-action="text"]
+  ) {
+  border-radius: 9999px;
+}
+[data-chat-composer-footer] :is(button.rounded-full, [data-composer-mic]) {
+  width: 1.75rem;
+  height: 1.75rem;
+  scale: none;
+}
+[data-chat-composer-footer] button[data-primary-action="text"] {
+  width: auto;
+  height: 1.75rem;
+}
+[data-chat-composer-footer] button.rounded-full:active {
+  filter: brightness(0.97);
+}
+
+/* Panels attached above the card (notices, the question drawer, the slash, @ and stash menus)
+   open with the card's corners; panels joined under another stay square on top, and detached
+   notices are whole cards. Unlayered, so these restate the joined case from ComposerBanner. */
+[data-composer-banner-surface]:not([data-composer-shoulder-tab]) {
+  --composer-banner-corner-top: calc(var(--bluecode-composer-radius) - 0.25rem);
+}
+[data-composer-banner-surface="attached"]:not([data-composer-shoulder-tab])::before {
+  border-top-left-radius: var(--bluecode-composer-radius);
+  border-top-right-radius: var(--bluecode-composer-radius);
+}
+[data-slot="composer-banner-attachment"]
+  + [data-slot="composer-banner-attachment"]
+  [data-composer-banner-surface="attached"]::before {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+[data-composer-banner-surface="detached"]::before {
+  border-radius: var(--bluecode-composer-radius);
+}
+
+/* The run-context row under the card (and above it on the start page) is bare text. Its glass
+   band painted the page color over grain, theme artwork and side-chat panels; the timeline is
+   already masked behind the whole composer stack, so it hides nothing. */
+[data-slot="composer-context-strip"] {
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* The card's edge: 1px at about half the border tokens' strength instead of 0.5px, so it reads
+   the same on the straight sides and stays even around the corners, where a 0.5px line
+   half-covers pixels. */
+[data-chat-composer-main-surface]::after,
+[data-chat-composer-surface]::after {
+  border-width: 1px;
+}
+[data-slot="composer-shell"] {
+  --chat-composer-outline-top: color-mix(in oklab, var(--border-2) 55%, transparent);
+  --chat-composer-outline: color-mix(in oklab, var(--border-1) 55%, transparent);
+}

@@ -41,8 +41,10 @@ const buttonVariants = cva(
         xs: "h-7 gap-1 px-[calc(--spacing(2)-1px)] text-sm sm:h-6 sm:text-xs [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3.5",
       },
       variant: {
+        // BlueCode: Capy's solid button (the shadow tokens are in bluecode/buttons.css). A hairline
+        // border a shade darker than the fill; presses dim instead of shrinking.
         default:
-          "not-disabled:inset-shadow-[0_1px_--theme(--color-white/16%)] not-disabled:ring-1 not-disabled:ring-inset not-disabled:ring-black/10 border-primary bg-primary text-primary-foreground shadow-primary/24 shadow-xs [:active,[data-pressed]]:inset-shadow-[0_1px_--theme(--color-black/8%)] [:disabled,:active,[data-pressed]]:shadow-none [:hover,[data-pressed]]:bg-primary/90",
+          "border-[0.5px] border-[color-mix(in_oklch,var(--primary)_80%,black)] bg-primary text-primary-foreground shadow-[inset_0_1px_var(--bluecode-highlight-top),var(--bluecode-plate)] transition-[color,background-color,border-color,outline-color] ease-in-out [:hover,[data-pressed]]:bg-[color-mix(in_oklch,var(--primary)_92%,black)] [:active,[data-pressed]]:shadow-none [:active,[data-pressed]]:brightness-97 [&:active:not([aria-haspopup])]:scale-100 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-1 focus-visible:outline-primary-foreground focus-visible:-outline-offset-1 disabled:opacity-55 aria-disabled:opacity-55",
         destructive:
           "not-disabled:inset-shadow-[0_1px_--theme(--color-white/16%)] not-disabled:ring-1 not-disabled:ring-inset not-disabled:ring-black/10 border-destructive bg-destructive text-white shadow-destructive/24 shadow-xs [:active,[data-pressed]]:inset-shadow-[0_1px_--theme(--color-black/8%)] [:disabled,:active,[data-pressed]]:shadow-none [:hover,[data-pressed]]:bg-destructive/90",
         "destructive-outline":
@@ -63,6 +65,9 @@ const buttonVariants = cva(
         outline:
           "[--control-icon-color:var(--contrast-muted-foreground)] border-input bg-popover not-dark:bg-clip-padding text-foreground shadow-xs/5 not-disabled:not-active:not-data-pressed:before:shadow-[0_1px_--theme(--color-black/4%)] dark:bg-input/32 dark:not-disabled:before:shadow-[0_-1px_--theme(--color-white/2%)] dark:not-disabled:not-active:not-data-pressed:before:shadow-[0_-1px_--theme(--color-white/6%)] [:disabled,:active,[data-pressed]]:shadow-none [:hover,[data-pressed]]:bg-accent/50 dark:[:hover,[data-pressed]]:bg-input/64",
         overlay: "border-transparent bg-black/70 text-white/65 [:hover,[data-pressed]]:bg-black/90",
+        // BlueCode: Capy's ghost icon button. Muted until hovered or open; presses darken, never shrink.
+        quiet:
+          "[--control-icon-color:currentColor] border-transparent text-muted-foreground [:hover,[data-pressed],[data-popup-open]]:bg-(--control-hover) [:hover,[data-pressed],[data-popup-open]]:text-foreground [&:active:not([aria-haspopup])]:scale-100 active:brightness-97",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground [:active,[data-pressed]]:bg-secondary/80 [:hover,[data-pressed]]:bg-secondary/90",
         "warning-outline":

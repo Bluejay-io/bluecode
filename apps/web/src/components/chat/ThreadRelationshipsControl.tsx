@@ -134,9 +134,10 @@ function ThreadLineageRowList(props: {
         <button
           type="button"
           onClick={props.onShowMore}
-          className={`flex h-8 w-full cursor-pointer items-center rounded-lg ${THREAD_DETAILS_PANEL_ROW_CONTENT_CLASS} text-sm font-medium text-muted-foreground/70 hover:bg-black/[0.055] hover:text-foreground/80 dark:hover:bg-white/[0.075]`}
+          // BlueCode: a 28px row with 6px corners and a 14px icon, like the card's others.
+          className={`flex h-7 w-full cursor-pointer items-center rounded-md ${THREAD_DETAILS_PANEL_ROW_CONTENT_CLASS} text-sm font-medium text-muted-foreground/70 hover:bg-black/[0.055] hover:text-foreground/80 dark:hover:bg-white/[0.075]`}
         >
-          <PlusIcon aria-hidden className="size-4 shrink-0" />
+          <PlusIcon aria-hidden className="size-3.5 shrink-0" />
           <T>
             Show <Var>{Math.min(props.hiddenCount, THREAD_LINEAGE_PAGE_COUNT)}</Var> more
           </T>
@@ -305,7 +306,10 @@ function RemoteSubagentRow(props: {
   const opener = useLinkedThreadOpener(props.parentRef, remoteChild, title);
   const trigger = useSideThreadTrigger();
   return (
-    <li className="group relative flex h-8 items-center rounded-lg">
+    <li
+      // BlueCode: a 28px row with 6px corners, like the card's others.
+      className="group relative flex h-7 items-center rounded-md"
+    >
       <Tooltip>
         <TooltipTrigger
           delay={200}
@@ -332,7 +336,8 @@ function RemoteSubagentRow(props: {
             </span>
           </span>
           <span
-            className={`flex max-w-1/2 shrink-0 gap-1 text-2xs ${failed ? "text-destructive" : "text-muted-foreground"}`}
+            // BlueCode: the card's trailing values are 12px.
+            className={`flex max-w-1/2 shrink-0 gap-1 text-xs ${failed ? "text-destructive" : "text-muted-foreground"}`}
           >
             <span className="truncate">
               <T>
@@ -406,7 +411,10 @@ function DelegatedFromRow(props: {
     });
   };
   return (
-    <li className="group relative flex h-8 items-center rounded-lg">
+    <li
+      // BlueCode: a 28px row with 6px corners, like the card's others.
+      className="group relative flex h-7 items-center rounded-md"
+    >
       <Tooltip>
         <TooltipTrigger
           delay={200}
@@ -434,7 +442,10 @@ function DelegatedFromRow(props: {
             </span>
           </span>
           {label ? (
-            <span className="max-w-1/2 shrink-0 truncate text-2xs text-muted-foreground">
+            <span
+              // BlueCode: the card's trailing values are 12px.
+              className="max-w-1/2 shrink-0 truncate text-xs text-muted-foreground"
+            >
               <T>
                 on <Var>{label}</Var>
               </T>
@@ -884,11 +895,15 @@ export function ThreadRelationshipsPanel(props: {
           </span>
         </span>
         {agent ? null : (
-          <ArrowRightIcon className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+          <ArrowRightIcon
+            // BlueCode: the card's icon color.
+            className="size-3 shrink-0 text-icon-muted opacity-0 transition-opacity group-hover:opacity-100"
+          />
         )}
         {agent && !failed && (deriveSubagentElapsedMs(agent, 0) !== null || canStopWorkflow) ? (
           <span
-            className={`shrink-0 text-2xs font-normal tabular-nums text-muted-foreground ${canStopWorkflow ? "min-w-6 text-end" : ""} ${trailingVisibilityClass}`}
+            // BlueCode: the card's trailing values are 12px.
+            className={`shrink-0 text-xs font-normal tabular-nums text-muted-foreground ${canStopWorkflow ? "min-w-6 text-end" : ""} ${trailingVisibilityClass}`}
           >
             <AgentElapsed agent={agent} compact />
           </span>
@@ -897,7 +912,8 @@ export function ThreadRelationshipsPanel(props: {
             className={
               workflowGroup
                 ? "sr-only"
-                : `shrink-0 text-2xs ${failed ? "text-destructive" : "text-muted-foreground"} ${trailingVisibilityClass}`
+                : // BlueCode: the card's trailing values are 12px.
+                  `shrink-0 text-xs ${failed ? "text-destructive" : "text-muted-foreground"} ${trailingVisibilityClass}`
             }
           >
             {threadRelationshipStatusLabel(rowStatus, m)}
@@ -944,7 +960,11 @@ export function ThreadRelationshipsPanel(props: {
       );
     }
     return (
-      <li key={threadId} className="group relative flex h-8 items-center rounded-lg">
+      <li
+        // BlueCode: a 28px row with 6px corners, like the card's others.
+        key={threadId}
+        className="group relative flex h-7 items-center rounded-md"
+      >
         {isMergeTarget ? (
           <div className={THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS}>
             <Tooltip>
@@ -996,7 +1016,10 @@ export function ThreadRelationshipsPanel(props: {
                     : gt("Merge this conversation back into its source")}
               </TooltipPopup>
             </Tooltip>
-            <span className="shrink-0 border border-transparent ps-1 pe-2.5 text-2xs font-medium text-muted-foreground">
+            <span
+              // BlueCode: the card's 8px inset and 12px trailing values.
+              className="shrink-0 border border-transparent ps-1 pe-2 text-xs font-medium text-muted-foreground"
+            >
               {threadRelationshipStatusLabel(rowStatus, m)}
             </span>
           </div>

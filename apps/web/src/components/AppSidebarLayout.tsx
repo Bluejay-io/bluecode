@@ -394,15 +394,6 @@ function SidebarControl({ showSidebar }: { readonly showSidebar: boolean }) {
         mobileSidebarSheetMounted && "hidden",
       )}
       data-sidebar-control=""
-      style={
-        // BlueCode: desktop's back and forward sit after the toggle at the sidebar titlebar's end.
-        isElectron
-          ? ({
-              "--bluecode-titlebar-history-width":
-                "calc(2 * var(--workspace-titlebar-control-size))",
-            } as CSSProperties)
-          : undefined
-      }
     >
       {showSidebar ? (
         <>
@@ -505,7 +496,7 @@ export function AppSidebarLayout({
       >
         {showSidebar ? (
           <>
-            <SidebarBrandWidthProbe isElectron={isElectron} onWidthChange={setBrandWidth} />
+            <SidebarBrandWidthProbe onWidthChange={setBrandWidth} />
             <Sidebar
               side="left"
               collapsible="offcanvas"

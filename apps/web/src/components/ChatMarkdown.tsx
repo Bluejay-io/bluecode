@@ -1987,9 +1987,11 @@ function ChatMarkdown({
       ref={bindMarkdownRef}
       className={cn(
         "chat-markdown w-full min-w-0 [overflow-wrap:anywhere] [word-break:break-word]",
-        !inline && "text-sm leading-relaxed text-foreground",
+        // BlueCode: conversation text is set tighter; bluecode/theme.css tracks it.
+        !inline && "text-sm leading-normal text-foreground",
         className,
       )}
+      data-chat-markdown-body={inline ? undefined : ""}
       data-streaming={componentState.isStreaming ? "" : undefined}
       onCopy={handleCopy}
     >

@@ -4,17 +4,21 @@ import {
   ProviderInstanceId,
   type ModelSelection,
 } from "@t3tools/contracts";
-import { compileResolvedKeybindingsConfig } from "@t3tools/shared/keybindings";
-import { useState } from "react";
+import {
+  compileResolvedKeybindingsConfig,
+  DEFAULT_RESOLVED_KEYBINDINGS,
+} from "@t3tools/shared/keybindings";
+import { use, useState } from "react";
 import { expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 
 import "~/index.css";
 
 import { render } from "../../../test/render";
+import { ComposerHandleContext, type ComposerHandleRef } from "../../composerHandleContext";
 import { __setClientSettingsForTests } from "../../hooks/useSettings";
 import { deriveProviderInstanceEntries } from "../../providerInstances";
-import { ProviderModelPicker } from "./ProviderModelPicker";
+import { DockedPickerContext, ProviderModelPicker } from "./ProviderModelPicker";
 
 it("keeps each registry image when adding a model from another ACP agent", async () => {
   const icons = [
@@ -95,38 +99,61 @@ it("keeps each registry image when adding a model from another ACP agent", async
   await vi.waitFor(() => expect(imageWidths()).toEqual([11, 17]));
 });
 
-it("keeps a docked picker open after a pick and hands focus to that model's effort", async () => {
-  const instanceId = ProviderInstanceId.make("codex");
-  const entries = deriveProviderInstanceEntries([
-    {
-      instanceId,
-      driver: ProviderDriverKind.make("codex"),
+// The reasoning section's shape: the slider takes the effort shortcut, the checked mode the
+// permissions one.
+function StubSection(props: { levels: ReadonlyArray<string> }) {
+  const { effortFocusRef, permissionsFocusRef } = use(DockedPickerContext);
+  return (
+    <>
+      {props.levels.map((level, index, all) => (
+        <button
+          key={level}
+          ref={index === all.length - 1 ? effortFocusRef : undefined}
+          type="button"
+          role="radio"
+          aria-checked={index === all.length - 1}
+        >
+          {level}
+        </button>
+      ))}
+      <button ref={permissionsFocusRef} type="button" role="radio" aria-checked>
+        Supervised
+      </button>
+    </>
+  );
+}
+
+it("shows a docked picker as one panel: search and tabs, the list, then the model's reasoning", async () => {
+  const entries = deriveProviderInstanceEntries(
+    ["Codex", "Claude"].map((name) => ({
+      instanceId: ProviderInstanceId.make(name.toLowerCase()),
+      driver: ProviderDriverKind.make(name.toLowerCase()),
       enabled: true,
       installed: true,
       version: null,
-      status: "ready",
-      auth: { status: "authenticated" },
+      status: "ready" as const,
+      auth: { status: "authenticated" as const },
       checkedAt: "2026-01-01T00:00:00.000Z",
       models: [],
       slashCommands: [],
       skills: [],
-    },
-  ]);
+    })),
+  );
+  const [codex, claude] = entries;
   const options = new Map([
     [
-      instanceId,
+      codex!.instanceId,
       [
         { slug: "original", name: "Original model" },
         { slug: "second", name: "Second model" },
-        { slug: "plain", name: "Plain model" },
       ],
     ],
+    [claude!.instanceId, [{ slug: "opus", name: "Opus model" }]],
   ]);
-  // The last level is the selected one; "plain" has no effort to pick.
+  // The last level is the selected one.
   const levels: Record<string, ReadonlyArray<string>> = {
     original: ["Low", "High"],
     second: ["Medium"],
-    plain: [],
   };
 
   function Picker() {
@@ -134,46 +161,87 @@ it("keeps a docked picker open after a pick and hands focus to that model's effo
     return (
       <ProviderModelPicker
         environmentId={null}
-        activeInstanceId={instanceId}
+        activeInstanceId={codex!.instanceId}
         model={model}
         lockedProvider={null}
         instanceEntries={entries}
         modelOptionsByInstance={options}
         triggerAriaLabel="Choose model"
+        isComposerOwned
         onInstanceModelChange={(_, selected) => setModel(selected)}
-        effortColumn={(levels[model] ?? []).map((level, index, all) => (
-          <button
-            key={level}
-            type="button"
-            role="radio"
-            aria-checked={index === all.length - 1}
-            data-effort-row
-            data-effort-level
-          >
-            {level}
-          </button>
-        ))}
+        keybindings={DEFAULT_RESOLVED_KEYBINDINGS}
+        effortColumn={<StubSection levels={levels[model] ?? []} />}
       />
     );
   }
 
-  await using screen = await render(<Picker />);
-  await screen.getByRole("button", { name: "Choose model" }).click();
+  const composer = { focusAtEnd: vi.fn() };
+  await using screen = await render(
+    <ComposerHandleContext value={{ current: composer } as unknown as ComposerHandleRef}>
+      <Picker />
+    </ComposerHandleContext>,
+  );
+  const trigger = screen.getByRole("button", { name: "Choose model" });
+  await trigger.click();
   const search = page.getByPlaceholder("Search models...");
+  const high = page.getByRole("radio", { name: "High" });
+  // The list and the reasoning show together; focus starts in the search.
   await expect.element(search).toHaveFocus();
-  await userEvent.keyboard("{ArrowRight}");
-  await expect.element(page.getByRole("radio", { name: "High" })).toHaveFocus();
-  await userEvent.keyboard("{ArrowLeft}");
+  await expect.element(high).toBeVisible();
+
+  // Typing anywhere in the panel lands in the search, keeping what was typed.
+  await high.click();
+  await userEvent.keyboard("Sec");
   await expect.element(search).toHaveFocus();
+  await expect.element(search).toHaveValue("Sec");
+  await userEvent.clear(search);
 
-  await page.getByRole("option", { name: /Second model/ }).click();
-  await expect.element(page.getByRole("radio", { name: "Medium" })).toHaveFocus();
+  // A provider tab lists only its models, and keeps focus in the search.
+  await page.getByRole("tab", { name: /Claude/ }).click();
+  await expect.element(search).toHaveFocus();
+  await expect.element(page.getByRole("option", { name: /Opus model/ })).toBeVisible();
+  await expect.element(page.getByRole("option", { name: /Second model/ })).not.toBeInTheDocument();
+  // With a tab chosen, the provider shortcuts move the filter to the next and previous provider.
+  await userEvent.keyboard("{Control>}{Shift>}{ArrowDown}{/Shift}{/Control}");
+  await expect
+    .element(page.getByRole("tab", { name: /Codex/ }))
+    .toHaveAttribute("aria-selected", "true");
+  await expect.element(page.getByRole("option", { name: /Second model/ })).toBeVisible();
+  await expect.element(page.getByRole("option", { name: /Opus model/ })).not.toBeInTheDocument();
+  await userEvent.keyboard("{Control>}{Shift>}{ArrowUp}{/Shift}{/Control}");
+  await expect
+    .element(page.getByRole("tab", { name: /Claude/ }))
+    .toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "All" }).click();
 
-  await page.getByRole("option", { name: /Plain model/ }).click();
+  // A pick keeps the panel open, with the new model's reasoning under the list.
   await page.getByRole("option", { name: /Second model/ }).click();
-  await expect.element(page.getByRole("radio", { name: "Medium" })).toHaveFocus();
+  await expect.element(page.getByRole("radio", { name: "Medium" })).toBeVisible();
+  await expect.element(search).toBeVisible();
+
+  // Opened by a click, Escape closes and returns to the editor.
   await userEvent.keyboard("{Escape}");
   await expect.element(search).not.toBeInTheDocument();
+  await vi.waitFor(() => expect(composer.focusAtEnd).toHaveBeenCalledTimes(1));
+
+  // Reached and opened from the keyboard, Escape hands focus back to the trigger.
+  (trigger.element() as HTMLElement).focus();
+  await userEvent.keyboard("{Enter}");
+  await expect.element(search).toHaveFocus();
+  await userEvent.keyboard("{Escape}");
+  await expect.element(search).not.toBeInTheDocument();
+  await expect.element(trigger).toHaveFocus();
+  expect(composer.focusAtEnd).toHaveBeenCalledTimes(1);
+
+  // composer.effort opens the panel on the slider; composer.mode, pressed while it is open,
+  // moves to the checked mode. Both mark the trigger and click it.
+  const triggerElement = trigger.element() as HTMLElement;
+  triggerElement.dataset.openToEffort = "true";
+  triggerElement.click();
+  await expect.element(page.getByRole("radio", { name: "Medium" })).toHaveFocus();
+  triggerElement.dataset.openToPermissions = "true";
+  triggerElement.click();
+  await expect.element(page.getByRole("radio", { name: "Supervised" })).toHaveFocus();
 });
 
 it("lists a model reported twice by one provider once, with contiguous jump shortcuts", async () => {
@@ -340,4 +408,94 @@ it("keeps the touch keyboard down when the picker opens", async () => {
   // Every provider's models are listed together, so another provider needs no tap first.
   await expect.element(page.getByRole("option", { name: /Claude model/ })).toBeVisible();
   await expect.element(search).not.toHaveFocus();
+});
+
+it("keeps a docked picker's panel reachable and above its trigger as the window changes", async () => {
+  await page.viewport(390, 700);
+  const instanceId = ProviderInstanceId.make("codex");
+  const entries = deriveProviderInstanceEntries([
+    {
+      instanceId,
+      driver: ProviderDriverKind.make("codex"),
+      enabled: true,
+      installed: true,
+      version: null,
+      status: "ready",
+      auth: { status: "authenticated" },
+      checkedAt: "2026-01-01T00:00:00.000Z",
+      models: [],
+      slashCommands: [],
+      skills: [],
+    },
+  ]);
+  const models = Array.from({ length: 20 }, (_, index) => ({
+    slug: `model-${index}`,
+    name: `Model ${index}`,
+  }));
+
+  await using screen = await render(
+    <div style={{ position: "fixed", left: 16, bottom: 16 }}>
+      <ProviderModelPicker
+        environmentId={null}
+        activeInstanceId={instanceId}
+        model="model-0"
+        lockedProvider={null}
+        instanceEntries={entries}
+        modelOptionsByInstance={new Map([[instanceId, models]])}
+        triggerAriaLabel="Choose model"
+        onInstanceModelChange={() => {}}
+        // The reasoning section's shape: rows at their own height above a footer.
+        effortColumn={
+          <div className="flex shrink-0 flex-col">
+            {["Low", "Medium", "High", "Extra high"].map((level) => (
+              <button key={level} type="button" className="h-8 shrink-0">
+                {level}
+              </button>
+            ))}
+            <button type="button" role="switch" aria-checked="false" className="h-8 shrink-0">
+              Fast mode
+            </button>
+          </div>
+        }
+        footer={
+          <button type="button" className="h-16 shrink-0">
+            Permissions
+          </button>
+        }
+      />
+    </div>,
+  );
+  const trigger = screen.getByRole("button", { name: "Choose model" });
+  await trigger.click();
+  const fastMode = page.getByRole("switch", { name: "Fast mode" });
+  const hitsCentre = (element: Element) => {
+    const box = element.getBoundingClientRect();
+    return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === element;
+  };
+  // On a phone, the panel shows every reasoning row above its footer.
+  await vi.waitFor(() => expect(hitsCentre(fastMode.element())).toBe(true));
+
+  const cardsAboveTrigger = () => {
+    const triggerTop = trigger.element().getBoundingClientRect().top;
+    return Array.from(document.querySelectorAll("[data-model-picker-card]"), (card) => {
+      const box = card.getBoundingClientRect();
+      return box.bottom <= triggerTop && box.right <= window.innerWidth;
+    });
+  };
+  await vi.waitFor(() => expect(cardsAboveTrigger()).toEqual([true]));
+  // Filtering the list keeps the panel above the trigger at either width.
+  await userEvent.keyboard("Model 13");
+  await vi.waitFor(() => expect(page.getByRole("option").elements()).toHaveLength(1));
+  await vi.waitFor(() => expect(cardsAboveTrigger()).toEqual([true]));
+  await page.viewport(900, 700);
+  await vi.waitFor(() => expect(cardsAboveTrigger()).toEqual([true]));
+  await expect.element(fastMode).toBeVisible();
+
+  // Too short for the reasoning rows and the footer under the list's minimum, the panel scrolls
+  // to the footer.
+  await page.viewport(900, 260);
+  const permissions = page.getByRole("button", { name: "Permissions" });
+  await vi.waitFor(() => expect(hitsCentre(permissions.element())).toBe(false));
+  await userEvent.wheel(page.getByRole("button", { name: "Low" }), { direction: "down", times: 5 });
+  await vi.waitFor(() => expect(hitsCentre(permissions.element())).toBe(true));
 });

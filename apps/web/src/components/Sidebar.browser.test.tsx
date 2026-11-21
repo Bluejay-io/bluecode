@@ -13,6 +13,7 @@ import {
   type ScopedThreadRef,
 } from "@t3tools/contracts";
 import { isMacPlatform } from "@t3tools/shared/keybindings";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 
@@ -63,8 +64,13 @@ vi.mock("../commandPaletteBus", () => ({
   isCommandPaletteOpen: () => false,
 }));
 vi.mock("./sidebar/SidebarChrome", () => ({
-  SidebarBrand: () => null,
-  SidebarChromeHeader: () => null,
+  EnvironmentPill: () => null,
+  useEnvironmentPillLabel: () => null,
+  SidebarChromeHeader: ({
+    renderActions,
+  }: {
+    renderActions: (options: { onBackdrop: boolean }) => ReactNode;
+  }) => renderActions({ onBackdrop: false }),
   SidebarChromeFooter: () => null,
 }));
 

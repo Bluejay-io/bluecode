@@ -1003,7 +1003,8 @@ export function PullRequestTimelineTab({
       tabIndex={-1}
       data-workspace-focus-default
       className="scrollbar-gutter-both h-full px-4 outline-none"
-      contentContainerClassName="relative mx-auto w-full max-w-3xl before:absolute before:bottom-10 before:left-[15px] before:top-6 before:w-px before:bg-border/45"
+      // BlueCode: the chat column's width, less this scroller's px-4, like the summary's sections.
+      contentContainerClassName="relative mx-auto w-full max-w-[calc(var(--chat-content-max-width)_-_2rem)] before:absolute before:bottom-10 before:left-[15px] before:top-6 before:w-px before:bg-border/45"
       ListHeaderComponent={
         anchor !== null && targetIndex < 0 && revealUrl === undefined ? (
           <p role="status" className="py-4 text-xs text-muted-foreground">

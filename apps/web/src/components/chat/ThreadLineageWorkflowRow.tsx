@@ -104,7 +104,10 @@ function WorkflowMemberRow({
           <span className="min-w-0 flex-1 truncate">{member.title}</span>
           <span className="sr-only">{member.status}</span>
           {member.startedAt ? (
-            <span className="shrink-0 text-2xs font-normal tabular-nums text-muted-foreground">
+            <span
+              // BlueCode: the card's trailing values are 12px.
+              className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground"
+            >
               <AgentElapsed agent={member} />
             </span>
           ) : null}
@@ -243,13 +246,19 @@ export function ThreadLineageWorkflowRow({
                           <T context="workflow phase status">Failed</T>
                         </SectionHeaderStatus>
                       ) : null}
-                      <span className="shrink-0 text-2xs font-normal tabular-nums">
+                      <span
+                        // BlueCode: the card's trailing values are 12px.
+                        className="shrink-0 text-xs font-normal tabular-nums"
+                      >
                         {gt(
                           "{count, plural, one {{settled}/{count} agent} other {{settled}/{count} agents}}",
                           { count: phase.members.length, settled: phase.settledCount },
                         )}
                       </span>
-                      <span className="shrink-0 text-2xs font-normal tabular-nums empty:hidden">
+                      <span
+                        // BlueCode: the card's trailing values are 12px.
+                        className="shrink-0 text-xs font-normal tabular-nums empty:hidden"
+                      >
                         <AgentElapsed agent={phaseElapsed(phase)} />
                       </span>
                     </>
@@ -289,7 +298,10 @@ export function ThreadLineageWorkflowRow({
             />
           ))}
           {phases.length === 0 && group.unphasedMembers.length === 0 ? (
-            <li className="px-2.5 py-1.5 text-2xs text-muted-foreground/70">
+            <li
+              // BlueCode: the card's 8px inset and 12px secondary text.
+              className="px-2 py-1.5 text-xs text-muted-foreground/70"
+            >
               <T>No agents yet</T>
             </li>
           ) : null}

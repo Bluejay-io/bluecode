@@ -704,6 +704,18 @@ const make = Effect.gen(function* () {
 
   const broadcastControl = (tab: ServerTab) => {
     updateFileChooserInterception(tab);
+    // BlueCode: read at run time so out-of-order forks still settle on the latest owner.
+    runFork(
+      Effect.ignore(
+        Effect.suspend(() =>
+          manager.markHumanControlled({
+            threadId: tab.threadId,
+            tabId: tab.tabId,
+            humanControlled: tab.control.controller !== null,
+          }),
+        ),
+      ),
+    );
     for (const viewer of tab.viewers)
       viewer.push({
         _tag: "control",
@@ -2489,6 +2501,12 @@ const make = Effect.gen(function* () {
     );
   };
 
+  // BlueCode: clients read `agentActiveAt` as the tab the agent is driving.
+  const markAgentActive = (tab: ServerTab) =>
+    runPromise(
+      Effect.ignore(manager.markAgentActive({ threadId: tab.threadId, tabId: tab.tabId })),
+    );
+
   const requireTab = async (request: PreviewAutomationRequest) => {
     if (!request.agentSessionId)
       throw new BrowserControlInterrupted({
@@ -2631,6 +2649,7 @@ const make = Effect.gen(function* () {
                   "A browser dialog is pending. Read preview_status and use preview_dialog first.",
                 reason: "dialogPending",
               });
+            await markAgentActive(tab);
             if (existing) {
               if (url) await navigate(tab, url, "load", navigationTimeout);
             } else {
@@ -2773,6 +2792,7 @@ const make = Effect.gen(function* () {
           });
         const generation = tab.control.generation;
         tab.agentOperating = !READ_OPERATIONS.has(request.operation);
+        if (tab.agentOperating) await markAgentActive(tab);
         updateFileChooserInterception(tab);
         try {
           return await executeTabOperation(tab, request, deadlineMs);
@@ -2984,6 +3004,8 @@ const make = Effect.gen(function* () {
       if (event.type === "resized") {
         // Desktop tabs only record the setting, so status need not wait behind an agent action.
         if (tab.desktop) tab.setting = event.snapshot.viewport ?? FILL_PREVIEW_VIEWPORT;
+        // BlueCode: this consumer serves every tab, so metadata must not wait on this tab's queue.
+        if (PreviewManager.isMetadataOnlyEvent(event)) return;
         await tab.control
           .system(async () => {
             if (

@@ -1,5 +1,5 @@
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { ChevronsUpDownIcon, SearchIcon, XIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, SearchIcon, XIcon } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "~/lib/utils";
@@ -106,15 +106,16 @@ function ComboboxInput({
 
 function ComboboxSearchInput(props: React.ComponentProps<typeof ComboboxInput>) {
   return (
-    <label className="block min-w-0 shrink-0 cursor-text px-3 pt-2.5">
-      <div className="relative -translate-y-px border-b border-border/70 pb-1.5 transition-colors focus-within:border-ring">
+    // BlueCode: a borderless 28px search row, set off from the list by a full-bleed rule.
+    <label className="block min-w-0 shrink-0 cursor-text border-(--border-1) border-b-1 px-3">
+      <div className="flex h-9 items-center gap-2">
         <SearchIcon
           aria-hidden="true"
-          className="pointer-events-none absolute top-1.5 left-0 size-4 shrink-0 text-muted-foreground/55"
+          className="pointer-events-none size-3.5 shrink-0 text-icon-muted"
         />
         <ComboboxInput
           {...props}
-          className="flex w-full [&_input]:h-6.5 [&_input]:ps-5 [&_input]:font-sans [&_input]:leading-6.5"
+          className="flex w-full min-w-0 text-[0.8125rem] [&_input]:h-7 [&_input]:px-0 [&_input]:font-sans [&_input]:leading-7 [&_input]:placeholder:text-(--muted-foreground-3)"
           showTrigger={false}
           size="sm"
           unstyled
@@ -188,30 +189,40 @@ function ComboboxPopup({
 function ComboboxItem({
   className,
   children,
-  hideIndicator: _hideIndicator = false,
+  hideIndicator = false,
   selectedFill = true,
   ...props
 }: ComboboxPrimitive.Item.Props & {
   hideIndicator?: boolean;
-  /** Off for rows that mark selection themselves, so a fill only means hover or highlight. */
+  /** Off for rows that mark selection themselves; on, the primitive marks it. */
   selectedFill?: boolean;
 }) {
   return (
     <ComboboxPrimitive.Item
       className={cn(
-        "flex min-h-8 in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] cursor-pointer items-center rounded-sm px-2 py-1 text-base outline-none not-data-disabled:hover:bg-foreground/[0.09] data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-selected:text-foreground data-highlighted:bg-foreground/[0.09] data-highlighted:text-accent-foreground [&[data-highlighted][data-selected]]:bg-foreground/[0.09] [&[data-highlighted][data-selected]]:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
-        selectedFill && "data-selected:bg-foreground/[0.06]",
+        // BlueCode: 14px icons; with the trailing check, the row has no selected fill.
+        "flex min-h-8 in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] cursor-pointer items-center rounded-sm px-2 py-1 text-base outline-none not-data-disabled:hover:bg-foreground/[0.09] data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-selected:text-foreground data-highlighted:bg-foreground/[0.09] data-highlighted:text-accent-foreground [&[data-highlighted][data-selected]]:bg-foreground/[0.09] [&[data-highlighted][data-selected]]:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-3.5 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        selectedFill && hideIndicator && "data-selected:bg-foreground/[0.06]",
         className,
       )}
       data-slot="combobox-item"
       {...props}
     >
       <div
-        className="flex min-w-0 flex-1 items-center gap-2 [&_svg:not([class*='text-'])]:text-muted-foreground"
+        className="flex min-w-0 flex-1 items-center gap-2 [&_svg:not([class*='text-'])]:text-icon-muted"
         data-slot="combobox-item-content"
       >
         {children}
       </div>
+      {/* BlueCode: a trailing check marks the chosen row instead of a fill. */}
+      {selectedFill && !hideIndicator ? (
+        <ComboboxPrimitive.ItemIndicator
+          className="flex shrink-0"
+          data-slot="combobox-item-indicator"
+        >
+          <CheckIcon className="size-3.5" />
+        </ComboboxPrimitive.ItemIndicator>
+      ) : null}
     </ComboboxPrimitive.Item>
   );
 }

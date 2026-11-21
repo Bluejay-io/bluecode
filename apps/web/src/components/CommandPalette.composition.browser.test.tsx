@@ -44,6 +44,10 @@ vi.mock("@effect/atom-react", async (original) => ({
 vi.mock("../hooks/useTheme", () => ({
   useRenderedAppearance: () => "light",
   useTheme: () => ({ theme: "t3-chat", resolvedTheme: "light", appearanceMode: "light" }),
+  // BlueCode: the palette's live theme preview reads and restores the saved theme.
+  getThemeSnapshot: () => ({ theme: "t3-chat", resolvedTheme: "light", appearanceMode: "light" }),
+  refreshTheme: () => {},
+  syncBrowserChromeTheme: () => {},
 }));
 vi.mock("../hooks/useCustomThemes", () => ({ useCustomThemes: () => [] }));
 vi.mock("../hooks/useEnvironmentTheme", () => ({ useEnvironmentThemeDefinitions: () => [] }));

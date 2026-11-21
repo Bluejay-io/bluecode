@@ -186,7 +186,8 @@ function ThreadServersList(props: ThreadServersPanelProps) {
             <li
               key={key}
               data-thread-details-server-overflow={index >= SERVER_PAGE_COUNT || undefined}
-              className="group relative flex items-center rounded-lg"
+              // BlueCode: 6px corners, like the card's other rows.
+              className="group relative flex items-center rounded-md"
             >
               <Tooltip>
                 <TooltipTrigger
@@ -215,7 +216,7 @@ function ThreadServersList(props: ThreadServersPanelProps) {
                     <span className="truncate text-sm font-medium leading-4 text-foreground/85">
                       localhost:{server.port}
                     </span>
-                    <span className="truncate text-2xs font-normal leading-4 text-muted-foreground">
+                    <span className="truncate text-xs font-normal leading-4 text-muted-foreground">
                       {[
                         // First, so the narrow panel truncates the less useful parts.
                         forward
@@ -335,9 +336,10 @@ function ThreadServersList(props: ThreadServersPanelProps) {
           className="w-full active:scale-100"
         >
           {hiddenCount > 0 ? (
-            <ChevronDownIcon aria-hidden className="size-4 shrink-0" />
+            // BlueCode: 14px, like the card's other icons.
+            <ChevronDownIcon aria-hidden className="size-3.5 shrink-0" />
           ) : (
-            <ChevronUpIcon aria-hidden className="size-4 shrink-0" />
+            <ChevronUpIcon aria-hidden className="size-3.5 shrink-0" />
           )}
           {hiddenCount > 0 ? (
             <T>

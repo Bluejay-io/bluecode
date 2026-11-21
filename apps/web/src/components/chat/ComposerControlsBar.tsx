@@ -24,13 +24,12 @@ import { cn } from "~/lib/utils";
 import { resolveComposerTraitsInput } from "./composerProviderState";
 import { useApplyThreadModelPick } from "./useApplyThreadModelPick";
 import { useStableCallback } from "../../hooks/useStableCallback";
-import {
-  ComposerEffortColumn,
-  ComposerPickerFooter,
-  describeComposerEffort,
-} from "./ComposerModelEffort";
+import { describeComposerEffort } from "./ComposerModelEffort";
 import type { useComposerProviderModel } from "./useComposerProviderModel";
 import { resolveComposerControlsOwnership } from "./composerControlsOwnership";
+import { ContextUsageRing } from "~/bluecode/ContextUsageRing";
+import { ModelCard } from "~/bluecode/ModelCard";
+import type { ContextWindowSnapshot } from "@t3tools/client-runtime/state/context-window";
 
 /**
  * The composer footer controls: the model picker (which also holds effort, speed and
@@ -87,6 +86,8 @@ export function ComposerControlsBar(props: {
   onModelPickerOpenChange: (open: boolean) => void;
   modelPickerIconClassName: string | undefined;
   getModelDisabledReason: ChatComposerProps["getModelDisabledReason"];
+  /** BlueCode: shown as a ring before the model, as in Codex; null hides it. */
+  contextWindow: ContextWindowSnapshot | null;
 }) {
   const {
     environmentId,
@@ -131,8 +132,6 @@ export function ComposerControlsBar(props: {
     modelPickerIconClassName,
     getModelDisabledReason,
   } = props;
-  // BlueCode: Auto is the quiet mode, so only it hides the chip; every other mode stays named.
-  const accessMatchesDefault = compatibleRuntimeMode === "auto";
   const {
     accessDisplay,
     showModeBlock,
@@ -141,7 +140,8 @@ export function ComposerControlsBar(props: {
     overflowShowsPermissions,
     pickerOwnsModeShortcut,
   } = resolveComposerControlsOwnership({
-    matchesDefault: accessMatchesDefault || props.permissionsShownInStrip,
+    // BlueCode: Codex's footer always names the mode, unless the new-thread strip already does.
+    matchesDefault: props.permissionsShownInStrip,
     collapsed: composerControlsCollapsed,
     measuredHiddenBlockCount,
   });
@@ -176,7 +176,6 @@ export function ComposerControlsBar(props: {
               size={controlSize}
               hidden={composerControlsHidden || restingHiddenBlockCount > 0}
               accessDisplay={accessDisplay}
-              emphasized={!accessMatchesDefault}
               onRuntimeModeChange={handleRuntimeModeChange}
             />
           ),
@@ -190,8 +189,8 @@ export function ComposerControlsBar(props: {
       workspaceCwd={props.workspaceCwd}
       compact={false}
       isComposerOwned
-      // BlueCode: the trigger sits at the footer's start, so the popup opens from that edge too.
-      popupAlign="start"
+      // BlueCode: the trigger ends the footer, so the popup opens from that edge too.
+      popupAlign="end"
       disabled={providerCatalogPending || isSendBusy}
       multipleModelsEnabled={multipleModelsEnabled}
       multipleModelSelections={multipleModelSelections}
@@ -224,13 +223,17 @@ export function ComposerControlsBar(props: {
       triggerShortcuts={
         pickerOwnsModeShortcut ? "composer.effort composer.mode" : "composer.effort"
       }
-      effortColumn={<ComposerEffortColumn traits={traitsInput} />}
-      footer={
-        <ComposerPickerFooter
+      effortColumn={
+        // BlueCode: the panel's reasoning section replaces the column and footer. It ends with the
+        // permission modes only while the footer's own permissions button hides.
+        <ModelCard
           traits={traitsInput}
-          runtimeMode={compatibleRuntimeMode}
-          runtimeModeOptions={compatibleRuntimeModeOptions}
-          onRuntimeModeChange={handleRuntimeModeChange}
+          permissions={{
+            runtimeMode: compatibleRuntimeMode,
+            runtimeModeOptions: compatibleRuntimeModeOptions,
+            onRuntimeModeChange: handleRuntimeModeChange,
+            showPermissions: pickerOwnsModeShortcut,
+          }}
         />
       }
       terminalOpen={terminalOpen}
@@ -265,8 +268,6 @@ export function ComposerControlsBar(props: {
     </ComposerControl>
   ) : (
     <>
-      {composerModelPicker}
-
       <>
         {restingBlockDefs.map((def, index) => {
           const hidden = index >= restingBlockDefs.length - restingHiddenBlockCount;
@@ -310,6 +311,10 @@ export function ComposerControlsBar(props: {
           />
         </div>
       </>
+      {/* BlueCode: Codex's footer: permissions start the row; context and the model end it. */}
+      <span aria-hidden="true" data-composer-controls-spacer className="min-w-0 flex-1" />
+      {props.contextWindow ? <ContextUsageRing usage={props.contextWindow} /> : null}
+      {composerModelPicker}
     </>
   );
 }

@@ -14,6 +14,9 @@ export function SettingsGroup({
   return (
     <div
       data-slot="settings-group"
+      // BlueCode: styling hooks for layout.css.
+      data-variant={variant}
+      data-divided={divided || undefined}
       {...props}
       className={cn(
         "relative overflow-visible text-foreground",

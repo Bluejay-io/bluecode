@@ -5,6 +5,16 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/geist-mono";
 import "./index.css";
 import "./bluecode/theme.css";
+import "./bluecode/menus.css";
+import "./bluecode/buttons.css";
+import "./bluecode/composer.css";
+import "./bluecode/layout.css";
+import "./bluecode/agent-activity.css";
+import "./bluecode/thread-details.css";
+import "./bluecode/timeline-accents.css";
+import "./bluecode/effort-slider.css";
+import "./bluecode/model-card.css";
+import "./bluecode/terminal.css";
 
 import { hasCloudPublicConfig } from "./cloud/publicConfig";
 import { isElectron } from "./env";
@@ -35,14 +45,23 @@ const managedAuthShellModule =
       : import("./components/clerk/BrowserManagedAuthShell")
     : null;
 
+// BlueCode: a dev-only page with every panel around the composer open; see bluecode/dev.
+const composerPanelsHarness =
+  import.meta.env.DEV && window.location.pathname === "/__bluecode/composer-panels";
+if (composerPanelsHarness) {
+  void import("./bluecode/dev/ComposerPanelsHarness").then((module) =>
+    module.mountComposerPanelsHarness(),
+  );
+}
+
 export const startup = Promise.all([
   managedAuthShellModule?.then((module) => module.default) ?? null,
   // Chained so settings have usually hydrated; English resolves without a chunk load.
-  router.load().then(whenLocaleReady),
+  composerPanelsHarness ? null : router.load().then(whenLocaleReady),
 ])
   .then(([ManagedAuthShell]) => {
     // Route chunk failures resolve router.load() and surface later through the error boundary.
-    if (reloadScheduled) return;
+    if (reloadScheduled || composerPanelsHarness) return;
     ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <React.StrictMode>
         {ManagedAuthShell && clerkPublishableKey ? (

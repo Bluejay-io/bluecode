@@ -1191,9 +1191,11 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "browser-auto-show-floating-preview",
-    title: msg("Auto-show floating preview"),
+    title: msg("Show the browser when an agent opens it"),
     to: "/settings/browser",
-    searchTerms: [msg("agent opens browser device simulator pop into view hide")],
+    searchTerms: [
+      msg("agent opens browser tab panel pop into view background hide floating preview"),
+    ],
   },
   {
     id: "automatic-pull",

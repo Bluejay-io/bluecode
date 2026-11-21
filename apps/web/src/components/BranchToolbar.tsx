@@ -252,7 +252,8 @@ const RunContextSelector = memo(function RunContextSelector({
             kind={activeEnvironment?.machine ?? "server"}
             // Wide machine glyphs need a little more box to match the square row icons.
             className={
-              isPanel ? cn(THREAD_DETAILS_PANEL_ICON_CLASS, "-mx-px size-4.5") : "size-3 shrink-0"
+              // BlueCode: 16px in the details card, a pixel past each side of its 14px column.
+              isPanel ? cn(THREAD_DETAILS_PANEL_ICON_CLASS, "-mx-px size-4") : "size-3 shrink-0"
             }
           />
         )}
@@ -313,15 +314,12 @@ const RunContextSelector = memo(function RunContextSelector({
               }
             : undefined
         }
-        aria-label={
-          isPanel
-            ? gt("Run context: {context}", {
-                context: [autoEnvironmentLabel ?? activeEnvironment?.label, workspaceLabel]
-                  .filter(Boolean)
-                  .join(", "),
-              })
-            : undefined
-        }
+        // BlueCode: named in the toolbar too, where a narrow composer shrinks the label to nothing.
+        aria-label={gt("Run context: {context}", {
+          context: [autoEnvironmentLabel ?? activeEnvironment?.label, workspaceLabel]
+            .filter(Boolean)
+            .join(", "),
+        })}
         data-composer-context-control
         data-composer-shortcut={[
           showEnvironmentPicker && !envLocked ? "composer.host" : "",

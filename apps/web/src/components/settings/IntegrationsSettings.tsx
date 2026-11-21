@@ -15,8 +15,8 @@ import {
   type EnvironmentId,
   BROWSER_PROFILE_NAME_MAX_LENGTH,
   BROWSER_RECORDING_FRAME_RATES,
-  DEFAULT_BROWSER_AUTO_SHOW_FLOATING_PREVIEW,
   DEFAULT_BROWSER_PROFILE_ID,
+  DEFAULT_BROWSER_AUTO_SHOW_FLOATING_PREVIEW,
   DEFAULT_BROWSER_LINK_TARGET,
   DEFAULT_BROWSER_RECORDING_FRAME_RATE,
   DEFAULT_BROWSER_SEARCH_ENGINE,
@@ -1141,7 +1141,8 @@ function AgentBrowserAccessSetting() {
   );
 }
 
-function BrowserAutoShowFloatingPreviewSetting({ disabled }: { readonly disabled: boolean }) {
+// BlueCode: the auto-show setting now opens the panel on an agent's browser instead of floating it.
+function BrowserAutoShowSetting() {
   const searchableSetting = useSearchableSetting();
   const gt = useGT();
   const autoShow = useClientSettings((settings) => settings.browserAutoShowFloatingPreview);
@@ -1152,12 +1153,12 @@ function BrowserAutoShowFloatingPreviewSetting({ disabled }: { readonly disabled
       {...searchableSetting("browser-auto-show-floating-preview")}
       devicePreference
       description={gt(
-        "Show the floating preview when an agent opens a browser or device unless the agent says otherwise.",
+        "Open the panel beside the chat when an agent opens a browser tab, unless the agent keeps it in the background.",
       )}
       resetAction={
-        !disabled && autoShow !== DEFAULT_BROWSER_AUTO_SHOW_FLOATING_PREVIEW ? (
+        autoShow !== DEFAULT_BROWSER_AUTO_SHOW_FLOATING_PREVIEW ? (
           <SettingResetButton
-            ariaLabel={gt("Reset auto-show floating preview to default")}
+            ariaLabel={gt("Reset showing the browser to default")}
             onClick={() =>
               updateSettings({
                 browserAutoShowFloatingPreview: DEFAULT_BROWSER_AUTO_SHOW_FLOATING_PREVIEW,
@@ -1168,12 +1169,11 @@ function BrowserAutoShowFloatingPreviewSetting({ disabled }: { readonly disabled
       }
       control={
         <Switch
-          disabled={disabled}
           checked={autoShow}
           onCheckedChange={(checked) =>
             updateSettings({ browserAutoShowFloatingPreview: Boolean(checked) })
           }
-          aria-label={gt("Auto-show floating preview")}
+          aria-label={gt("Show the browser when an agent opens it")}
         />
       }
     />
@@ -1700,8 +1700,8 @@ export function BrowserSettingsPanel() {
         <SettingsUnavailableGroup message={desktopOnlyMessage}>
           <BrowserProfilesSetting disabled={desktopOnly} />
           <BrowserLinkTargetSetting disabled={desktopOnly} />
-          <BrowserAutoShowFloatingPreviewSetting disabled={desktopOnly} />
         </SettingsUnavailableGroup>
+        <BrowserAutoShowSetting />
         {/* Not desktop-only: web clients search from server-run browser tabs too. */}
         <BrowserSearchEngineSetting />
         <AdvancedSettings

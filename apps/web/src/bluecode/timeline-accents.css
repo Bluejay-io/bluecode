@@ -1,0 +1,50 @@
+/* Timeline divider rows (context handoff, compaction, fork, new session, interrupts, side-chat and
+   subagent headers) take one calm accent from the active theme: the status icon and transition
+   arrow in --primary, hairlines that warm toward it near the label, the key value in foreground.
+   Danger rows keep their destructive colors. */
+[data-timeline-divider="neutral"] {
+  --timeline-divider-accent: var(--primary);
+  --timeline-divider-rule: color-mix(in oklab, var(--primary) 32%, var(--border));
+  --timeline-divider-rule-fade: color-mix(in oklab, var(--border) 55%, transparent);
+}
+
+[data-timeline-divider="neutral"] > :first-child {
+  background: linear-gradient(
+    to right,
+    var(--timeline-divider-rule-fade),
+    var(--timeline-divider-rule)
+  );
+}
+[data-timeline-divider="neutral"] > :last-child {
+  background: linear-gradient(
+    to left,
+    var(--timeline-divider-rule-fade),
+    var(--timeline-divider-rule)
+  );
+}
+
+[data-timeline-divider="neutral"] [data-timeline-divider-label] > svg,
+[data-timeline-divider="neutral"] [data-handoff-arrow],
+[data-timeline-divider="neutral"][role="separator"] > :nth-child(2) svg {
+  color: var(--timeline-divider-accent);
+}
+
+[data-timeline-divider="neutral"] [data-timeline-divider-detail="value"] {
+  color: var(--foreground);
+  opacity: 1;
+}
+
+/* A handoff still waiting for the next turn reads as in progress. */
+[data-timeline-divider="neutral"]:has([data-handoff-state="pending"])
+  [data-timeline-divider-label] {
+  color: color-mix(in oklab, var(--primary) 78%, var(--foreground));
+}
+
+[data-timeline-divider="neutral"] > button:hover {
+  border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+}
+
+/* Settled, snoozed and woke lines under the last turn. */
+[data-chat-thread-status-line] > svg {
+  color: var(--primary);
+}

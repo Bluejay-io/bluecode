@@ -71,9 +71,11 @@ import {
 import {
   CheckIcon,
   ChevronDownIcon,
+  CircleCheckIcon,
   FolderIcon,
+  FolderPlusIcon,
   ListFilterIcon,
-  PlusIcon,
+  MessageSquarePlusIcon,
   SettingsIcon,
 } from "lucide-react";
 import {
@@ -256,8 +258,18 @@ import {
   useComboboxFilter,
 } from "./ui/combobox";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
-import { SidebarBrand, SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
-import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
+import {
+  EnvironmentPill,
+  SidebarChromeFooter,
+  SidebarChromeHeader,
+  useEnvironmentPillLabel,
+} from "./sidebar/SidebarChrome";
+import { SidebarEmptyState } from "~/bluecode/SidebarEmptyState";
+import {
+  SidebarHeaderActions,
+  SidebarHeaderIconButton,
+  SidebarThreadHeader,
+} from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
 import {
   composerDraftHasUserContent,
@@ -2957,6 +2969,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       )
     : null;
 
+  // BlueCode: desktop's window controls leave the titlebar no room for the mark, so only the
+  // environment pill, when on, leads the threads row there.
+  const environmentPillLabel = useEnvironmentPillLabel();
+  const desktopBrand =
+    isElectron && environmentPillLabel ? <EnvironmentPill label={environmentPillLabel} /> : null;
+
   const handleNewThreadClick = (event?: ReactMouseEvent) => {
     const scopedProjectRef = resolveScopedNewThreadProjectRef({
       shiftKey: event?.shiftKey ?? false,
@@ -3000,15 +3018,37 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const newThreadInProjectShortcutLabel = shortcutLabelForCommand(keybindings, "chat.newLocal");
   return (
     <SidebarFolderDrop>
-      <SidebarChromeHeader isElectron={isElectron} />
+      <SidebarChromeHeader
+        isElectron={isElectron}
+        renderActions={({ onBackdrop }) => (
+          <SidebarHeaderActions
+            onBackdrop={onBackdrop}
+            onNewThread={handleNewThreadClick}
+            newThreadDisabled={projects.length === 0}
+            newThreadShortcutLabel={newThreadShortcutLabel}
+            newThreadInProjectShortcutLabel={newThreadInProjectShortcutLabel}
+            showNewThreadInProjectHint={
+              !shouldCreateNewThreadInCurrentProject(
+                false,
+                scopeGroups.length,
+                projectGroups.length,
+              )
+            }
+          />
+        )}
+      />
       <SidebarContent
         ref={sidebarContentRef}
         className="min-h-full"
         fixedHeader={
-          <SidebarGroup className="z-[1]">
+          // BlueCode: the row is empty without a brand or projects, so hide its group.
+          <SidebarGroup
+            className={cn("z-[1]", !desktopBrand && projectGroups.length === 0 && "hidden")}
+          >
             <SidebarThreadHeader
-              brand={isElectron ? <SidebarBrand /> : null}
+              brand={desktopBrand}
               hasProjects={projectGroups.length > 0}
+              projectScopeActive={scopedProjectGroups.length > 0}
               projectScope={
                 <Combobox
                   items={projectScopeItems}
@@ -3086,7 +3126,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                   </ComboboxTrigger>
                   {/* Refocusing the trigger after a pointer close shows its focus ring and opens its tooltip. */}
                   <ComboboxPopup
-                    align="start"
+                    // BlueCode: the filter sits at the row's end.
+                    align="end"
                     collisionAvoidance={{ side: "flip", align: "shift" }}
                     className="w-[min(18rem,var(--available-width))] overflow-hidden"
                     finalFocus={(closeType) => closeType === "keyboard"}
@@ -3218,18 +3259,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                   </ComboboxPopup>
                 </Combobox>
               }
-              onNewProject={openAddProjectCommandPalette}
-              onNewThread={handleNewThreadClick}
-              newThreadDisabled={projects.length === 0}
-              newThreadShortcutLabel={newThreadShortcutLabel}
-              newThreadInProjectShortcutLabel={newThreadInProjectShortcutLabel}
-              showNewThreadInProjectHint={
-                !shouldCreateNewThreadInCurrentProject(
-                  false,
-                  scopeGroups.length,
-                  projectGroups.length,
-                )
-              }
             />
           </SidebarGroup>
         }
@@ -3318,58 +3347,59 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               </p>
             )
           ) : null}
-          {/* A scope can hide every active thread; say so even when its project still has settled ones. */}
+          {/* A scope can hide every active thread; say so even when its project still has settled ones.
+              BlueCode: also when every thread is settled, so the list is never just blank. */}
           {!isSearchingThreads &&
           !hasProjectFolders &&
-          visibleDraftSessionCount === 0 &&
+          // BlueCode: the drafts actually listed; the open draft only gets a row if it had text on arrival.
+          draftIds.length === 0 &&
           pinnedThreads.length +
             activeThreads.length +
             workingThreads.length +
             snoozedThreads.length ===
-            0 &&
-          (settledCount === 0 || scopedProjectGroups.length > 0) ? (
-            <div className="flex flex-col items-center gap-2 px-2 py-6 text-center text-xs text-muted-foreground/60">
-              {projects.length === 0 ? (
-                <>
-                  <span>
-                    <T>No projects yet</T>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={openAddProjectCommandPalette}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-sidebar-border px-2.5 py-1 text-2xs font-medium text-sidebar-muted-foreground transition-colors hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
-                  >
-                    <PlusIcon className="-mx-0.5 size-3" />
-                    <T>Add project</T>
-                  </button>
-                </>
-              ) : scopedProjectGroups.length > 0 ? (
-                <>
-                  <span>
-                    {settledCount > 0
-                      ? scopedProjectGroups.length > 1
-                        ? gt("No active threads in these projects")
-                        : gt("No active threads in {project}", {
-                            project: scopedProjectGroups[0]!.displayName,
-                          })
-                      : scopedProjectGroups.length > 1
-                        ? gt("No threads in these projects yet")
-                        : gt("No threads in {project} yet", {
-                            project: scopedProjectGroups[0]!.displayName,
-                          })}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setProjectScopeKeys([])}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-sidebar-border px-2.5 py-1 text-2xs font-medium text-sidebar-muted-foreground transition-colors hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
-                  >
-                    <T>Show all projects</T>
-                  </button>
-                </>
-              ) : (
-                <T>No threads yet</T>
-              )}
-            </div>
+            0 ? (
+            projects.length === 0 ? (
+              <SidebarEmptyState
+                icon={FolderPlusIcon}
+                title={<T>No projects yet</T>}
+                description={<T>Add a folder to start a thread in it.</T>}
+                action={{ label: <T>Add project</T>, onClick: openAddProjectCommandPalette }}
+              />
+            ) : scopedProjectGroups.length > 0 ? (
+              <SidebarEmptyState
+                icon={ListFilterIcon}
+                title={
+                  settledCount > 0
+                    ? scopedProjectGroups.length > 1
+                      ? gt("No active threads in these projects")
+                      : gt("No active threads in {project}", {
+                          project: scopedProjectGroups[0]!.displayName,
+                        })
+                    : scopedProjectGroups.length > 1
+                      ? gt("No threads in these projects yet")
+                      : gt("No threads in {project} yet", {
+                          project: scopedProjectGroups[0]!.displayName,
+                        })
+                }
+                action={{ label: <T>Show all projects</T>, onClick: () => setProjectScopeKeys([]) }}
+              />
+            ) : settledCount > 0 ? (
+              <SidebarEmptyState
+                icon={CircleCheckIcon}
+                title={<T>All caught up</T>}
+                description={
+                  <T>Nothing is running or waiting on you. Settled threads are below.</T>
+                }
+                action={{ label: <T>Start a thread</T>, onClick: () => handleNewThreadClick() }}
+              />
+            ) : (
+              <SidebarEmptyState
+                icon={MessageSquarePlusIcon}
+                title={<T>No threads yet</T>}
+                description={<T>Start a thread to put an agent to work.</T>}
+                action={{ label: <T>Start a thread</T>, onClick: () => handleNewThreadClick() }}
+              />
+            )
           ) : null}
           {!isSearchingThreads ? (
             <TooltipProvider

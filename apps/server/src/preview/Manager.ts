@@ -50,6 +50,14 @@ export class PreviewManager extends Context.Service<
     readonly announce: (
       input: PreviewCloseInput & { readonly tabId: string },
     ) => Effect.Effect<void, PreviewError>;
+    // BlueCode: stamps `agentActiveAt` so clients can show which tab the agent drives.
+    readonly markAgentActive: (
+      input: PreviewCloseInput & { readonly tabId: string },
+    ) => Effect.Effect<void, PreviewError>;
+    // BlueCode: clients hide the agent's driving badge while a person holds the tab.
+    readonly markHumanControlled: (
+      input: PreviewCloseInput & { readonly tabId: string; readonly humanControlled: boolean },
+    ) => Effect.Effect<void, PreviewError>;
     readonly requestReveal: (
       input: PreviewCloseInput & { readonly tabId: string; readonly force: boolean },
     ) => Effect.Effect<void, PreviewError>;
@@ -125,6 +133,10 @@ const normalizeUrl = (rawUrl: string): Effect.Effect<string, PreviewInvalidUrlEr
 
 const currentIsoTimestamp = DateTime.now.pipe(Effect.map(DateTime.formatIso));
 
+// BlueCode: events that change only snapshot metadata, so the server browser need not queue them.
+const metadataOnlyEvents = new WeakSet<PreviewEvent>();
+export const isMetadataOnlyEvent = (event: PreviewEvent) => metadataOnlyEvents.has(event);
+
 /** @public */
 export const make = Effect.gen(function* PreviewManagerMake() {
   const random = yield* SecureRandom.SecureRandom;
@@ -145,9 +157,15 @@ export const make = Effect.gen(function* PreviewManagerMake() {
   const mutateExistingSession = <R, E>(
     threadId: string,
     tabId: string,
-    mutator: (
-      session: PreviewSessionState,
-    ) => Effect.Effect<{ next: PreviewSessionState; emit: PreviewEventDraft | null; result: R }, E>,
+    mutator: (session: PreviewSessionState) => Effect.Effect<
+      {
+        next: PreviewSessionState;
+        emit: PreviewEventDraft | null;
+        result: R;
+        metadataOnly?: boolean; // BlueCode: see `isMetadataOnlyEvent`.
+      },
+      E
+    >,
   ): Effect.Effect<R, E | PreviewSessionLookupError> => {
     type ModifyResult =
       | { kind: "fail"; error: PreviewSessionLookupError }
@@ -163,14 +181,17 @@ export const make = Effect.gen(function* PreviewManagerMake() {
       }
       return mutator(session).pipe(
         Effect.flatMap(
-          Effect.fn("PreviewManager.commitMutation")(function* ({ next, emit, result }) {
+          Effect.fn("PreviewManager.commitMutation")(function* ({
+            next,
+            emit,
+            result,
+            metadataOnly,
+          }) {
             const revision = emit ? state.revision + 1 : state.revision;
             if (emit) {
-              yield* PubSub.publish(eventsPubSub, {
-                ...emit,
-                revision,
-                serverEpoch,
-              } as PreviewEvent);
+              const event = { ...emit, revision, serverEpoch } as PreviewEvent;
+              if (metadataOnly) metadataOnlyEvents.add(event);
+              yield* PubSub.publish(eventsPubSub, event);
             }
             const sessions = new Map(state.sessions);
             sessions.set(compositeKey(threadId, tabId), next);
@@ -494,8 +515,66 @@ export const make = Effect.gen(function* PreviewManagerMake() {
     );
   });
 
+  const markAgentActive: PreviewManager["Service"]["markAgentActive"] = Effect.fn(
+    "PreviewManager.markAgentActive",
+  )(function* (input) {
+    yield* mutateExistingSession(
+      input.threadId,
+      input.tabId,
+      Effect.fn("PreviewManager.markSessionAgentActive")(function* (session) {
+        const updatedAt = yield* currentIsoTimestamp;
+        const snapshot = { ...session.snapshot, agentActiveAt: updatedAt, updatedAt };
+        return {
+          next: { ...session, snapshot },
+          emit: {
+            type: "resized" as const,
+            threadId: session.threadId,
+            tabId: session.tabId,
+            createdAt: updatedAt,
+            snapshot,
+          },
+          result: undefined,
+          metadataOnly: true,
+        };
+      }),
+    );
+  });
+
+  const markHumanControlled: PreviewManager["Service"]["markHumanControlled"] = Effect.fn(
+    "PreviewManager.markHumanControlled",
+  )(function* (input) {
+    yield* mutateExistingSession(
+      input.threadId,
+      input.tabId,
+      Effect.fn("PreviewManager.markSessionHumanControlled")(function* (session) {
+        if ((session.snapshot.humanControlled ?? false) === input.humanControlled)
+          return { next: session, emit: null, result: undefined };
+        const updatedAt = yield* currentIsoTimestamp;
+        const snapshot = {
+          ...session.snapshot,
+          humanControlled: input.humanControlled,
+          updatedAt,
+        };
+        return {
+          next: { ...session, snapshot },
+          emit: {
+            type: "resized" as const,
+            threadId: session.threadId,
+            tabId: session.tabId,
+            createdAt: updatedAt,
+            snapshot,
+          },
+          result: undefined,
+          metadataOnly: true,
+        };
+      }),
+    );
+  });
+
   return PreviewManager.of({
     open,
+    markAgentActive,
+    markHumanControlled,
     requestReveal,
     reportStatus,
     markHeadless,

@@ -291,7 +291,8 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
               ) : null}
 
               {/* Shown only when no section above has content, so an emptied card can be refilled. */}
-              <div className="p-2 group-has-[>section>:last-child:not(:empty)]/details-items:hidden">
+              {/* BlueCode: a 4px inset, like the card's sections. */}
+              <div className="p-1 group-has-[>section>:last-child:not(:empty)]/details-items:hidden">
                 <ThreadDetailsControl
                   size="xs"
                   variant="ghost"

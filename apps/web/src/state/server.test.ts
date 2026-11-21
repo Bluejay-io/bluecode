@@ -123,4 +123,20 @@ describe("createShortcutKeybindingsAtom", () => {
     harness.registry.set(harness.primaryEnvironmentIdAtom, null);
     expect(harness.cmdN()).toBe("chat.newLocal");
   });
+
+  it("BlueCode: leaves terminal split commands unbound, even when a saved config binds them", () => {
+    const harness = makeHarness({
+      environments: [
+        [B, environment("connected", config([{ key: "mod+e", command: "terminal.split" }]))],
+      ],
+    });
+    expect(
+      harness
+        .keybindings()
+        .filter(
+          (binding) =>
+            binding.command === "terminal.split" || binding.command === "terminal.splitVertical",
+        ),
+    ).toEqual([]);
+  });
 });

@@ -10,6 +10,8 @@ type CapyAnchors = Readonly<{
   fg: string;
   primary: string;
   primaryText: string;
+  /** The sidebar and the frame around the content card. Defaults to `bg`. */
+  sidebar?: string;
   panel?: string;
   card?: string;
   cardHover?: string;
@@ -47,10 +49,10 @@ export const CAPY_THEME_SPECS: ReadonlyArray<CapyThemeSpec> = [
       fg: "#b3b3b3",
       primary: "#688eff",
       primaryText: "#000000",
-      panel: "#060606",
-      card: "#0d0d0d",
-      cardHover: "#121212",
-      popover: "#151515",
+      panel: "#0b0b0b",
+      card: "#121212",
+      cardHover: "#171717",
+      popover: "#1a1a1a",
       muted: "#373737",
     },
   },
@@ -98,7 +100,7 @@ export const CAPY_THEME_SPECS: ReadonlyArray<CapyThemeSpec> = [
       fg: "#ede3e6",
       primary: "#e27284",
       primaryText: "#270c11",
-      panel: "#0c0709",
+      panel: "#0e090b",
       card: "#170d12",
       cardHover: "#1e1318",
       popover: "#24161d",
@@ -124,13 +126,25 @@ export const CAPY_THEME_SPECS: ReadonlyArray<CapyThemeSpec> = [
   {
     id: "firecrawl",
     label: "Firecrawl",
-    light: { bg: "#f9f9f9", fg: "#262626", primary: "#fa5d19", primaryText: "#f9f9f9" },
+    light: {
+      bg: "#f9f9f9",
+      fg: "#262626",
+      primary: "#fa5d19",
+      primaryText: "#f9f9f9",
+      sidebar: "#f4f4f4",
+    },
     dark: { bg: "#161616", fg: "#f9f9f9", primary: "#fa5d19", primaryText: "#f9f9f9" },
   },
   {
     id: "github",
     label: "GitHub",
-    light: { bg: "#f6f8fa", fg: "#1f2328", primary: "#0969da", primaryText: "#ffffff" },
+    light: {
+      bg: "#f6f8fa",
+      fg: "#1f2328",
+      primary: "#0969da",
+      primaryText: "#ffffff",
+      sidebar: "#f3f5f7",
+    },
     dark: { bg: "#0d1117", fg: "#e6edf3", primary: "#58a6ff", primaryText: "#0d1117" },
   },
   {
@@ -163,18 +177,34 @@ export const CAPY_THEME_SPECS: ReadonlyArray<CapyThemeSpec> = [
       fg: "#ffffff",
       primary: "#ff9000",
       primaryText: "#000000",
+      panel: "#0b0b0b",
+      card: "#121212",
+      cardHover: "#171717",
+      popover: "#1a1a1a",
     },
   },
   {
     id: "linear",
     label: "Linear",
-    light: { bg: "#f2f4f8", fg: "#2a3140", primary: "#5e6ad2", primaryText: "#ffffff" },
+    light: {
+      bg: "#f2f4f8",
+      fg: "#2a3140",
+      primary: "#5e6ad2",
+      primaryText: "#ffffff",
+      sidebar: "#f1f3f7",
+    },
     dark: { bg: "#080a0f", fg: "#e6e9ef", primary: "#606acc", primaryText: "#ffffff" },
   },
   {
     id: "notion",
     label: "Notion",
-    light: { bg: "#f7f6f3", fg: "#37352f", primary: "#3183d8", primaryText: "#ffffff" },
+    light: {
+      bg: "#f7f6f3",
+      fg: "#37352f",
+      primary: "#3183d8",
+      primaryText: "#ffffff",
+      sidebar: "#f4f3f0",
+    },
     dark: { bg: "#151515", fg: "#d9d9d8", primary: "#3183d8", primaryText: "#ffffff" },
   },
   {
@@ -227,6 +257,7 @@ export function capyThemeColors(
 ): ThemeColors {
   const dark = appearance === "dark";
   const { bg, fg, primary, primaryText } = anchors;
+  const sidebar = anchors.sidebar ?? bg;
   const ink = dark ? "#ffffff" : "#000000";
 
   const panel = anchors.panel ?? (dark ? mix("#ffffff", bg, 0.05) : mix("#ffffff", bg, 0.66));
@@ -287,14 +318,15 @@ export function capyThemeColors(
     codeBackground: panel,
     codeForeground: fg,
     // Capy paints the sidebar and the frame around the content panel with the page color.
-    sidebar: bg,
+    // Themes whose page color sits too close to the panel set a darker `sidebar` anchor.
+    sidebar,
     sidebarForeground: fg,
     sidebarMutedForeground: mutedForeground1,
-    sidebarControlSurface: over(ink, dark ? 0.035 : 0.04, bg),
-    sidebarRowHover: over(ink, dark ? 0.05 : 0.035, bg),
+    sidebarControlSurface: over(ink, dark ? 0.035 : 0.04, sidebar),
+    sidebarRowHover: over(ink, dark ? 0.05 : 0.035, sidebar),
     sidebarRowActive: card,
     sidebarRowSelected: card,
-    sidebarBorder: over(ink, 0.08, bg),
+    sidebarBorder: over(ink, 0.08, sidebar),
     terminalBackground: panel,
     terminalForeground: fg,
     terminalCursor: primary,

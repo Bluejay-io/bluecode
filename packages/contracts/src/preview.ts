@@ -165,6 +165,10 @@ export const PreviewSessionSnapshot = Schema.Struct({
   automationOwner: Schema.optional(Schema.String),
   reveal: Schema.optional(Schema.Boolean),
   revealRequest: Schema.optional(Schema.Struct({ id: Schema.String, force: Schema.Boolean })),
+  // BlueCode: when an agent last opened or acted on the tab; a person's input leaves it alone.
+  agentActiveAt: Schema.optional(Schema.String),
+  // BlueCode: a person holds the tab's streamed control, so the agent cannot act on it.
+  humanControlled: Schema.optional(Schema.Boolean),
   updatedAt: Schema.String,
 });
 export type PreviewSessionSnapshot = typeof PreviewSessionSnapshot.Type;

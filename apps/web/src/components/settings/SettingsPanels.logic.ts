@@ -173,7 +173,7 @@ export function getChangedBrowserSettingLabels(
       : []),
     ...(settings.browserAutoShowFloatingPreview !==
     DEFAULT_UNIFIED_SETTINGS.browserAutoShowFloatingPreview
-      ? [resolve(msg("Floating preview"))]
+      ? [resolve(msg("Show the browser when an agent opens it"))]
       : []),
     ...(settings.pullRequestLinksOpenInApp !== DEFAULT_UNIFIED_SETTINGS.pullRequestLinksOpenInApp
       ? [resolve(msg("Open pull requests in T3 Code"))]

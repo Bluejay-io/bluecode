@@ -25,13 +25,12 @@ import {
   useRightPanelStore,
 } from "../../rightPanelStore";
 import { requestWorkspaceContentFocus, requestWorkspaceFocus } from "../../lib/workspaceFocus";
+import { isPanelShown, type PanelState, togglePanel } from "~/bluecode/panelView";
 import { setActivePreviewTab } from "../../previewStateStore";
 import { isBrowserSettingsReadError } from "../../browser/openFileInPreview";
 import { addBrowserSurface } from "../preview/addBrowserSurface";
 import { focusActivePanelTerminal, focusTerminal } from "../../lib/terminalFocus";
 import { subscribePreviewAction } from "../preview/previewActionBus";
-import { floatDeviceSurface } from "../preview/agentOpenedPreviews";
-import { browserMiniPlayerSource, usePreviewMiniPlayerStore } from "../../previewMiniPlayerStore";
 import type { threadPullRequestPanelTarget } from "../pullRequest/pullRequestDetail.logic";
 import type { useDeviceState } from "../../state/device";
 import { stackedThreadToast, toastManager } from "../ui/toast";
@@ -45,7 +44,6 @@ interface RightPanelActionsInput {
   readonly activeRightPanelSurface: RightPanelSurface | null;
   readonly activePreviewState: ThreadPreviewState;
   readonly deviceState: ReturnType<typeof useDeviceState>["state"];
-  readonly deviceStateLoaded: boolean;
   readonly pullRequestPanelTarget: ReturnType<typeof threadPullRequestPanelTarget> | null;
   readonly threadPanelPresentation: ThreadPanelPresentation;
   readonly isServerThread: boolean;
@@ -56,7 +54,6 @@ interface RightPanelActionsInput {
   readonly canOperatePreview: boolean;
   readonly diffOpen: boolean;
   readonly previewPanelOpen: boolean;
-  readonly rightPanelOpen: boolean;
   readonly canMaximizeRightPanel: boolean;
   readonly rightPanelMaximized: boolean;
   readonly supportsPullRequests: boolean;
@@ -69,8 +66,8 @@ interface RightPanelActionsInput {
   readonly onToggleSplitView?: (() => void) | undefined;
   /** BlueCode: set while another tab covers the chat, which the inline details card sits on. */
   readonly onShowChat?: (() => void) | undefined;
-  /** BlueCode: set at full width, where hiding the panel returns to the plain chat. */
-  readonly onLeaveTabbedFullscreen?: (() => void) | undefined;
+  /** BlueCode: whether tabs are saved, shown, and beside the chat or over it. */
+  readonly panelState: PanelState;
 }
 
 /**
@@ -85,7 +82,6 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
     activeRightPanelSurface,
     activePreviewState,
     deviceState,
-    deviceStateLoaded,
     pullRequestPanelTarget,
     threadPanelPresentation,
     isServerThread,
@@ -95,7 +91,6 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
     canOperatePreview,
     diffOpen,
     previewPanelOpen,
-    rightPanelOpen,
     canMaximizeRightPanel,
     rightPanelMaximized,
     supportsPullRequests,
@@ -105,7 +100,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
     onDiffPanelOpen,
     onToggleSplitView,
     onShowChat,
-    onLeaveTabbedFullscreen,
+    panelState,
   } = input;
 
   const openPreview = useAtomCommand(previewEnvironment.open, { reportFailure: false });
@@ -186,17 +181,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
   const openFileSurfaceStable = useStableCallback(openFileSurface);
   const closePreviewPanel = () => {
     if (activeThreadRef) {
-      if (activeRightPanelSurface?.kind === "preview" && activeRightPanelSurface.resourceId) {
-        usePreviewMiniPlayerStore
-          .getState()
-          .open(activeThreadRef, browserMiniPlayerSource(activeRightPanelSurface.resourceId));
-      } else if (activeRightPanelSurface?.kind === "device" && activeRightPanelSurface.target) {
-        floatDeviceSurface(
-          activeThreadRef,
-          { kind: "device", ...activeRightPanelSurface.target },
-          deviceStateLoaded ? deviceState : null,
-        );
-      }
+      // BlueCode: closing the panel just closes it; its browser or device never floats.
       useRightPanelStore.getState().setMaximized(activeThreadRef, false);
       useRightPanelStore.getState().close(activeThreadRef);
     }
@@ -247,13 +232,11 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
   const activateRightPanelSurfaceStable = useStableCallback(activateRightPanelSurface);
   const toggleRightPanel = () => {
     if (!activeThreadRef) return;
-    if (onLeaveTabbedFullscreen) {
-      onLeaveTabbedFullscreen();
-      if (rightPanelOpen) closePreviewPanel();
-      return;
-    }
-    if (rightPanelOpen) {
+    // BlueCode: hides or shows the whole panel; full width, its tab row too, even on the chat tab.
+    const next = togglePanel(panelState);
+    if (isPanelShown(panelState)) {
       closePreviewPanel();
+      if (next.focus === "composer") requestWorkspaceContentFocus();
       return;
     }
     useRightPanelStore.getState().toggleVisibility(activeThreadRef);

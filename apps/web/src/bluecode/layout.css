@@ -1,0 +1,97 @@
+@reference "../index.css";
+
+/* Layout, type and rounding: sidebar rows, the chat header and panel tabs, the timeline, and
+   settings. Unlayered, so these outrank Tailwind's utilities. Values read theme tokens, so every
+   theme gets them. */
+
+/* The interface size is 13px. Rows keep their 20px line, so heights and rhythm hold while the
+   glyphs step down. `font-normal` is 450, matching the body weight. */
+:root {
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: calc(1.25 / 0.8125);
+  --font-weight-normal: 450;
+}
+/* The prompt stays at 14px. The composer reads its default size from --text-sm, so
+   scoping the token keeps the Typography setting in charge. */
+[data-chat-composer-body] {
+  --text-sm: 0.875rem;
+}
+
+/* Sidebar */
+
+/* Thread titles stay at 14px with tighter tracking, every row state. */
+[data-app-sidebar] [data-thread-title] {
+  font-size: 0.875rem;
+  letter-spacing: -0.02em;
+}
+/* The open thread sits on a card with a hairline, so it reads on light frames too. */
+[data-app-sidebar] [data-sidebar-row][aria-current="page"] {
+  @variant light {
+    box-shadow: inset 0 0 0 1px var(--border-1);
+  }
+}
+/* Shelf toggles (Settled, Snoozed) read as quiet labels: regular weight. */
+[data-app-sidebar] [data-sidebar-row^="shelf:"] {
+  font-weight: 450;
+}
+/* Icon buttons in the sidebar's header and footer: 14px glyphs, as in the rest of the chrome. */
+[data-app-sidebar] [data-sidebar="menu-button"][data-size="icon"] > svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Chat header and panel tabs */
+
+/* The project crumb steps back in weight, so the thread title leads. */
+[data-chat-header] nav ol > li:first-child {
+  font-weight: 450;
+}
+/* The active panel tab takes a translucent fill, which holds on every theme's panel. */
+[data-right-panel-tab-list] [data-active-tab="true"] {
+  background-color: var(--control-hover);
+}
+
+/* Chat lane */
+
+/* ChatCanvas measures the lane's end inset after layout, so for one frame after the canvas narrows
+   the old inset still applies. Capping it to leave the 40rem minimum lane plus its 1rem padding
+   stops the composer and timeline from squeezing before they settle; valid layouts never hit it. */
+.chat-composer-lane {
+  padding-inline-end: calc(
+    env(safe-area-inset-right) + 1rem + min(var(--chat-lane-inset-end, 0px), max(0px, 100% - 42rem))
+  );
+}
+[data-chat-canvas] .messages-timeline-scroll {
+  padding-inline-end: calc(
+    1rem + min(var(--chat-lane-inset-end, 0px), max(0px, 100% - 42rem)) -
+      var(--chat-timeline-gutter, 0px)
+  );
+}
+.chat-scroll-to-bottom,
+.chat-banner-lane {
+  inset-inline-end: min(var(--chat-lane-inset-end, 0px), max(0px, 100% - 42rem));
+}
+
+/* Settings */
+
+/* Section titles one step above the 13px row titles. */
+[data-settings-scroll-target] > div > h2 {
+  font-size: 0.875rem;
+  letter-spacing: -0.02em;
+}
+/* Cards: opaque, 8px corners, a hairline edge and hairline dividers. */
+[data-slot="settings-group"][data-variant="grouped"] {
+  border: 0.5px solid var(--border-2);
+  border-radius: 0.5rem;
+  background-color: var(--card);
+  box-shadow: none;
+}
+[data-slot="settings-group"][data-variant="grouped"][data-divided] > :not(:first-child) {
+  border-top: 0.5px solid var(--border-1);
+}
+/* Nav rows at 28px on a fine pointer; touch keeps the taller row. */
+@media (pointer: fine) {
+  [data-settings-section] {
+    height: 1.75rem;
+  }
+}

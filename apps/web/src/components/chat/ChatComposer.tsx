@@ -1,4 +1,5 @@
 import { copySnapshot } from "./copySnapshot";
+import type { ContextWindowSnapshot } from "@t3tools/client-runtime/state/context-window";
 import { VoiceInputSetup } from "./VoiceInputSetup";
 import { useComposerTypingGuard } from "./useComposerTypingGuard";
 import { insertAttachmentReferencesForDraft } from "./composerAttachmentReferences";
@@ -438,6 +439,8 @@ export interface ChatComposerProps {
   onComposerOverlayHeightChange: (height: number) => void;
   /** The new-thread strip names the permissions, so the controls row hides its chip. */
   permissionsShownInStrip: boolean;
+  /** BlueCode: the thread's context window, shown as a ring in the footer. */
+  contextWindow?: ContextWindowSnapshot | null;
 
   promptRef: React.RefObject<string>;
   composerImagesRef: React.RefObject<ComposerImageAttachment[]>;
@@ -2548,6 +2551,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       onModelPickerOpenChange={setIsComposerModelPickerOpen}
       modelPickerIconClassName={composerProviderState.modelPickerIconClassName}
       getModelDisabledReason={getModelDisabledReason}
+      contextWindow={props.contextWindow ?? null}
     />
   );
   // An open question owns the space above the composer. Only a machine problem,
@@ -3567,6 +3571,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                   <button
                     type="button"
                     data-chat-composer-transition-actions="true"
+                    // BlueCode: Capy's solid button look (buttons.css).
+                    data-primary-action="solid"
                     className="flex size-8 shrink-0 items-center justify-center rounded-full bg-message-action text-message-action-foreground hover:bg-message-action-hover disabled:opacity-64"
                     disabled={collapsedComposerPrimaryActionDisabled}
                     aria-label={collapsedComposerPrimaryActionLabel}
@@ -3715,7 +3721,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     buildContextClipboardFragment={buildContextClipboardFragmentStable}
                     importContextFragment={importContextFragmentStable}
                     skills={selectedProviderSkills}
-                    className={cn(showMobilePendingAnswerActions && "max-sm:pb-12")}
+                    // BlueCode: Codex's 1.5 line height and muted placeholder.
+                    className={cn(
+                      "leading-normal",
+                      showMobilePendingAnswerActions && "max-sm:pb-12",
+                    )}
+                    placeholderClassName="leading-normal text-(--muted-foreground)"
                     onChange={onPromptChangeStable}
                     onCommandKeyDown={onComposerCommandKeyStable}
                     onPageScrollKeyDown={onPageScrollKeyDown}

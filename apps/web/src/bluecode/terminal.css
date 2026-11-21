@@ -1,0 +1,15 @@
+/* Terminals in right panel tabs. Unlayered, so these outrank Tailwind's utilities. Colours read
+   theme tokens, so every theme gets them. */
+
+/* The tab body is the terminal: its background runs edge to edge under the tab row, and the inset
+   adds to Ghostty's own 4px so text sits 10px from the top and 12px from the sides. */
+[data-thread-terminal-drawer][data-terminal-owner="right-panel"] {
+  background-color: var(--terminal-background);
+  padding: 0.375rem 0.5rem;
+}
+
+/* The chat's scrollbar lane runs flush against the panel's left edge, where an always-painted
+   thumb read as a bar down the terminal. It shows while the pointer or keyboard is in the chat. */
+.messages-timeline-scroll:not(:hover, :focus-within)::-webkit-scrollbar-thumb {
+  background: transparent;
+}

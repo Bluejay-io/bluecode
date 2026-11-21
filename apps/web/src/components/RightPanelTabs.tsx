@@ -116,6 +116,10 @@ import { resolvePullRequestState } from "./pullRequest/pullRequestPresentation";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { observeResize } from "~/lib/observeResize";
 import { surfaceShortcutKey } from "~/lib/surfaceShortcutKey";
+// BlueCode: the browser tab an agent drives shimmers.
+import { useAgentDriving, type AgentDriving } from "~/bluecode/agentBrowserActivity";
+import { AgentBrowserTabPill } from "~/bluecode/AgentBrowserTabPill";
+import { AgentDrivingBadge } from "~/bluecode/AgentDrivingBadge";
 
 export interface RightPanelTabsProps {
   mode: PreviewPanelMode;
@@ -970,6 +974,7 @@ function RightPanelTab(
     renaming: boolean;
     canRename: boolean;
     ownsDesktopTitleBar: boolean;
+    agentDriving: AgentDriving | null;
   },
 ) {
   const gt = useGT();
@@ -1008,14 +1013,19 @@ function RightPanelTab(
         onClick={() => onClose(surface)}
         size="lg"
       >
-        <SurfaceIcon
-          surface={surface}
-          previewUrl={props.previewUrl}
-          previewCapturedUrl={props.previewCapturedUrl}
-          theme={props.theme}
-          environmentId={props.environmentId}
-          pullRequestStatusSeed={props.pullRequestStatusSeed}
-        />
+        {/* BlueCode: the driving agent's logo stands in for the tab's icon. */}
+        {props.agentDriving ? (
+          <AgentDrivingBadge driving={props.agentDriving} />
+        ) : (
+          <SurfaceIcon
+            surface={surface}
+            previewUrl={props.previewUrl}
+            previewCapturedUrl={props.previewCapturedUrl}
+            theme={props.theme}
+            environmentId={props.environmentId}
+            pullRequestStatusSeed={props.pullRequestStatusSeed}
+          />
+        )}
         {props.pending ? (
           <span
             className="absolute -right-0.5 -bottom-0.5 size-1.5 rounded-full bg-current"
@@ -1091,6 +1101,7 @@ function RightPanelTab(
                         state: messages(SIDE_CHAT_STATE_LABELS[sideChatState]),
                       })
                 }
+                aria-description={props.agentDriving ? gt("Agent is using this tab") : undefined}
                 onClick={() => onActivate(surface)}
               >
                 <span className="truncate">{title}</span>
@@ -1136,6 +1147,106 @@ function RightPanelTab(
   );
 }
 
+// BlueCode: the + menu's surfaces, exported so the panel toggle's menu (bluecode/AddSurfaceMenu)
+// lists the same rows, shortcuts and disabled reasons.
+export type AddSurfaceActionsInput = Pick<
+  RightPanelTabsProps,
+  | "onAddBrowser"
+  | "onAddTerminal"
+  | "onAddFiles"
+  | "onAddDiff"
+  | "onAddPullRequest"
+  | "onAddPullRequests"
+  | "onAddDevice"
+  | "onAddSideChat"
+  | "browserAvailable"
+  | "terminalAvailable"
+  | "filesAvailable"
+  | "diffAvailable"
+  | "pullRequestAvailable"
+  | "pullRequestsAvailable"
+  | "deviceAvailable"
+  | "sideChatAvailable"
+  | "sideChatDisabledReason"
+>;
+
+export function addSurfaceActionsFor(
+  props: AddSurfaceActionsInput,
+  messages: ReturnType<typeof useMessages>,
+) {
+  return [
+    {
+      label: msg("Browser"),
+      icon: Globe2,
+      shortcut: "B",
+      available: props.browserAvailable,
+      disabledReason: messages(SURFACE_DISABLED_REASONS.browser),
+      onClick: props.onAddBrowser,
+    },
+    {
+      label: msg("Terminal"),
+      icon: TerminalSquare,
+      shortcut: "T",
+      available: props.terminalAvailable,
+      disabledReason: messages(SURFACE_DISABLED_REASONS.terminal),
+      onClick: props.onAddTerminal,
+    },
+    {
+      label: msg("Files"),
+      icon: Files,
+      shortcut: "F",
+      available: props.filesAvailable,
+      disabledReason: messages(SURFACE_DISABLED_REASONS.files),
+      onClick: props.onAddFiles,
+    },
+    {
+      label: msg("Diff"),
+      icon: FileDiff,
+      shortcut: "D",
+      available: props.diffAvailable,
+      disabledReason: messages(SURFACE_DISABLED_REASONS.diff),
+      onClick: props.onAddDiff,
+    },
+    {
+      label: msg("Pull request"),
+      icon: PullRequestGlyph.pullRequest,
+      shortcut: "P",
+      available: props.pullRequestAvailable,
+      disabledReason: messages(SURFACE_DISABLED_REASONS.pullRequest),
+      onClick: props.onAddPullRequest,
+    },
+    {
+      label: msg("Linked items"),
+      icon: PullRequestGlyph.link,
+      shortcut: "L",
+      available: props.pullRequestsAvailable,
+      disabledReason: messages(SURFACE_DISABLED_REASONS.pullRequests),
+      onClick: props.onAddPullRequests,
+    },
+    {
+      label: msg("Device"),
+      icon: Smartphone,
+      shortcut: "M",
+      available: props.deviceAvailable,
+      disabledReason: messages(SURFACE_DISABLED_REASONS.device),
+      onClick: props.onAddDevice,
+    },
+    ...(props.onAddSideChat
+      ? [
+          {
+            label: msg("Side chat"),
+            icon: SideChatIcon,
+            shortcut: "S",
+            available: props.sideChatAvailable === true && !props.sideChatDisabledReason,
+            disabledReason:
+              props.sideChatDisabledReason ?? messages(SURFACE_DISABLED_REASONS.sideChat),
+            onClick: props.onAddSideChat,
+          },
+        ]
+      : []),
+  ] as const;
+}
+
 export function RightPanelTabs(props: RightPanelTabsProps) {
   const gt = useGT();
   const messages = useMessages();
@@ -1143,6 +1254,8 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
   const ownsDesktopTitleBar = isElectron && props.mode === "inline";
   const browserProfiles = useBrowserDefaults().profiles;
   const { resolvedTheme } = useTheme();
+  const agentDriving = useAgentDriving(props.environmentId, props.previewSessions);
+  const agentTabId = agentDriving?.tabId ?? null;
   const tabListRef = useRef<HTMLDivElement>(null);
   const addSurfaceTriggerRef = useRef<HTMLButtonElement>(null);
   const [renamingDevice, setRenamingDevice] = useState<string | null>(null);
@@ -1217,77 +1330,8 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
     });
   };
 
-  const addSurfaceActions = [
-    {
-      label: msg("Browser"),
-      icon: Globe2,
-      shortcut: "B",
-      available: props.browserAvailable,
-      disabledReason: messages(SURFACE_DISABLED_REASONS.browser),
-      onClick: props.onAddBrowser,
-    },
-    {
-      label: msg("Terminal"),
-      icon: TerminalSquare,
-      shortcut: "T",
-      available: props.terminalAvailable,
-      disabledReason: messages(SURFACE_DISABLED_REASONS.terminal),
-      onClick: props.onAddTerminal,
-    },
-    {
-      label: msg("Files"),
-      icon: Files,
-      shortcut: "F",
-      available: props.filesAvailable,
-      disabledReason: messages(SURFACE_DISABLED_REASONS.files),
-      onClick: props.onAddFiles,
-    },
-    {
-      label: msg("Diff"),
-      icon: FileDiff,
-      shortcut: "D",
-      available: props.diffAvailable,
-      disabledReason: messages(SURFACE_DISABLED_REASONS.diff),
-      onClick: props.onAddDiff,
-    },
-    {
-      label: msg("Pull request"),
-      icon: PullRequestGlyph.pullRequest,
-      shortcut: "P",
-      available: props.pullRequestAvailable,
-      disabledReason: messages(SURFACE_DISABLED_REASONS.pullRequest),
-      onClick: props.onAddPullRequest,
-    },
-    {
-      label: msg("Linked items"),
-      icon: PullRequestGlyph.link,
-      shortcut: "L",
-      available: props.pullRequestsAvailable,
-      disabledReason: messages(SURFACE_DISABLED_REASONS.pullRequests),
-      onClick: props.onAddPullRequests,
-    },
-    {
-      label: msg("Device"),
-      icon: Smartphone,
-      shortcut: "M",
-      available: props.deviceAvailable,
-      disabledReason: messages(SURFACE_DISABLED_REASONS.device),
-      onClick: props.onAddDevice,
-    },
-    ...(props.onAddSideChat
-      ? [
-          {
-            label: msg("Side chat"),
-            icon: SideChatIcon,
-            shortcut: "S",
-            available: props.sideChatAvailable === true && !props.sideChatDisabledReason,
-            disabledReason:
-              props.sideChatDisabledReason ?? messages(SURFACE_DISABLED_REASONS.sideChat),
-            onClick: props.onAddSideChat,
-          },
-        ]
-      : []),
-  ] as const;
+  // BlueCode: the list lives in addSurfaceActionsFor, shared with the panel toggle's menu.
+  const addSurfaceActions = addSurfaceActionsFor(props, messages);
 
   const handleAddSurfaceMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const action = surfaceShortcutActionForKey(addSurfaceActions, event.nativeEvent);
@@ -1592,6 +1636,9 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                     renaming={renamingDevice === surface.id}
                     canRename={props.onRenameDevice !== undefined}
                     ownsDesktopTitleBar={ownsDesktopTitleBar}
+                    agentDriving={
+                      previewTabId !== null && previewTabId === agentTabId ? agentDriving : null
+                    }
                     onActivate={onActivateTab}
                     onClose={onCloseTab}
                     onAuxClick={onTabAuxClick}
@@ -1602,6 +1649,18 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                 );
               })}
             </SortableTabList>
+            {agentDriving !== null &&
+            agentTabId !== null &&
+            props.previewSessions[agentTabId] &&
+            !props.surfaces.some(
+              (surface) => previewTabIdOf(surface, props.previewSessions) === agentTabId,
+            ) ? (
+              <AgentBrowserTabPill
+                session={props.previewSessions[agentTabId]}
+                driving={agentDriving}
+                noDrag={ownsDesktopTitleBar}
+              />
+            ) : null}
             {props.open !== false ? (
               <Menu open={addSurfaceMenuOpen} onOpenChange={setAddSurfaceMenuOpen}>
                 <MenuTrigger

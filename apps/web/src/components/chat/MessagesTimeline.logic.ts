@@ -464,30 +464,37 @@ export function resolveTimelineMinimapCurrentIndex(input: {
   return precedingIndex;
 }
 
-function resolveTimelineSideGutter(viewportWidth: number, contentWidth: number): number {
-  if (!Number.isFinite(viewportWidth) || viewportWidth <= 0 || !Number.isFinite(contentWidth)) {
-    return 0;
-  }
-  return Math.max(0, (viewportWidth - Math.min(viewportWidth, contentWidth)) / 2);
+interface TimelineHorizontalBounds {
+  readonly left: number;
+  readonly width: number;
+}
+
+// The minimap sits at the viewport's left edge; the canvas can inset the lane's end, so the
+// lane is not always centred and only its measured offset says how much room is left of it.
+function resolveTimelineLeftGutter(
+  viewport: TimelineHorizontalBounds,
+  content: TimelineHorizontalBounds,
+): number {
+  const gutter = content.left - viewport.left;
+  if (!Number.isFinite(gutter) || !(viewport.width > 0)) return 0;
+  return Math.max(0, Math.min(viewport.width, gutter));
 }
 
 export function resolveTimelineMinimapHasPersistentGutter(
-  viewportWidth: number,
-  contentWidth: number,
+  viewport: TimelineHorizontalBounds,
+  content: TimelineHorizontalBounds,
 ): boolean {
-  return (
-    resolveTimelineSideGutter(viewportWidth, contentWidth) >= TIMELINE_MINIMAP_PERSISTENT_GUTTER
-  );
+  return resolveTimelineLeftGutter(viewport, content) >= TIMELINE_MINIMAP_PERSISTENT_GUTTER;
 }
 
 const TIMELINE_MINIMAP_HIT_STRIP_LEFT = 12;
 const TIMELINE_MINIMAP_HIT_STRIP_MAX_WIDTH = 40;
 
 export function resolveTimelineMinimapHitStripWidth(
-  viewportWidth: number,
-  contentWidth: number,
+  viewport: TimelineHorizontalBounds,
+  content: TimelineHorizontalBounds,
 ): number {
-  const sideGutter = resolveTimelineSideGutter(viewportWidth, contentWidth);
+  const sideGutter = resolveTimelineLeftGutter(viewport, content);
   return Math.max(
     0,
     Math.min(

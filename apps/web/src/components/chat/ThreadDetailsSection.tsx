@@ -30,6 +30,7 @@ export function ThreadDetailsSection({
       )}
     >
       <div
+        data-thread-details-heading // BlueCode: hooks for bluecode/thread-details.css
         className={cn(
           "mb-1 flex min-h-8 min-w-0 items-center justify-between gap-2 px-2.5",
           !showHeading && "hidden",
@@ -41,7 +42,11 @@ export function ThreadDetailsSection({
         >
           {title}
         </h3>
-        {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+        {actions ? (
+          <div data-thread-details-heading-actions className="flex shrink-0 items-center gap-1">
+            {actions}
+          </div>
+        ) : null}
       </div>
       {children}
     </section>

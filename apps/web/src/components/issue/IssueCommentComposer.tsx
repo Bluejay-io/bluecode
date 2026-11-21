@@ -97,6 +97,8 @@ export function IssueCommentComposer({
               <TextFieldSpeechControls speech={speech} disabled={locked} />
               <button
                 type="submit"
+                // BlueCode: Capy's solid button look (buttons.css).
+                data-primary-action="solid"
                 className="flex size-8 items-center justify-center rounded-full bg-message-action text-message-action-foreground shadow-xs transition-all duration-150 enabled:cursor-pointer enabled:shadow-message-action/24 enabled:inset-shadow-control-highlight hover:scale-105 hover:bg-message-action-hover active:shadow-none active:inset-shadow-control-pressed disabled:pointer-events-none disabled:bg-foreground/12 disabled:text-muted-foreground disabled:shadow-none"
                 disabled={submitDisabled}
                 aria-label={

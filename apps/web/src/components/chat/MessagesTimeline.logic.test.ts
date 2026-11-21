@@ -34,6 +34,8 @@ import {
   deriveMessagesTimelineRowsWithState,
   isTimelineMinimapTurnVisible,
   resolveAssistantMessageCopyState,
+  resolveTimelineMinimapHasPersistentGutter,
+  resolveTimelineMinimapHitStripWidth,
   type MessagesTimelineRow,
   workEntryDisplayLabel,
   workEntryReadOutput,
@@ -5171,6 +5173,23 @@ describe("isTimelineMinimapTurnVisible", () => {
     expect(isTimelineMinimapTurnVisible(500, undefined, 200, 210)).toBe(false);
     expect(isTimelineMinimapTurnVisible(10, 500, 500, 510)).toBe(false);
     expect(isTimelineMinimapTurnVisible(10, 500, null, null)).toBe(false);
+  });
+});
+
+describe("timeline minimap gutter", () => {
+  const viewport = { left: 100, width: 1300 };
+
+  it("uses the gutter left of a centred lane", () => {
+    const lane = { left: 366, width: 768 };
+    expect(resolveTimelineMinimapHasPersistentGutter(viewport, lane)).toBe(true);
+    expect(resolveTimelineMinimapHitStripWidth(viewport, lane)).toBe(40);
+  });
+
+  it("falls back to hover when the canvas shifts the lane to the left edge", () => {
+    // The details card or preview insets the lane's end; only the 1rem padding is left of it.
+    const lane = { left: 116, width: 768 };
+    expect(resolveTimelineMinimapHasPersistentGutter(viewport, lane)).toBe(false);
+    expect(resolveTimelineMinimapHitStripWidth(viewport, lane)).toBe(4);
   });
 });
 

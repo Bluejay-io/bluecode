@@ -1049,18 +1049,15 @@ const ConversationTimeline = memo(function ConversationTimeline({
   };
 
   const measureTimelineGutter = (viewportElement: HTMLElement) => {
-    const viewportWidth = viewportElement.getBoundingClientRect().width;
-    const contentWidth =
-      viewportElement.querySelector<HTMLElement>("[data-timeline-root]")?.getBoundingClientRect()
-        .width ?? viewportWidth;
-    const nextHasPersistentGutter = resolveTimelineMinimapHasPersistentGutter(
-      viewportWidth,
-      contentWidth,
-    );
+    const viewport = viewportElement.getBoundingClientRect();
+    const content =
+      viewportElement.querySelector<HTMLElement>("[data-timeline-root]")?.getBoundingClientRect() ??
+      viewport;
+    const nextHasPersistentGutter = resolveTimelineMinimapHasPersistentGutter(viewport, content);
     setMinimapHasPersistentGutter((current) =>
       current === nextHasPersistentGutter ? current : nextHasPersistentGutter,
     );
-    setMinimapHitStripWidth(resolveTimelineMinimapHitStripWidth(viewportWidth, contentWidth));
+    setMinimapHitStripWidth(resolveTimelineMinimapHitStripWidth(viewport, content));
   };
   // Rows added, removed or rewrapped (chat width) change the content size,
   // which moves the scroll position, the overflow, and the content lane width.
@@ -1257,6 +1254,15 @@ const ConversationTimeline = memo(function ConversationTimeline({
     listRef.current = list;
     const scrollNode: HTMLElement | null = list?.getScrollableNode() ?? null;
     registerTimeline?.(scrollNode);
+    // The canvas moves the lane with padding, which resizes this content box but not the lane.
+    const stopObservingLaneInsets = scrollNode
+      ? observeResize(scrollNode, () => {
+          const viewportElement = scrollNode.closest<HTMLElement>(
+            "[data-assistant-citation-viewport]",
+          );
+          if (viewportElement) measureTimelineGutter(viewportElement);
+        })
+      : undefined;
     const viewport = scrollNode
       ? attachTimelineViewport(scrollNode, (frame) => {
           const rowId = frame.closest<HTMLElement>("[data-timeline-row-id]")?.dataset.timelineRowId;
@@ -1294,6 +1300,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
       .listen("totalSize", () => scheduleContentSizeChanged());
     scheduleContentSizeChanged();
     return () => {
+      stopObservingLaneInsets?.();
       stopListeningToContentSize?.();
       stopRememberingRelease?.();
       stopDisclosureReveal?.();
@@ -1786,6 +1793,8 @@ function ContextCompactionTimelineRow({
   return (
     <div
       role="separator"
+      // BlueCode: hooks for the theme accents in bluecode/timeline-accents.css.
+      data-timeline-divider={row.failed ? "danger" : "neutral"}
       aria-label={row.failure ? `${label}: ${row.failure}` : label}
       className={cn(
         "mx-auto flex w-full max-w-(--chat-content-max-width) items-center gap-3 py-1 text-xs",

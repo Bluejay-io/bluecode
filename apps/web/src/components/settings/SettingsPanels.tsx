@@ -3,7 +3,6 @@ import { m as resolveMessage } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import { NotificationSettings } from "./NotificationSettings";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
-import { CheckIcon } from "lucide-react";
 import { msg, T, useGT, useMessages } from "gt-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
@@ -1294,10 +1293,7 @@ export function ChatSettingsPanel() {
               <SelectPopup align="end" alignItemWithTrigger={false}>
                 {sendShortcutOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    <span className="flex items-center justify-between gap-4">
-                      {option.label}
-                      {settings.sendShortcut === option.value && <CheckIcon aria-hidden="true" />}
-                    </span>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectPopup>

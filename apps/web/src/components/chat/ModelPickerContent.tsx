@@ -162,16 +162,24 @@ function ModelListSeparator() {
   return <div className="h-0.5" />;
 }
 
+const SECTION_TITLE = "flex items-end truncate px-2 pb-1 text-muted-foreground text-xs font-medium";
+
+/**
+ * Later groups open with Capy's menu separator: 1px from the card's edge to the scroll gutter, with
+ * 4px either side (the row gap supplies half the space above).
+ */
 function ModelPickerSectionHeader(props: { title: string; first: boolean }) {
+  if (props.first) {
+    return (
+      <div role="presentation" className={cn(SECTION_TITLE, "h-7")}>
+        {props.title}
+      </div>
+    );
+  }
   return (
-    <div
-      role="presentation"
-      className={cn(
-        "flex items-end truncate px-2 pb-1 text-xs font-medium text-muted-foreground",
-        props.first ? "h-7" : "-ms-2 mt-1 h-8 border-t border-border/60 ps-4",
-      )}
-    >
-      {props.title}
+    <div role="presentation" className="-ms-3 -me-1.25 pt-0.5">
+      <div aria-hidden="true" className="h-px bg-(--border-1)" />
+      <div className={cn(SECTION_TITLE, "mt-1 h-6 ps-5")}>{props.title}</div>
     </div>
   );
 }
@@ -288,13 +296,14 @@ function ModelPickerList({
             : {})}
           drawDistance={480}
           recycleItems
-          contentContainerClassName="pl-2 pr-px"
+          // BlueCode: the list spans the card's padding so group separators reach its edge.
+          contentContainerClassName="pl-3 pr-1.25"
           ItemSeparatorComponent={ModelListSeparator}
           onLayout={updateScrollFades}
           onScroll={updateScrollFades}
           onReady={updateScrollFades}
           className={cn(
-            "scrollbar-gutter-stable h-full overflow-x-hidden overscroll-y-contain py-1.5 [&::-webkit-scrollbar-track]:my-2",
+            "scrollbar-gutter-stable -mx-1 h-full overflow-x-hidden overscroll-y-contain py-1.5 [&::-webkit-scrollbar-track]:my-2",
             getVirtualizedScrollFadeClassName({
               top: showTopScrollFade,
               bottom: showBottomScrollFade,
@@ -346,6 +355,15 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
   onFocusEffort?: () => void;
   /** Closes the list column, inside the popup's fixed height. */
   listFooter?: ReactNode;
+  /** BlueCode: lists only this group ("favorites" or an instance id), searches included. */
+  sectionFilter?: string | null;
+  /** BlueCode: the provider shortcuts move an active filter to the next or previous group. */
+  onSectionFilterChange?: (id: string | null) => void;
+  /** BlueCode: drawn under the search, given the groups and the filter that applies. */
+  renderSectionTabs?: (
+    sections: ReadonlyArray<{ id: string; title: string }>,
+    active: string | null,
+  ) => ReactNode;
 }) {
   const gt = useGT();
   const messages = useMessages();
@@ -570,14 +588,13 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
     { name: string; unavailableReason: string | undefined; isExpanded: boolean }
   >();
   const subProviderModelCounts = new Map<string, number>();
-  const sections = (() => {
+  const groupSections = (() => {
     const out: Array<{
       id: ProviderInstanceId | "favorites";
       title: string;
       itemKeys: string[];
       setupEntry: ProviderInstanceEntry | null;
     }> = [];
-    if (isSearching) return out;
     const favoriteModels = sortProviderModelItems(pickableModels.filter(isFavoriteModel), {
       instanceOrder: instanceEntries.map((entry) => entry.instanceId),
     });
@@ -637,9 +654,22 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
     }
     return out;
   })();
+  // BlueCode: a filter naming a group that is gone shows every group.
+  const activeFilter = groupSections.some((section) => section.id === props.sectionFilter)
+    ? (props.sectionFilter ?? null)
+    : null;
+  const sections = isSearching
+    ? []
+    : groupSections.filter((section) => activeFilter === null || section.id === activeFilter);
+  const searchPool =
+    activeFilter === null
+      ? pickableModels
+      : pickableModels.filter((model) =>
+          activeFilter === "favorites" ? isFavoriteModel(model) : model.instanceId === activeFilter,
+        );
 
   const searchResultKeys = isSearching
-    ? rankModelPickerSearch(pickableModels, searchQuery, (model) => ({
+    ? rankModelPickerSearch(searchPool, searchQuery, (model) => ({
         name: model.name,
         ...(model.shortName ? { shortName: model.shortName } : {}),
         ...(model.subProvider ? { subProvider: model.subProvider } : {}),
@@ -765,6 +795,16 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
     if (command === "modelPicker.previousProvider" || command === "modelPicker.nextProvider") {
       event.preventDefault();
       event.stopPropagation();
+      const direction = command === "modelPicker.nextProvider" ? 1 : -1;
+      // BlueCode: a filter shows one group, so the shortcut moves the filter instead.
+      if (activeFilter !== null && props.onSectionFilterChange) {
+        const current = groupSections.findIndex((section) => section.id === activeFilter);
+        const next =
+          groupSections[(current + direction + groupSections.length) % groupSections.length]!;
+        props.onSectionFilterChange(next.id);
+        announce(next.title, "model-picker");
+        return;
+      }
       if (sections.length === 0) return;
       const highlightedKey = highlightedModelKeyRef.current;
       const current =
@@ -772,7 +812,6 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
         (highlightedKey
           ? sections.findIndex((section) => section.itemKeys.includes(highlightedKey))
           : -1);
-      const direction = command === "modelPicker.nextProvider" ? 1 : -1;
       const nextIndex =
         current < 0
           ? direction === 1
@@ -820,7 +859,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
         className={cn(
           "relative flex w-screen max-w-80 flex-col overflow-hidden",
           props.docked
-            ? "min-h-0 flex-1 max-sm:h-56 max-sm:w-full max-sm:max-w-none"
+            ? "min-h-0 w-full max-w-none flex-1" // BlueCode: fills the docked panel
             : "max-h-86.5",
         )}
         // Docked, the popup sets the height; a minimum here would overflow short windows.
@@ -925,12 +964,15 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
             />
+            {props.renderSectionTabs?.(groupSections, activeFilter)}
 
             <ModelPickerList
+              // BlueCode: a new filter starts its list at the top.
+              key={activeFilter ?? ""}
               listRef={modelListRef}
               itemKeys={displayKeys}
               extraData={modelListExtraData}
-              initialScrollIndex={initialScrollIndex}
+              initialScrollIndex={activeFilter === null ? initialScrollIndex : 0}
               renderItem={({ item: key }) => {
                 const section = sectionByHeaderKey.get(key);
                 if (section) {

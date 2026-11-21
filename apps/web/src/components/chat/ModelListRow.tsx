@@ -136,7 +136,9 @@ export const ModelListRow = memo(function ModelListRow(props: {
           </TooltipPopup>
         </Tooltip>
         {props.jumpLabel ? <Kbd>{props.jumpLabel}</Kbd> : null}
-        {props.isSelected ? <CheckIcon className="size-3.5 shrink-0" aria-hidden="true" /> : null}
+        {props.isSelected ? (
+          <CheckIcon className="size-3.5 shrink-0 text-foreground" aria-hidden="true" />
+        ) : null}
       </div>
     </ComboboxItem>
   );

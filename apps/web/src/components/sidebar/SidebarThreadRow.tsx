@@ -1078,6 +1078,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   ) : (
     <span
       ref={isRegeneratingTitle ? observeVisibleAnimation : undefined}
+      // BlueCode: styling hook for layout.css.
+      data-thread-title
       className={cn(
         "min-w-0 flex-1 text-start text-sm transition-opacity motion-reduce:transition-none",
         shouldRecede ? "font-normal" : "font-medium",
@@ -1925,6 +1927,8 @@ export const SidebarSearchResultRow = memo(function SidebarSearchResultRow(props
             <span className="flex min-w-0 items-center gap-2.5">
               <span
                 ref={isRegeneratingTitle ? observeVisibleAnimation : undefined}
+                // BlueCode: styling hook for theme.css; it tightens the medium-weight titles.
+                data-sidebar-search-title={props.isSettled || isRegeneratingTitle ? undefined : ""}
                 className={cn(
                   "min-w-0 flex-1 truncate",
                   props.isSettled ? "font-normal" : "font-medium",
