@@ -3,3 +3,14 @@
 [data-model-picker-card] {
   --model-card-accent: color-mix(in oklab, var(--primary) 86%, var(--foreground));
 }
+
+/* The shared .dropdown-glass blur, on a denser fill: a tall list of names over a photo wallpaper
+   read as tinted and washed out at the menus' opacity. The Appearance glass setting still applies
+   above this floor. */
+.dropdown-glass[data-model-picker-card] {
+  background: color-mix(
+    in srgb,
+    var(--popover) 72%,
+    color-mix(in srgb, var(--popover) var(--glass-opacity), transparent)
+  );
+}

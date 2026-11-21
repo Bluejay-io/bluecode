@@ -84,7 +84,8 @@ export const ModelListRow = memo(function ModelListRow(props: {
           <span className="sr-only">, {props.providerDisplayName}</span>
         </div>
         {props.subProvider ? (
-          <span className="min-w-0 shrink truncate text-xs text-muted-foreground/70">
+          // BlueCode: the normal muted step, not a faded one.
+          <span className="min-w-0 shrink truncate text-xs text-muted-foreground">
             {props.subProvider}
           </span>
         ) : null}

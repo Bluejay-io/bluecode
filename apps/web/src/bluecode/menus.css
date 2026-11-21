@@ -252,10 +252,11 @@
   }
 }
 
-/* Model picker: jump keys read as text. */
+/* Model picker: names in the text color, jump keys read as text. */
 [data-model-picker-content] [data-slot="combobox-item"] {
   height: auto;
   padding-block: 0;
+  color: var(--contrast-foreground);
 
   & [data-slot="kbd"] {
     min-width: 0;
