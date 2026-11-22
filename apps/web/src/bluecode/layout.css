@@ -53,6 +53,11 @@
 
 /* Chat lane */
 
+/* Comfortable keeps T3 Code's line length: its 46rem lane at 14px text, scaled to our 13px. */
+:root:not([data-chat-width="wide"], [data-chat-width="full"]) {
+  --chat-content-max-width: calc(46rem * 13 / 14);
+}
+
 /* ChatCanvas measures the lane's end inset after layout, so for one frame after the canvas narrows
    the old inset still applies. Capping it to leave the 40rem minimum lane plus its 1rem padding
    stops the composer and timeline from squeezing before they settle; valid layouts never hit it. */
