@@ -11,6 +11,7 @@ import {
 import { canSnooze, effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
 import {
   AuthOrchestrationOperateScope,
+  type ContextMenuItem,
   type ScopedThreadRef,
   type ThreadId,
 } from "@t3tools/contracts";
@@ -51,6 +52,11 @@ import { useCopyToClipboard } from "./useCopyToClipboard";
 import { useNewThreadHandler } from "./useHandleNewThread";
 import { useClientSettings } from "./useSettings";
 import { canTurnThreadIntoProject, useThreadActions } from "./useThreadActions";
+
+// BlueCode: lets a caller draw the menu in-app instead of the native context menu.
+export type ShowThreadActionMenu = (
+  items: ReadonlyArray<ContextMenuItem<ThreadActionMenuId>>,
+) => Promise<ThreadActionMenuId | null>;
 
 function failureToast(title: string, error: unknown) {
   toastManager.add(
@@ -114,7 +120,7 @@ export function useThreadActionMenu(input: {
     onError: (error) => failureToast(m(msg("Failed to copy thread ID")), error),
   });
 
-  const openMenu = (position: { x: number; y: number }) => {
+  const showMenu = (show: ShowThreadActionMenu) => {
     if (threadRef === null) return;
     void (async () => {
       const api = readLocalApi();
@@ -155,7 +161,7 @@ export function useThreadActionMenu(input: {
         canShareWithGuest,
         canTurnIntoProject: canTurnThreadIntoProject(threadRef),
       });
-      const clicked = await settlePromise(() => api.contextMenu.show(items, position));
+      const clicked = await settlePromise(() => show(items));
       if (clicked._tag === "Failure" || clicked.value === null) return;
       const action: ThreadActionMenuId = clicked.value;
       if (
@@ -370,9 +376,13 @@ export function useThreadActionMenu(input: {
     })();
   };
 
+  const openMenu = (position: { x: number; y: number }) => {
+    showMenu((items) => readLocalApi()?.contextMenu.show(items, position) ?? Promise.resolve(null));
+  };
+
   const closeMenu = () => {
     void readLocalApi()?.contextMenu.close();
   };
 
-  return { openMenu, closeMenu };
+  return { openMenu, showMenu, closeMenu };
 }

@@ -12,7 +12,9 @@ import { T, useGT } from "gt-react";
 import { EllipsisIcon } from "lucide-react";
 import { useState } from "react";
 
-import { useThreadActionMenu } from "~/hooks/useThreadActionMenu";
+import { ThreadActionsMenuItems } from "~/bluecode/ThreadActionsMenuItems";
+import { type ShowThreadActionMenu, useThreadActionMenu } from "~/hooks/useThreadActionMenu";
+import type { ThreadActionMenuId } from "../threadActionMenu.logic";
 import { threadEnvironment } from "../../state/threads";
 import { readEnvironmentScope } from "../../state/session";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
@@ -26,14 +28,16 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Input } from "../ui/input";
+import { Menu, MenuPopup, MenuTrigger } from "../ui/menu";
 import { toastManager } from "../ui/toast";
 import { Toggle } from "../ui/toggle";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { canShareWithGuestAtom } from "./guestShareAvailability";
 
 /**
- * BlueCode: the top-right "…" thread menu. With the chat as a tab there is no header title to
- * edit in place, so Rename asks in a dialog; the chat tab's double-click opens the same one.
+ * BlueCode: the top-right "…" thread menu, drawn in-app on every surface rather than as the native
+ * context menu, so it takes the glass. With the chat as a tab there is no header title to edit in
+ * place, so Rename asks in a dialog; the chat tab's double-click opens the same one.
  */
 export function ThreadActionsButton(props: {
   readonly environmentId: EnvironmentId;
@@ -47,39 +51,58 @@ export function ThreadActionsButton(props: {
   const gt = useGT();
   const { threadRef, onRenameOpenChange } = props;
   const canShareWithGuest = useAtomValue(canShareWithGuestAtom(props.environmentId));
-  const { openMenu } = useThreadActionMenu({
+  const { showMenu } = useThreadActionMenu({
     threadRef,
     projectCwd: props.projectCwd,
     onStartRename: () => onRenameOpenChange(true),
     onFind: props.onFind,
     canShareWithGuest,
   });
+  // The rows are read when the menu opens, as the native menu reads them; the hook awaits the pick.
+  const [menu, setMenu] = useState<{
+    readonly items: Parameters<ShowThreadActionMenu>[0];
+    readonly resolve: (id: ThreadActionMenuId | null) => void;
+  } | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const show: ShowThreadActionMenu = (items) =>
+    new Promise((resolve) => {
+      setMenu({ items, resolve });
+      setMenuOpen(true);
+    });
+  const settle = (id: ThreadActionMenuId | null) => {
+    setMenuOpen(false);
+    menu?.resolve(id);
+  };
   if (threadRef === null) return null;
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Toggle
-              className="shrink-0 [-webkit-app-region:no-drag]"
-              pressed={false}
-              aria-label={gt("Thread actions for {title}", { title: props.title })}
-              aria-haspopup="menu"
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                const rect = event.currentTarget.getBoundingClientRect();
-                openMenu({ x: rect.left, y: rect.bottom + 4 });
-              }}
-            />
-          }
-        >
-          <EllipsisIcon className="size-4" />
-        </TooltipTrigger>
-        <TooltipPopup side="bottom">
-          <T>Thread actions</T>
-        </TooltipPopup>
-      </Tooltip>
+      <Menu open={menuOpen} onOpenChange={(open) => (open ? showMenu(show) : settle(null))}>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <MenuTrigger
+                render={
+                  <Toggle
+                    className="shrink-0 [-webkit-app-region:no-drag]"
+                    pressed={false}
+                    aria-label={gt("Thread actions for {title}", { title: props.title })}
+                    variant="ghost"
+                    size="sm"
+                  />
+                }
+              />
+            }
+          >
+            <EllipsisIcon className="size-4" />
+          </TooltipTrigger>
+          <TooltipPopup side="bottom">
+            <T>Thread actions</T>
+          </TooltipPopup>
+        </Tooltip>
+        <MenuPopup align="end" side="bottom" data-dense-glass>
+          {menu ? <ThreadActionsMenuItems items={menu.items} onSelect={settle} /> : null}
+        </MenuPopup>
+      </Menu>
       <ThreadRenameDialog
         threadRef={threadRef}
         title={props.title}
