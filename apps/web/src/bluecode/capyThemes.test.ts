@@ -3,9 +3,9 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { getBuiltInThemes, getThemeColorsForMode, getThemeModes } from "../themePalette";
 
-// The default palette's frame against its content card (Capy's own default) is the floor:
-// 1.070 in light and 1.063 in dark.
-const MIN_CARD_CONTRAST = { light: 1.07, dark: 1.06 } as const;
+// T3 Code's frame against its content card (Capy's own default, BlueCode's former stock) is the
+// floor: 1.0697 in light and 1.063 in dark.
+const MIN_CARD_CONTRAST = { light: 1.069, dark: 1.06 } as const;
 const MIN_HAIRLINE_CONTRAST = 1.14;
 
 describe("BlueCode built-in themes", () => {

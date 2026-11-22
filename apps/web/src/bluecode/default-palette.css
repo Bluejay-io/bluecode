@@ -1,0 +1,80 @@
+@reference "../index.css";
+
+/* BlueCode's stock palette: Sedula's light and dark colors (shadcn/ReUI neutrals), mapped onto
+   index.css's tokens. Only with no theme picked: a theme id brings its own colors, and T3 Code
+   (data-t3-code-palette) keeps index.css's. Tokens not set here follow from these through
+   index.css's own mixes (placeholder, labels, code, toolbar, surfaces).
+   Deviations from Sedula, for contrast or because Sedula has no such role: status text in dark
+   uses the 400 steps (Sedula's 600 steps fall under 4.5:1 there), links use the info hue (a
+   near-black primary would hide them in text), and the user-message fill is Sedula's muted
+   color expressed as a tint so it reads the same on any surface. */
+:root:not([data-theme-id], [data-t3-code-palette]) {
+  --background: oklch(1 0 0);
+  --app-frame: oklch(0.985 0 0);
+  --surface-raised: oklch(0.985 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --popover: oklch(1 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --message-surface: oklch(0 0 0 / 4%);
+  --error: oklch(0.577 0.245 27.325);
+  --error-foreground: var(--color-red-800);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  /* Sedula's .708 ring is 2.6:1 on white; .556 keeps focus visible (4.7:1). */
+  --ring: oklch(0.556 0 0);
+  --info: var(--color-violet-500);
+  --info-foreground: var(--color-violet-900);
+  --success: var(--color-emerald-500);
+  --success-foreground: var(--color-emerald-900);
+  --warning: var(--color-yellow-500);
+  --warning-foreground: var(--color-yellow-900);
+  --update: var(--color-violet-600);
+  --update-foreground: var(--color-violet-600);
+  --sidebar-control-surface: oklch(0.97 0 0);
+  --sidebar-row-hover: oklch(0.9775 0 0);
+  --sidebar-row-active: oklch(0.97 0 0);
+  --sidebar-row-selected: oklch(0.97 0 0);
+  --terminal-cursor: var(--primary);
+  --terminal-selection-background: color-mix(in srgb, var(--primary) 20%, transparent);
+
+  @variant dark {
+    --background: oklch(0.145 0 0);
+    --app-frame: oklch(0.205 0 0);
+    --surface-raised: oklch(0.269 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --popover: oklch(0.269 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.371 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --message-surface: oklch(1 0 0 / 11.5%);
+    --error: oklch(0.704 0.191 22.216);
+    --error-foreground: var(--color-red-400);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --info-foreground: var(--color-violet-400);
+    --success-foreground: var(--color-emerald-400);
+    --warning-foreground: var(--color-yellow-600);
+    --update: var(--color-violet-400);
+    --update-foreground: var(--color-violet-400);
+    --sidebar-control-surface: oklch(0.269 0 0);
+    --sidebar-row-hover: oklch(0.237 0 0);
+    --sidebar-row-active: oklch(0.269 0 0);
+    --sidebar-row-selected: oklch(0.269 0 0);
+    --terminal-selection-background: color-mix(in srgb, var(--primary) 25%, transparent);
+  }
+}

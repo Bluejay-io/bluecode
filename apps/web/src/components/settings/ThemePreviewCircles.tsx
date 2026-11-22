@@ -38,30 +38,32 @@ const STANDARD_THEME_PREVIEW_COLORS: Record<
   Readonly<Record<ThemePreviewRole, string>>
 > = {
   light: {
-    sidebar: "#f2f2f4",
+    sidebar: "#fafafa",
     surface: "#ffffff",
-    accentSurface: "#f0f0f1",
-    messageSurface: "#ededee",
-    // BlueCode's standard palette is Capy's default; mobile keeps the shared preview.
-    canvas: "#fafafb",
-    accent: "#f0f0f1",
-    messageAction: "#3b5de8",
+    accentSurface: "#f5f5f5",
+    messageSurface: "#f5f5f5",
+    // BlueCode's standard palette is Sedula's; mobile keeps the shared preview.
+    canvas: "#ffffff",
+    accent: "#f5f5f5",
+    messageAction: "#171717",
   },
   dark: {
-    sidebar: "#09090a",
-    surface: "#1a1a1b",
-    accentSurface: "#1e1e1f",
-    messageSurface: "#252526",
-    canvas: "#121213",
-    accent: "#1e1e1f",
-    messageAction: "#456af6",
+    sidebar: "#171717",
+    surface: "#171717",
+    accentSurface: "#404040",
+    messageSurface: "#262626",
+    canvas: "#0a0a0a",
+    accent: "#404040",
+    messageAction: "#e5e5e5",
   },
 };
 
 export const STANDARD_THEME_CARDS: ReadonlyArray<ThemeCardDefinition> = [
   {
     id: "default",
-    label: "T3 Code",
+    // BlueCode: the stock palette is Sedula's; T3 Code is a built-in theme.
+    // oxlint-disable-next-line t3code/no-untranslated-copy -- theme names are proper nouns
+    label: "Sedula",
     previews: (["light", "dark"] as const).map((mode) => ({
       mode,
       colors: STANDARD_THEME_PREVIEW_COLORS[mode],

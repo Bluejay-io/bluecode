@@ -2,6 +2,8 @@ import { converter } from "culori/fn";
 import { describe, expect, it } from "vite-plus/test";
 
 import "~/index.css";
+// BlueCode: the stock palette is Sedula's, painted over index.css by this file.
+import "~/bluecode/default-palette.css";
 import { getStandardPaintedThemeColors } from "./themePalette";
 
 const toRgb = converter("rgb");

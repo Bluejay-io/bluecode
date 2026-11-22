@@ -8,6 +8,7 @@ import { msg } from "gt-react";
 import "culori/css";
 import { converter, parse } from "culori/fn";
 import { CAPY_THEME_SPECS, capyThemeColors } from "./bluecode/capyThemes";
+import { SEDULA_PAINTED_COLORS, T3_CODE_THEME } from "./bluecode/defaultPalette";
 import {
   EMBER_THEME,
   GROVE_THEME,
@@ -369,7 +370,10 @@ function getEnvironmentThemes(): ReadonlyArray<ThemeDefinition> {
   return appAtomRegistry.get(environmentThemeDefinitionsAtom);
 }
 
-const CAPY_THEME_IDS: ReadonlySet<string> = new Set(CAPY_THEME_SPECS.map((spec) => spec.id));
+const CAPY_THEME_IDS: ReadonlySet<string> = new Set([
+  ...CAPY_THEME_SPECS.map((spec) => spec.id),
+  T3_CODE_THEME.id,
+]);
 
 export function isReservedThemeId(themeId: string): boolean {
   return RESERVED_THEME_IDS.has(themeId) || CAPY_THEME_IDS.has(themeId);
@@ -457,6 +461,11 @@ const STANDARD_WEB_PAINTED_COLORS: Record<ThemeAppearance, Partial<ThemeColors>>
 
 /** The standard theme as index.css paints it, for solves that measure the page. */
 export function getStandardPaintedThemeColors(appearance: ThemeAppearance): ThemeColors {
+  // BlueCode: the stock palette is Sedula's; index.css's own is the T3 Code theme.
+  return { ...getStandardThemeColors(appearance), ...SEDULA_PAINTED_COLORS[appearance] };
+}
+
+function getT3CodePaintedThemeColors(appearance: ThemeAppearance): ThemeColors {
   return { ...getStandardThemeColors(appearance), ...STANDARD_WEB_PAINTED_COLORS[appearance] };
 }
 
@@ -1235,27 +1244,31 @@ export function updateThemeColorFamily(
 
 let builtInThemeDefinitions: ReadonlyArray<ThemeDefinition> | null = null;
 
-/** BlueCode's built-in themes (ported from Capy), replacing the shared palettes on web. */
+/** BlueCode's built-in themes (T3 Code, then the ones ported from Capy), replacing the shared
+ *  palettes on web. */
 export function getBuiltInThemes(): ReadonlyArray<ThemeDefinition> {
-  return (builtInThemeDefinitions ??= CAPY_THEME_SPECS.map((spec) =>
-    canonicalizeThemeDefinition({
-      id: spec.id,
-      label: spec.label,
-      appearance: "light",
-      colors: capyThemeColors(
-        spec.light,
-        "light",
-        createVividThemeColors("light", spec.light.bg, spec.light.primary),
-      ),
-      variants: {
-        dark: capyThemeColors(
-          spec.dark,
-          "dark",
-          createVividThemeColors("dark", spec.dark.bg, spec.dark.primary),
+  return (builtInThemeDefinitions ??= [
+    canonicalizeThemeDefinition(T3_CODE_THEME),
+    ...CAPY_THEME_SPECS.map((spec) =>
+      canonicalizeThemeDefinition({
+        id: spec.id,
+        label: spec.label,
+        appearance: "light",
+        colors: capyThemeColors(
+          spec.light,
+          "light",
+          createVividThemeColors("light", spec.light.bg, spec.light.primary),
         ),
-      },
-    }),
-  ));
+        variants: {
+          dark: capyThemeColors(
+            spec.dark,
+            "dark",
+            createVividThemeColors("dark", spec.dark.bg, spec.dark.primary),
+          ),
+        },
+      }),
+    ),
+  ]);
 }
 
 export function getThemeDefinition(theme: ThemePreference): ThemeDefinition | null {
@@ -1779,8 +1792,12 @@ export function applyThemePalette(theme: ThemePreference, appearance?: ThemeAppe
   const palette = getThemeDefinition(theme);
   applyThemeCss(palette?.css);
   applyThemeBackground(palette?.id);
+  // BlueCode: T3 Code paints index.css's palette unchanged, so it takes the stock path below.
+  const t3Code = palette?.id === T3_CODE_THEME.id;
+  if (t3Code) root.dataset.t3CodePalette = "";
+  else delete root.dataset.t3CodePalette;
 
-  if (palette) {
+  if (palette && !t3Code) {
     root.dataset.themeId = palette.id;
     const mode = appearance ?? legacyThemeMode(theme) ?? palette.appearance;
     const colors = getThemeColorsForMode(palette, mode) ?? palette.colors;
@@ -1795,7 +1812,10 @@ export function applyThemePalette(theme: ThemePreference, appearance?: ThemeAppe
   for (const variable of Object.values(APP_THEME_VARIABLES)) {
     root.style.removeProperty(variable);
   }
-  applyContextChipVariables(root, getStandardPaintedThemeColors(appearance ?? "light"));
+  applyContextChipVariables(
+    root,
+    (t3Code ? getT3CodePaintedThemeColors : getStandardPaintedThemeColors)(appearance ?? "light"),
+  );
 }
 
 export function resolveThemeAppearance(

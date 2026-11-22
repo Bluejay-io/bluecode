@@ -654,9 +654,16 @@ describe("context chip colors", () => {
   });
 
   it("reads at 5:1 on the standard surfaces as index.css paints them", () => {
-    const painted = {
-      light: ["#fafafb", "#ffffff", "#f2f2f4", "#ededee"],
-      dark: ["#121213", "#09090a", "#1a1a1b", "#1f1f20", "#252526"],
+    // BlueCode: the stock is Sedula's (default-palette.css); T3 Code keeps index.css's own.
+    const paintedByTheme = {
+      system: {
+        light: ["#ffffff", "#fafafa", "#f5f5f5"],
+        dark: ["#0a0a0a", "#171717", "#262626"],
+      },
+      "t3-code": {
+        light: ["#fafafb", "#ffffff", "#f2f2f4", "#ededee"],
+        dark: ["#121213", "#09090a", "#1a1a1b", "#1f1f20", "#252526"],
+      },
     } as const;
     const properties = new Map<string, string>();
     vi.stubGlobal("window", { localStorage: { getItem: () => null } });
@@ -671,15 +678,18 @@ describe("context chip colors", () => {
     });
     invalidateCustomThemes();
     try {
-      for (const appearance of ["light", "dark"] as const) {
-        applyThemePalette("system", appearance);
-        for (const kind of Object.keys(CONTEXT_CHIP_ACCENTS) as Array<
-          keyof typeof CONTEXT_CHIP_ACCENTS
-        >) {
-          for (const surface of painted[appearance]) {
-            expect(
-              contrastRatio(properties.get(contextChipColorVariable(kind))!, surface),
-            ).toBeGreaterThanOrEqual(5);
+      for (const [theme, painted] of Object.entries(paintedByTheme)) {
+        for (const appearance of ["light", "dark"] as const) {
+          applyThemePalette(theme, appearance);
+          for (const kind of Object.keys(CONTEXT_CHIP_ACCENTS) as Array<
+            keyof typeof CONTEXT_CHIP_ACCENTS
+          >) {
+            for (const surface of painted[appearance]) {
+              expect(
+                contrastRatio(properties.get(contextChipColorVariable(kind))!, surface),
+                `${theme} ${appearance} ${kind} on ${surface}`,
+              ).toBeGreaterThanOrEqual(5);
+            }
           }
         }
       }
