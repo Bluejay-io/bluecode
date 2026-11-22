@@ -81,9 +81,11 @@ server. For example, Codex supports `codex login --device-auth`, and Grok Build 
 The model picker lists the models the agent reports. If the agent reports none, or hides some, add
 your own model IDs under **Custom models** in the instance settings.
 
-Other settings the agent offers, such as reasoning effort or approval mode, appear in the
-composer's model picker, beside the model list, like they do for built-in providers. Models and options that change while an agent
-is running update the picker without waiting for another provider probe.
+Other settings the agent offers, such as reasoning effort or approval mode, work like they do for
+built-in providers. On desktop and web they appear as chips under the model list in the
+composer's model picker, with any that do not fit under **⋯**; on mobile they are under
+**Options** in the thread settings. Models and options that change while an agent is running
+update the picker without waiting for another provider probe.
 
 ## Commands and skills
 

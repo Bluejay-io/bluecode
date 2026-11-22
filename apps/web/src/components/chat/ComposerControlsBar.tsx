@@ -138,7 +138,6 @@ export function ComposerControlsBar(props: {
     hiddenBlockCount: restingHiddenBlockCount,
     hiddenBlockIds: hiddenRestingBlockIds,
     overflowShowsPermissions,
-    pickerOwnsModeShortcut,
   } = resolveComposerControlsOwnership({
     // BlueCode: Codex's footer always names the mode, unless the new-thread strip already does.
     matchesDefault: props.permissionsShownInStrip,
@@ -220,22 +219,11 @@ export function ComposerControlsBar(props: {
       )}
       triggerSuffix={effort.suffix}
       triggerDetail={effort.detail}
-      triggerShortcuts={
-        pickerOwnsModeShortcut ? "composer.effort composer.mode" : "composer.effort"
-      }
-      effortColumn={
-        // BlueCode: the panel's reasoning section replaces the column and footer. It ends with the
-        // permission modes only while the footer's own permissions button hides.
-        <ModelCard
-          traits={traitsInput}
-          permissions={{
-            runtimeMode: compatibleRuntimeMode,
-            runtimeModeOptions: compatibleRuntimeModeOptions,
-            onRuntimeModeChange: handleRuntimeModeChange,
-            showPermissions: pickerOwnsModeShortcut,
-          }}
-        />
-      }
+      // BlueCode: the picker holds no permissions. The footer chip, its overflow menu, or the
+      // new-thread strip's Permissions control answers composer.mode instead.
+      triggerShortcuts="composer.effort"
+      // BlueCode: the panel's settings chips replace the column and footer.
+      effortColumn={<ModelCard traits={traitsInput} />}
       terminalOpen={terminalOpen}
       open={modelPickerOpen}
       instanceIndicatorBackground={

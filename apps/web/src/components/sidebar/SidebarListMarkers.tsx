@@ -138,7 +138,7 @@ export function SidebarSectionHeader(props: {
         expanded={props.toggle.expanded}
         tone={props.isDropTarget ? "accent" : props.dragging ? "emphasized" : "muted"}
         data-testid={`sidebar-${shelf}-shelf-toggle`}
-        // BlueCode: the count a step lighter than the label.
+        // BlueCode: the count in the quietest text step that still reads.
         accessory={
           <span className="font-normal tabular-nums text-(--muted-foreground-3)">
             {props.count}

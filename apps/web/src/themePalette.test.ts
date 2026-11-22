@@ -13,6 +13,7 @@ import {
   getThemeColorsForMode,
   getThemeModes,
   getCustomThemes,
+  getSedulaThemeColors,
   getStandardThemeColors,
   getStoredCustomThemeCollection,
   invalidateCustomThemes,
@@ -87,6 +88,8 @@ describe("theme files", () => {
     const palettes = [
       getStandardThemeColors("light"),
       getStandardThemeColors("dark"),
+      getSedulaThemeColors("light"),
+      getSedulaThemeColors("dark"),
       ...BUILT_IN_THEMES.flatMap((theme) => [theme.colors, ...Object.values(theme.variants ?? {})]),
     ];
     for (const colors of palettes) {
@@ -624,6 +627,8 @@ describe("context chip colors", () => {
   const palettes = [
     getStandardThemeColors("light"),
     getStandardThemeColors("dark"),
+    getSedulaThemeColors("light"),
+    getSedulaThemeColors("dark"),
     ...BUILT_IN_THEMES.flatMap((theme) =>
       getThemeModes(theme).map((mode) => getThemeColorsForMode(theme, mode)!),
     ),
@@ -654,9 +659,16 @@ describe("context chip colors", () => {
   });
 
   it("reads at 5:1 on the standard surfaces as index.css paints them", () => {
-    const painted = {
-      light: ["#fafafb", "#ffffff", "#f2f2f4", "#ededee"],
-      dark: ["#121213", "#09090a", "#1a1a1b", "#1f1f20", "#252526"],
+    // BlueCode: the stock is Sedula's (default-palette.css); T3 Code keeps index.css's own.
+    const paintedByTheme = {
+      system: {
+        light: ["#ffffff", "#fafafa", "#f5f5f5"],
+        dark: ["#0a0a0a", "#171717", "#262626"],
+      },
+      "bluecode-t3-code": {
+        light: ["#fafafb", "#ffffff", "#f2f2f4", "#ededee"],
+        dark: ["#121213", "#09090a", "#1a1a1b", "#1f1f20", "#252526"],
+      },
     } as const;
     const properties = new Map<string, string>();
     vi.stubGlobal("window", { localStorage: { getItem: () => null } });
@@ -671,15 +683,18 @@ describe("context chip colors", () => {
     });
     invalidateCustomThemes();
     try {
-      for (const appearance of ["light", "dark"] as const) {
-        applyThemePalette("system", appearance);
-        for (const kind of Object.keys(CONTEXT_CHIP_ACCENTS) as Array<
-          keyof typeof CONTEXT_CHIP_ACCENTS
-        >) {
-          for (const surface of painted[appearance]) {
-            expect(
-              contrastRatio(properties.get(contextChipColorVariable(kind))!, surface),
-            ).toBeGreaterThanOrEqual(5);
+      for (const [theme, painted] of Object.entries(paintedByTheme)) {
+        for (const appearance of ["light", "dark"] as const) {
+          applyThemePalette(theme, appearance);
+          for (const kind of Object.keys(CONTEXT_CHIP_ACCENTS) as Array<
+            keyof typeof CONTEXT_CHIP_ACCENTS
+          >) {
+            for (const surface of painted[appearance]) {
+              expect(
+                contrastRatio(properties.get(contextChipColorVariable(kind))!, surface),
+                `${theme} ${appearance} ${kind} on ${surface}`,
+              ).toBeGreaterThanOrEqual(5);
+            }
           }
         }
       }
@@ -779,6 +794,9 @@ describe("stored theme preferences", () => {
       },
       { id: "light", label: "Reserved", appearance: "light", colors: {} },
       { id: "aurora", label: "Duplicate", appearance: "dark", colors: {} },
+      // BlueCode: the built-in T3 Code theme is reserved; upstream's mobile default id is not.
+      { id: "bluecode-t3-code", label: "Shadow", appearance: "light", colors: {} },
+      { id: "t3-code", label: "Mobile default", appearance: "dark", colors: { canvas: "#101010" } },
     ]);
     const setItem = vi.fn();
     vi.stubGlobal("window", {
@@ -790,7 +808,7 @@ describe("stored theme preferences", () => {
     invalidateCustomThemes();
 
     const themes = getCustomThemes();
-    expect(themes).toHaveLength(1);
+    expect(themes.map((theme) => theme.id)).toEqual(["aurora", "t3-code"]);
     expect(themes[0]).toMatchObject({
       id: "aurora",
       colors: { canvas: canonical("#f8fbff"), accent: getDefaultThemeColors("light").accent },

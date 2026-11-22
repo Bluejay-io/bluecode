@@ -25,48 +25,24 @@ export function fastTierSwitch(provider: string, speedSelect: SelectDescriptor |
   return on && off ? { on, off } : null;
 }
 
-/** What an option is set to, so a pick can be told from the model's default. */
-export function optionValue(descriptor: ProviderOptionDescriptor) {
-  return descriptor.type === "boolean"
-    ? descriptor.currentValue === true
-    : (descriptor.currentValue ?? descriptor.options.find((option) => option.isDefault)?.id);
-}
-
 /**
- * Reset hides for a model with no options, and is disabled until an option differs from the
- * model's own value. `defaults` are the descriptors with no pick applied.
+ * How many chips, in order, the row shows. All of them when they fit; otherwise as many as fit
+ * beside the "⋯" chip that holds the rest.
  */
-export function resetState(
-  current: ReadonlyArray<ProviderOptionDescriptor>,
-  defaults: ReadonlyArray<ProviderOptionDescriptor>,
-): "hidden" | "unchanged" | "changed" {
-  if (current.length === 0) return "hidden";
-  const changed = current.some((descriptor) => {
-    const fallback = defaults.find((candidate) => candidate.id === descriptor.id);
-    return fallback !== undefined && optionValue(fallback) !== optionValue(descriptor);
-  });
-  return changed ? "changed" : "unchanged";
-}
-
-/** The level a key moves the effort slider to, or null when the key is not the slider's. */
-export function effortKeyStep(key: string, index: number, last: number): number | null {
-  const clamp = (next: number) => Math.min(Math.max(next, 0), last);
-  switch (key) {
-    case "ArrowRight":
-    case "ArrowUp":
-      return clamp(index + 1);
-    case "ArrowLeft":
-    case "ArrowDown":
-      return clamp(index - 1);
-    case "PageUp":
-      return clamp(index + 2);
-    case "PageDown":
-      return clamp(index - 2);
-    case "Home":
-      return 0;
-    case "End":
-      return last;
-    default:
-      return null;
+export function fitChips(
+  widths: ReadonlyArray<number>,
+  moreWidth: number,
+  available: number,
+  gap: number,
+): number {
+  const total = widths.reduce((sum, width) => sum + width, 0) + gap * (widths.length - 1);
+  if (total <= available) return widths.length;
+  let used = moreWidth;
+  let fit = 0;
+  for (const width of widths) {
+    if (used + gap + width > available) break;
+    used += gap + width;
+    fit += 1;
   }
+  return fit;
 }

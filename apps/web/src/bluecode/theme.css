@@ -262,23 +262,3 @@ div:has(> [data-slot="composer-shell"][data-context-row]) + [data-composer-botto
     display: none;
   }
 }
-
-/* The start-page wallpaper dissolves into the page along an eased curve rather than a straight
-   ramp, so there is no visible line where the fade begins or ends. */
-[data-photo-backdrop] {
-  --wallpaper-fade: linear-gradient(
-    to bottom,
-    rgb(0 0 0 / 100%) 0%,
-    rgb(0 0 0 / 97%) 18%,
-    rgb(0 0 0 / 89%) 32%,
-    rgb(0 0 0 / 76%) 44%,
-    rgb(0 0 0 / 60%) 55%,
-    rgb(0 0 0 / 43%) 65%,
-    rgb(0 0 0 / 27%) 74%,
-    rgb(0 0 0 / 14%) 83%,
-    rgb(0 0 0 / 5%) 92%,
-    rgb(0 0 0 / 0%) 100%
-  );
-  -webkit-mask-image: var(--wallpaper-fade);
-  mask-image: var(--wallpaper-fade);
-}

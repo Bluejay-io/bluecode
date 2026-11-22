@@ -296,7 +296,6 @@ import {
 import { useEnvironmentShellHasSnapshot } from "../state/shell";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
 import { DraftHeroHeadline } from "./chat/DraftHeroHeadline";
-import { PhotoBackdrop } from "~/bluecode/backdrop/PhotoBackdrop";
 import { ExpandedImageDialogHost, openExpandedImagePreview } from "./chat/ExpandedImageDialog";
 import {
   BranchRestoreConfirmHost,
@@ -3522,6 +3521,8 @@ export default function ChatView(props: ChatViewProps) {
   // BlueCode: the top-right "…" thread actions.
   const threadActionsButton = activeThread ? (
     <ThreadActionsButton
+      // A menu left open across a thread switch must not act on the thread it opened on.
+      key={activeThreadKey ?? "draft"}
       environmentId={activeThread.environmentId}
       threadRef={isServerThread ? activeThreadRef : null}
       title={activeThread.title}
@@ -3731,16 +3732,12 @@ export default function ChatView(props: ChatViewProps) {
         inert={rightPanelMaximized && !chatShownInPanel}
         onMouseUp={preventMiddleClickPasteOutsideEditable}
       >
-        {/* BlueCode: the start page's dithered photo wallpaper */}
-        {isDraftHeroState && !embedded ? (
-          <PhotoBackdrop className="inset-x-0 top-(--workspace-topbar-height) h-[min(42%,30rem)]" />
-        ) : null}
         {embedded || tabbedFullscreen ? null : (
           <header
             ref={threadPanelPopoverAnchorRef}
             data-chat-header
             className={cn(
-              "relative [[data-panel-animations=true]_&]:motion-safe:transition-[padding-left] [[data-panel-animations=true]_&]:motion-safe:duration-(--panel-animation-duration) [[data-panel-animations=true]_&]:motion-safe:ease-out",
+              "relative bg-background [[data-panel-animations=true]_&]:motion-safe:transition-[padding-left] [[data-panel-animations=true]_&]:motion-safe:duration-(--panel-animation-duration) [[data-panel-animations=true]_&]:motion-safe:ease-out",
               isElectron
                 ? cn(
                     "drag-region flex h-[var(--workspace-topbar-height)] min-h-[var(--workspace-topbar-height)] shrink-0 items-center px-3 sm:px-5",
@@ -3750,8 +3747,6 @@ export default function ChatView(props: ChatViewProps) {
                   )
                 : "flex h-[var(--workspace-topbar-height)] min-h-[var(--workspace-topbar-height)] shrink-0 items-center pl-(--workspace-gutter-start) pr-(--workspace-gutter-end)",
               COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS,
-              // BlueCode: the new thread's backdrop shows through the header and the empty timeline.
-              !isDraftHeroState && "bg-background",
             )}
           >
             {isElectron && rightPanelControlsAtRoot ? (
@@ -3822,10 +3817,7 @@ export default function ChatView(props: ChatViewProps) {
             />
             <div
               {...conversationArea}
-              className={cn(
-                "relative flex min-h-0 flex-1 flex-col",
-                !isDraftHeroState && "bg-background",
-              )}
+              className="relative flex min-h-0 flex-1 flex-col bg-background"
               style={
                 {
                   "--chat-composer-clearance": `${isDraftHeroState ? 0 : composerTimelineInset}px`,

@@ -381,10 +381,6 @@ export function useTraitsSelection({
         ),
       );
     },
-    // BlueCode: the model card's reset writes every option back in one change.
-    changeAll: (descriptors: ReadonlyArray<ProviderOptionDescriptor>) => {
-      updateModelOptions(buildProviderOptionSelectionsFromDescriptors(descriptors));
-    },
   };
 }
 

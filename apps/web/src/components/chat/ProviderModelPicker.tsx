@@ -354,15 +354,15 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
             data-composer-shortcut={props.triggerShortcuts}
             onClick={(event) => {
               if (!docked) return;
-              const target = takeOpenTarget(triggerRef.current);
-              if (!target) return;
+              // BlueCode: only composer.effort aims the panel; permissions have their own control.
+              if (takeOpenTarget(triggerRef.current) !== "effort") return;
               // A shortcut aimed at the open picker moves within it instead of closing it.
               if (isMenuOpen)
                 (
                   event as typeof event & { preventBaseUIHandler?: () => void }
                 ).preventBaseUIHandler?.();
               // BlueCode: aims the panel in the same update that opens it.
-              panel.openTarget(target);
+              panel.openTarget();
             }}
             className={cn(
               "min-w-0 shrink justify-between whitespace-nowrap",

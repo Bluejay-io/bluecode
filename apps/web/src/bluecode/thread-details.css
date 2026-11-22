@@ -15,7 +15,7 @@
   --details-control-press: oklch(0% 0 0 / 5%);
   --font-weight-medium: 450;
   /* Icons a quiet step below the 80% row text and chevrons one more. Mixed into the popover
-     colour, set high enough to hold over a bright wallpaper seen through the glass. */
+     colour, set high enough to hold over bright content seen through the glass. */
   --contrast-icon-muted: color-mix(in oklch, var(--contrast-foreground) 72%, var(--popover));
   --details-chevron: color-mix(in oklch, var(--contrast-foreground) 64%, var(--popover));
 

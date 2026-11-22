@@ -232,7 +232,8 @@ const CHECK_STATUS_PRESENTATION = {
   success: {
     label: msg("Passed", { $context: "check status" }),
     Icon: CircleCheckIcon,
-    toneClassName: "text-emerald-600 dark:text-emerald-300/90",
+    // BlueCode: emerald-700 in light; 600 read at 3.5:1.
+    toneClassName: "text-emerald-700 dark:text-emerald-300/90",
   },
   failure: {
     label: msg("Failed", { $context: "check status" }),
@@ -332,7 +333,8 @@ const REVIEW_OUTCOME_PRESENTATION = {
       $context: "tooltip: this approval was given before the latest commits were pushed",
     }),
     Icon: CircleCheckIcon,
-    toneClassName: "text-emerald-600 dark:text-emerald-300/90",
+    // BlueCode: emerald-700 in light; 600 read at 3.5:1.
+    toneClassName: "text-emerald-700 dark:text-emerald-300/90",
     ringClassName: "ring-2 ring-emerald-500 dark:ring-emerald-400",
     staleRingClassName:
       "ring-2 ring-[color-mix(in_srgb,var(--color-emerald-500)_35%,var(--background))] dark:ring-[color-mix(in_srgb,var(--color-emerald-400)_35%,var(--background))]",

@@ -1,457 +1,491 @@
-import type { RuntimeMode } from "@t3tools/contracts";
-import { msg, T, useGT, useMessages } from "gt-react";
-import { RotateCcwIcon, WorkflowIcon, ZapIcon } from "lucide-react";
-import { type KeyboardEvent, type ReactElement, type ReactNode, use } from "react";
+import { selectableProviderOptionChoices } from "@t3tools/client-runtime/model-traits";
+import type { ProviderOptionDescriptor } from "@t3tools/contracts";
+import { useGT, useMessages } from "gt-react";
+import { ChevronDownIcon, EllipsisIcon, WorkflowIcon } from "lucide-react";
+import {
+  type ReactNode,
+  use,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   columnControls,
-  COLUMN_LABEL,
-  COLUMN_ROW,
-  moveBetweenRows,
-  OptionMenuRow,
-  SpeedControl,
   splitSpeed,
   type TraitsSelection,
 } from "../components/chat/ComposerModelEffort";
-import type { RuntimeModeOption } from "../components/chat/ComposerFooterControls";
+import { composerFloatingLayerProps } from "../components/chat/composerEventScope";
+import { EffortGlyph, FastBolt, resolveEffortGlyph } from "../components/chat/EffortGlyph";
 import { DockedPickerContext } from "../components/chat/ProviderModelPicker";
+import { observeResize } from "../lib/observeResize";
 import {
-  getTraitsSectionVisibility,
+  ULTRATHINK_IN_BODY_NOTE,
   type TraitsSelectionInput,
   useTraitsSelection,
 } from "../components/chat/TraitsPicker";
-import { Button } from "../components/ui/button";
-import { Switch } from "../components/ui/switch";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../components/ui/tooltip";
-import { cn } from "../lib/utils";
-import { EffortSlider } from "./EffortSlider";
-import { fastTierSwitch, resetState } from "./modelCard.logic";
+import {
+  Menu,
+  MenuCheckboxItem,
+  MenuPopup,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSub,
+  MenuSubPopup,
+  MenuSubTrigger,
+  MenuTrigger,
+} from "../components/ui/menu";
+import { fastTierSwitch, fitChips } from "./modelCard.logic";
 
-export type ModelCardPermissions = {
-  runtimeMode: RuntimeMode;
-  runtimeModeOptions: ReadonlyArray<RuntimeModeOption>;
-  onRuntimeModeChange: (mode: RuntimeMode) => void;
-  /** False while the composer footer shows its own permissions button. */
-  showPermissions: boolean;
-};
+type SelectDescriptor = Extract<ProviderOptionDescriptor, { type: "select" }>;
 
-function CardTooltip(props: { label: string; children: ReactElement }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger render={props.children} />
-      <TooltipPopup side="top">{props.label}</TooltipPopup>
-    </Tooltip>
-  );
-}
+/** One of the selected model's settings, as a chip under the list. */
+type Chip =
+  | {
+      kind: "toggle";
+      id: string;
+      name: string;
+      icon: ReactNode;
+      pressed: boolean;
+      onPressedChange: (next: boolean) => void;
+    }
+  | {
+      kind: "choice";
+      id: string;
+      name: string;
+      /** Effort names itself by its value; other choices print their name before it. */
+      nameOnChip: boolean;
+      icon: ReactNode;
+      descriptor: SelectDescriptor;
+      value: string;
+      valueLabel: string;
+      disabled: boolean;
+    };
 
-/** The inset card that holds the selected model's reasoning and options. */
-function ReasoningInset(props: {
-  heading: string;
-  /** Null hides reset; a model with nothing changed shows it disabled. */
-  onReset: (() => void) | "unchanged" | null;
-  children: ReactNode;
-}) {
-  const gt = useGT();
-  const { onReset } = props;
-  const resetLabel = gt("Reset to defaults", { $context: "resets a model's effort and options" });
-  return (
-    <div
-      data-model-picker-effort
-      className="mx-1.5 mt-1.5 flex shrink-0 flex-col rounded-lg border border-(--border-1) bg-foreground/[0.03] p-1"
-    >
-      <div className="flex h-7 items-center gap-2 ps-2">
-        <span
-          data-model-card-effort
-          className="min-w-0 flex-1 truncate font-medium text-(--model-card-accent) text-xs"
-        >
-          {props.heading}
-        </span>
-        {onReset ? (
-          <CardTooltip label={resetLabel}>
-            <Button
-              variant="quiet"
-              size="icon-xs"
-              aria-label={resetLabel}
-              disabled={onReset === "unchanged"}
-              onClick={() => {
-                if (onReset !== "unchanged") onReset();
-              }}
-            >
-              <RotateCcwIcon aria-hidden="true" className="size-3.5" />
-            </Button>
-          </CardTooltip>
-        ) : null}
-      </div>
-      {props.children}
-    </div>
-  );
-}
+const takesInput = (chip: Chip) => chip.kind === "toggle" || !chip.disabled;
 
-function NoEffortNote() {
-  return (
-    <p className="px-2 pb-1 text-muted-foreground text-xs">
-      <T>No effort levels</T>
-    </p>
-  );
-}
+const CHIP_GAP = 5;
+const CHIP =
+  "inline-flex h-6.5 shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-md border border-(--border-1) bg-foreground/[0.04] px-2 text-foreground text-xs outline-none hover:bg-foreground/[0.08] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset data-popup-open:bg-foreground/[0.08] disabled:cursor-not-allowed disabled:opacity-64 aria-pressed:border-primary/40 aria-pressed:bg-primary/14 aria-pressed:text-(--model-card-accent)";
 
-/** A model the provider no longer lists keeps its saved options, shown read-only. */
-function SavedOptions(props: { traits: TraitsSelection }) {
-  return (
-    <div>
-      {props.traits.descriptors.map((descriptor) => {
-        const value = props.traits.currentLabel(descriptor);
-        return value ? (
-          <div key={descriptor.id}>
-            <div className={COLUMN_LABEL}>{descriptor.label}</div>
-            <div className="px-2 pb-1.5 text-muted-foreground/80 text-xs">{value}</div>
-          </div>
-        ) : null;
-      })}
-    </div>
-  );
-}
-
-function SwitchRow({
-  focusTarget,
-  ...props
-}: {
-  icon?: ReactNode;
-  label: string;
-  checked: boolean;
-  onCheckedChange: (next: boolean) => void;
-  tabStop: boolean;
-  /** Takes the effort shortcut when the model has no slider. */
-  focusTarget?: ((node: HTMLElement | null) => void) | undefined;
-}) {
-  return (
-    <label className={cn(COLUMN_ROW, "has-focus-visible:bg-(--popover-hover)")}>
-      {props.icon ? (
-        <span className="flex size-3.5 shrink-0 items-center justify-center text-muted-foreground">
-          {props.icon}
-        </span>
-      ) : null}
-      <span className="min-w-0 flex-1 truncate">{props.label}</span>
-      <Switch
-        ref={focusTarget}
-        size="sm"
-        checked={props.checked}
-        onCheckedChange={props.onCheckedChange}
-        aria-label={props.label}
-        data-effort-row
-        tabIndex={props.tabStop ? 0 : -1}
-      />
-    </label>
-  );
-}
-
-/** How much a mode lets the agent do unasked: amber for full access, quiet otherwise. */
-function permissionTone(mode: RuntimeMode) {
-  return mode === "full-access" ? "text-warning-foreground" : "text-(--contrast-icon-muted)";
-}
-
-/**
- * Arrows only move focus between the modes, as in the permissions menu: arrowing onto Full access
- * must never pick it. Enter, Space or a click picks.
- */
-function moveBetweenModes(event: KeyboardEvent<HTMLElement>) {
-  const step =
-    event.key === "ArrowRight" || event.key === "ArrowDown"
-      ? 1
-      : event.key === "ArrowLeft" || event.key === "ArrowUp"
-        ? -1
-        : 0;
-  if (step === 0 && event.key !== "Home" && event.key !== "End") return;
-  const modes = Array.from(
-    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]:not(:disabled)'),
-  );
-  const index = modes.findIndex((mode) => mode === document.activeElement);
-  const next =
-    event.key === "Home"
-      ? modes[0]
-      : event.key === "End"
-        ? modes.at(-1)
-        : modes[Math.min(modes.length - 1, Math.max(0, index + step))];
-  event.preventDefault();
-  event.stopPropagation();
-  next?.focus();
-}
-
-/**
- * The permission modes as a segmented control at the panel's foot, from most to least cautious.
- * The chosen mode names itself; the others are icons, named on hover.
- */
-function PermissionsRow(props: { permissions: ModelCardPermissions }) {
-  const gt = useGT();
-  const picker = use(DockedPickerContext);
-  const { runtimeMode, runtimeModeOptions: options, onRuntimeModeChange } = props.permissions;
-  if (!options.some((option) => option.mode === runtimeMode)) return null;
-  const label = gt("Permissions");
-  return (
-    <div className="flex shrink-0 items-center gap-2 px-3 py-2">
-      <span className="min-w-0 shrink truncate text-muted-foreground text-xs">{label}</span>
-      <div
-        role="radiogroup"
-        aria-label={label}
-        className="ms-auto flex h-7 min-w-0 gap-0.5 rounded-md bg-foreground/5 p-0.5"
-        onKeyDown={moveBetweenModes}
-      >
-        {options.map((option) => {
-          const Icon = option.icon;
-          const checked = option.mode === runtimeMode;
-          return (
-            <Tooltip key={option.mode}>
-              <TooltipTrigger
-                render={
-                  <button
-                    ref={checked ? picker.permissionsFocusRef : undefined}
-                    type="button"
-                    role="radio"
-                    aria-checked={checked}
-                    aria-label={option.label}
-                    disabled={option.disabledReason !== undefined}
-                    tabIndex={checked ? 0 : -1}
-                    className={cn(
-                      "flex min-w-7 cursor-pointer items-center justify-center gap-1.5 rounded-sm px-1.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-40",
-                      checked && "bg-popover text-foreground shadow-xs",
-                      checked && option.mode === "full-access" && "bg-warning/12",
-                    )}
-                    onClick={() => {
-                      if (!checked) onRuntimeModeChange(option.mode);
-                    }}
-                  />
-                }
-              >
-                <Icon
-                  aria-hidden="true"
-                  className={cn("size-3.5 shrink-0", permissionTone(option.mode))}
-                />
-                {checked ? (
-                  <span className="truncate font-medium text-xs">{option.label}</span>
-                ) : null}
-              </TooltipTrigger>
-              <TooltipPopup side="top" className="max-w-56">
-                <span className="font-medium">{option.label}</span>
-                <span className="block text-muted-foreground">
-                  {option.disabledReason ?? option.description}
-                </span>
-              </TooltipPopup>
-            </Tooltip>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function PanelFoot(props: { permissions: ModelCardPermissions | undefined }) {
-  const { permissions } = props;
-  if (!permissions?.showPermissions) return <div aria-hidden="true" className="h-1.5 shrink-0" />;
-  return <PermissionsRow permissions={permissions} />;
-}
-
-function TraitsSection(props: {
-  traits: TraitsSelectionInput;
-  permissions: ModelCardPermissions | undefined;
-}) {
-  const gt = useGT();
-  const messages = useMessages();
-  const picker = use(DockedPickerContext);
-  const traits = useTraitsSelection(props.traits);
+function buildChips(traits: TraitsSelection, provider: string, gt: ReturnType<typeof useGT>) {
   const { effort, others } = columnControls(traits.selectDescriptors, traits.booleanDescriptors);
   const { speedSelect, fastToggle, ultracodeToggle } = splitSpeed(
     traits.selectDescriptors,
     traits.booleanDescriptors,
   );
-  const reasoning = gt("Reasoning", { $context: "model option name" });
-  if (traits.modelIsUnavailable) {
-    return (
-      <>
-        <ReasoningInset heading={reasoning} onReset={null}>
-          <SavedOptions traits={traits} />
-        </ReasoningInset>
-        <PanelFoot permissions={props.permissions} />
-      </>
-    );
-  }
-  const speedSwitch = fastTierSwitch(props.traits.provider, speedSelect);
-  const tierSwitch = fastToggle ? null : speedSwitch;
-  // The model's own values, before any pick: what reset writes back.
-  const defaults = getTraitsSectionVisibility({
-    ...props.traits,
-    modelOptions: undefined,
-    resolve: messages,
-  }).descriptors;
-  const reset = resetState(traits.descriptors, defaults);
+  const toggle = (
+    descriptor: Extract<ProviderOptionDescriptor, { type: "boolean" }>,
+    icon: ReactNode = null,
+  ): Chip => ({
+    kind: "toggle",
+    id: descriptor.id,
+    name: descriptor.label,
+    icon,
+    pressed: descriptor.currentValue === true,
+    onPressedChange: (next) => traits.changeBoolean(descriptor.id, next),
+  });
+  const choice = (
+    descriptor: SelectDescriptor,
+    extra: { name?: string; nameOnChip?: boolean; icon?: ReactNode; disabled?: boolean } = {},
+  ): Chip => {
+    const value = traits.selectValue(descriptor);
+    return {
+      kind: "choice",
+      id: descriptor.id,
+      name: extra.name ?? descriptor.label,
+      nameOnChip: extra.nameOnChip ?? true,
+      icon: extra.icon ?? null,
+      descriptor,
+      value,
+      valueLabel:
+        descriptor.options.find((option) => option.id === value)?.label ??
+        traits.currentLabel(descriptor) ??
+        "",
+      disabled: extra.disabled ?? false,
+    };
+  };
+  const chips: Chip[] = [];
   // Ultrathink in the prompt locks the levels.
   const locked =
     effort?.descriptor.id === traits.primarySelectDescriptor?.id && traits.ultrathinkInBodyText;
-  const level = !effort
-    ? null
-    : effort.kind === "boolean"
-      ? messages(
-          effort.descriptor.currentValue === true
-            ? msg("{option} On", { option: effort.descriptor.label })
-            : msg("{option} Off", { option: effort.descriptor.label }),
-        )
-      : (effort.descriptor.options.find(
-          (option) => option.id === traits.selectValue(effort.descriptor),
-        )?.label ??
-        traits.currentLabel(effort.descriptor) ??
-        null);
-  const sliderTakesFocus = effort?.kind === "select" && !locked;
-  // The rows share one tab stop, Up and Down move between them; it takes the effort shortcut
-  // when there is no slider to move.
-  const rows: Array<(tabStop: boolean) => ReactNode> = [
-    ...(effort?.kind === "boolean"
-      ? [
-          (tabStop: boolean) => (
-            <SwitchRow
-              key={effort.descriptor.id}
-              label={effort.descriptor.label}
-              checked={effort.descriptor.currentValue === true}
-              onCheckedChange={(next) => traits.changeBoolean(effort.descriptor.id, next)}
-              tabStop={tabStop}
-              focusTarget={tabStop ? picker.effortFocusRef : undefined}
-            />
-          ),
-        ]
-      : []),
-    ...(fastToggle
-      ? [
-          (tabStop: boolean) => (
-            <SwitchRow
-              key={fastToggle.id}
-              icon={<ZapIcon aria-hidden="true" className="size-3" />}
-              label={fastToggle.label}
-              checked={fastToggle.currentValue === true}
-              onCheckedChange={(next) => traits.changeBoolean(fastToggle.id, next)}
-              tabStop={tabStop}
-              focusTarget={tabStop && !sliderTakesFocus ? picker.effortFocusRef : undefined}
-            />
-          ),
-        ]
-      : speedSelect && tierSwitch
-        ? [
-            (tabStop: boolean) => (
-              <SwitchRow
-                key={speedSelect.id}
-                icon={<ZapIcon aria-hidden="true" className="size-3" />}
-                label={gt("Fast mode")}
-                checked={traits.selectValue(speedSelect) === tierSwitch.on.id}
-                onCheckedChange={(next) =>
-                  traits.changeSelect(speedSelect, next ? tierSwitch.on.id : tierSwitch.off.id)
-                }
-                tabStop={tabStop}
-                focusTarget={tabStop && !sliderTakesFocus ? picker.effortFocusRef : undefined}
-              />
-            ),
-          ]
-        : []),
-    ...(ultracodeToggle
-      ? [
-          (tabStop: boolean) => (
-            <SwitchRow
-              key={ultracodeToggle.id}
-              icon={<WorkflowIcon aria-hidden="true" className="size-3" />}
-              label={ultracodeToggle.label}
-              checked={ultracodeToggle.currentValue === true}
-              onCheckedChange={(next) => traits.changeBoolean(ultracodeToggle.id, next)}
-              tabStop={tabStop}
-              focusTarget={tabStop && !sliderTakesFocus ? picker.effortFocusRef : undefined}
-            />
-          ),
-        ]
-      : []),
-    ...others.map((control) =>
-      control.kind === "boolean"
-        ? (tabStop: boolean) => (
-            <SwitchRow
-              key={control.descriptor.id}
-              label={control.descriptor.label}
-              checked={control.descriptor.currentValue === true}
-              onCheckedChange={(next) => traits.changeBoolean(control.descriptor.id, next)}
-              tabStop={tabStop}
-              focusTarget={tabStop && !sliderTakesFocus ? picker.effortFocusRef : undefined}
-            />
-          )
-        : (tabStop: boolean) => (
-            <OptionMenuRow
-              key={control.descriptor.id}
-              descriptor={control.descriptor}
-              traits={traits}
-              tabStop={tabStop}
-              inline
-              focusTarget={tabStop && !sliderTakesFocus ? picker.effortFocusRef : undefined}
-            />
-          ),
-    ),
-  ];
-  const multiSpeed = speedSelect !== null && speedSwitch === null;
+  if (effort?.kind === "select") {
+    const glyph = resolveEffortGlyph(effort.descriptor, traits.selectValue(effort.descriptor));
+    chips.push(
+      choice(effort.descriptor, {
+        name: gt("Reasoning effort"),
+        nameOnChip: false,
+        icon: glyph ? <EffortGlyph count={glyph.count} filled={glyph.filled} size="xs" /> : null,
+        disabled: locked,
+      }),
+    );
+  } else if (effort) {
+    chips.push(toggle(effort.descriptor));
+  }
+  const bolt = <FastBolt ultra={false} />;
+  if (fastToggle) chips.push(toggle(fastToggle, bolt));
+  const tierSwitch = fastToggle ? null : fastTierSwitch(provider, speedSelect);
+  if (speedSelect && tierSwitch) {
+    chips.push({
+      kind: "toggle",
+      id: speedSelect.id,
+      name: gt("Fast mode"),
+      icon: bolt,
+      pressed: traits.selectValue(speedSelect) === tierSwitch.on.id,
+      onPressedChange: (next) =>
+        traits.changeSelect(speedSelect, next ? tierSwitch.on.id : tierSwitch.off.id),
+    });
+  } else if (speedSelect) {
+    chips.push(choice(speedSelect, { icon: bolt }));
+  }
+  if (ultracodeToggle) {
+    chips.push(toggle(ultracodeToggle, <WorkflowIcon aria-hidden="true" className="size-3" />));
+  }
+  for (const control of others) {
+    chips.push(
+      control.kind === "boolean" ? toggle(control.descriptor) : choice(control.descriptor),
+    );
+  }
+  // A choice whose values are all spoken for by the prompt has nothing to pick.
+  const settable = chips.filter(
+    (chip) => chip.kind === "toggle" || selectableProviderOptionChoices(chip.descriptor).length > 0,
+  );
+  return { chips: settable, locked };
+}
+
+/** What a chip shows; the measuring row draws the same faces to decide which chips fit. */
+function ChipFace(props: { chip: Chip }) {
+  const { chip } = props;
   return (
     <>
-      <ReasoningInset
-        heading={level ? `${reasoning} · ${level}` : reasoning}
-        onReset={
-          reset === "hidden"
-            ? null
-            : reset === "changed"
-              ? () => traits.changeAll(defaults)
-              : "unchanged"
-        }
-      >
-        {effort?.kind === "select" ? (
-          <div className="px-1 pb-1">
-            <EffortSlider
-              descriptor={effort.descriptor}
-              traits={traits}
-              locked={locked}
-              focusRef={sliderTakesFocus ? picker.effortFocusRef : undefined}
-            />
-          </div>
-        ) : effort ? null : (
-          <NoEffortNote />
-        )}
-        {rows.length > 0 ? (
-          <div
-            className="flex flex-col"
-            // Capture, so Up and Down on an option row move rows instead of opening its menu.
-            onKeyDownCapture={moveBetweenRows}
-          >
-            {rows.map((row, index) => row(index === 0))}
-          </div>
-        ) : null}
-        {multiSpeed && speedSelect ? (
-          <div className="flex h-8 items-center gap-2 ps-2">
-            <span className="min-w-0 flex-1 truncate text-sm">{speedSelect.label}</span>
-            <SpeedControl
-              traits={props.traits}
-              focusRef={!sliderTakesFocus && rows.length === 0 ? picker.effortFocusRef : undefined}
-            />
-          </div>
-        ) : null}
-      </ReasoningInset>
-      <PanelFoot permissions={props.permissions} />
+      {chip.icon ? (
+        <span className="flex shrink-0 items-center text-muted-foreground in-aria-pressed:text-current">
+          {chip.icon}
+        </span>
+      ) : null}
+      {chip.kind === "toggle" ? (
+        <span>{chip.name}</span>
+      ) : (
+        <>
+          {chip.nameOnChip ? <span className="text-muted-foreground">{chip.name}</span> : null}
+          <span>{chip.valueLabel}</span>
+          <ChevronDownIcon aria-hidden="true" className="size-3 text-muted-foreground" />
+        </>
+      )}
     </>
   );
 }
 
-/**
- * BlueCode: the docked picker's lower half, under the model list: the selected model's reasoning
- * slider and options in an inset card, then the permission modes when the footer hides them.
- */
-export function ModelCard(props: {
-  traits: TraitsSelectionInput | null;
-  permissions?: ModelCardPermissions | undefined;
+/** A choice's values, checked at the current one. */
+function ChoiceItems(props: { chip: Extract<Chip, { kind: "choice" }>; traits: TraitsSelection }) {
+  const gt = useGT();
+  const { chip, traits } = props;
+  return (
+    <MenuRadioGroup
+      aria-label={chip.name}
+      value={chip.value}
+      onValueChange={(next: string) => {
+        if (next !== chip.value) traits.changeSelect(chip.descriptor, next);
+      }}
+    >
+      {selectableProviderOptionChoices(chip.descriptor).map((option) => (
+        <MenuRadioItem key={option.id} value={option.id} closeOnClick>
+          <span className="flex items-center gap-3">
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate">{option.label}</span>
+              {option.description ? (
+                <span className="line-clamp-2 text-muted-foreground text-xs">
+                  {option.description}
+                </span>
+              ) : null}
+            </span>
+            {option.isDefault ? (
+              <span className="text-muted-foreground/70 text-xs">
+                {gt("Default", { $context: "marks the default option" })}
+              </span>
+            ) : null}
+          </span>
+        </MenuRadioItem>
+      ))}
+    </MenuRadioGroup>
+  );
+}
+
+/** The chip menus share the picker's dense glass and count as the composer's floating layer. */
+const CHIP_MENU = { "data-dense-glass": true, ...composerFloatingLayerProps } as const;
+
+/** The "⋯" chip's index in ChipOwner. */
+const MORE = -1;
+
+/** Marks a chip's trigger and menus, so focus can follow the chip when it moves behind "⋯". */
+type ChipOwner = { "data-chip-row": string; "data-chip-index": number };
+
+/** The chip (or "⋯") that holds focus in its trigger or one of its menus, if it is in this row. */
+function focusedChipIndex(rowKey: string): number | null {
+  const owner = document.activeElement?.closest<HTMLElement>("[data-chip-row]");
+  return owner?.dataset.chipRow === rowKey ? Number(owner.dataset.chipIndex) : null;
+}
+
+/** A menu opened from the keyboard lands on the checked value, not the first. */
+function focusChecked(popup: HTMLElement | null) {
+  const checked = popup?.querySelector<HTMLElement>('[role="menuitemradio"][aria-checked="true"]');
+  checked?.focus({ preventScroll: true });
+  checked?.scrollIntoView({ block: "nearest" });
+}
+
+function ChipControl({
+  focusTarget,
+  owner,
+  ...props
+}: {
+  chip: Chip;
+  traits: TraitsSelection;
+  focusTarget: ((node: HTMLElement | null) => void) | undefined;
+  owner: ChipOwner;
+}) {
+  const { chip } = props;
+  const popupRef = useRef<HTMLDivElement>(null);
+  if (chip.kind === "toggle") {
+    return (
+      <button
+        ref={focusTarget}
+        {...owner}
+        type="button"
+        aria-pressed={chip.pressed}
+        className={CHIP}
+        onClick={() => chip.onPressedChange(!chip.pressed)}
+      >
+        <ChipFace chip={chip} />
+      </button>
+    );
+  }
+  return (
+    <Menu
+      // A modal menu would cover the picker, so the next click there would only close it.
+      modal={false}
+      onOpenChangeComplete={(open) => {
+        if (open) focusChecked(popupRef.current);
+      }}
+    >
+      <MenuTrigger
+        render={
+          <button
+            ref={focusTarget}
+            {...owner}
+            type="button"
+            aria-label={`${chip.name}: ${chip.valueLabel}`}
+            disabled={chip.disabled}
+            className={CHIP}
+          />
+        }
+      >
+        <ChipFace chip={chip} />
+      </MenuTrigger>
+      <MenuPopup ref={popupRef} side="top" align="start" sideOffset={6} {...CHIP_MENU} {...owner}>
+        <ChoiceItems chip={chip} traits={props.traits} />
+      </MenuPopup>
+    </Menu>
+  );
+}
+
+/** Chips that do not fit the row, as label and value rows, like a settings list. */
+function MoreChips({
+  focusTarget,
+  owner,
+  ...props
+}: {
+  chips: ReadonlyArray<Chip>;
+  traits: TraitsSelection;
+  focusTarget: (node: HTMLElement | null) => void;
+  owner: ChipOwner;
 }) {
   const gt = useGT();
-  if (props.traits) return <TraitsSection traits={props.traits} permissions={props.permissions} />;
   return (
-    <>
-      <ReasoningInset heading={gt("Reasoning", { $context: "model option name" })} onReset={null}>
-        <NoEffortNote />
-      </ReasoningInset>
-      <PanelFoot permissions={props.permissions} />
-    </>
+    <Menu modal={false}>
+      <MenuTrigger
+        render={
+          <button
+            ref={focusTarget}
+            {...owner}
+            type="button"
+            aria-label={gt("More options")}
+            className={CHIP}
+          />
+        }
+      >
+        <EllipsisIcon aria-hidden="true" className="size-3.5" />
+      </MenuTrigger>
+      <MenuPopup side="top" align="end" sideOffset={6} {...CHIP_MENU} {...owner}>
+        {props.chips.map((chip) =>
+          chip.kind === "toggle" ? (
+            <MenuCheckboxItem
+              key={chip.id}
+              variant="switch"
+              checked={chip.pressed}
+              onCheckedChange={chip.onPressedChange}
+            >
+              {chip.name}
+            </MenuCheckboxItem>
+          ) : (
+            <MenuSub key={chip.id}>
+              <MenuSubTrigger disabled={chip.disabled}>
+                <span className="min-w-0 flex-1 truncate">{chip.name}</span>
+                <span className="max-w-1/2 shrink-0 truncate text-muted-foreground text-xs">
+                  {chip.valueLabel}
+                </span>
+              </MenuSubTrigger>
+              <MenuSubPopup {...CHIP_MENU} {...owner}>
+                <ChoiceItems chip={chip} traits={props.traits} />
+              </MenuSubPopup>
+            </MenuSub>
+          ),
+        )}
+      </MenuPopup>
+    </Menu>
   );
+}
+
+/** How many chips fit the row, from the hidden copy whose last child is the "⋯" chip. */
+function measureFit(row: HTMLElement | null, measure: HTMLElement | null) {
+  if (!row || !measure) return null;
+  const widths = Array.from(measure.children, (child) => child.getBoundingClientRect().width);
+  const more = widths.pop() ?? 0;
+  return fitChips(widths, more, row.clientWidth, CHIP_GAP);
+}
+
+/**
+ * The chips in one row. A hidden copy measures them; those that do not fit move behind a "⋯"
+ * chip, so the row never wraps or truncates a chip.
+ */
+function ChipRow(props: { chips: ReadonlyArray<Chip>; traits: TraitsSelection }) {
+  const picker = use(DockedPickerContext);
+  const rowKey = useId();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLElement | null>(null);
+  const [fit, setFit] = useState(props.chips.length);
+  // The chip (or MORE) to focus once a new fit has rendered, when the focused one left the row.
+  const refocus = useRef<number | null>(null);
+  const applyFit = (next: number | null) => {
+    if (next === null || next === fit) return;
+    const focused = focusedChipIndex(rowKey);
+    if (focused !== null && focused !== MORE && focused >= next) refocus.current = MORE;
+    // "⋯" goes once every chip fits: focus the first chip that was behind it and takes input.
+    if (focused === MORE && next === (measureRef.current?.childElementCount ?? 0) - 1) {
+      const restored = props.chips.findIndex((chip, index) => index >= fit && takesInput(chip));
+      const target = restored === -1 ? props.chips.findIndex(takesInput) : restored;
+      refocus.current = target === -1 ? null : target;
+    }
+    setFit(next);
+  };
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- reads the chips' rendered widths, which change with every value, before paint
+  useLayoutEffect(() => {
+    const target = refocus.current;
+    refocus.current = null;
+    // Only when focus fell to the body with the chip it was on, not when it moved on.
+    if (target !== null && document.activeElement === document.body) {
+      const node = target === MORE ? moreRef.current : rowRef.current?.children.item(target);
+      if (node instanceof HTMLElement) node.focus({ preventScroll: true });
+    }
+    applyFit(measureFit(rowRef.current, measureRef.current));
+  });
+  const onResize = useEffectEvent(() => applyFit(measureFit(rowRef.current, measureRef.current)));
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- follows the row's width, which a phone-width picker changes
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    return observeResize(row, () => onResize());
+  }, []);
+  const shown = props.chips.slice(0, fit);
+  const hidden = props.chips.slice(fit);
+  // composer.effort lands on the first chip that takes input: effort, unless ultrathink locks it.
+  const effortTarget = shown.findIndex(takesInput);
+  return (
+    <div ref={rowRef} className="relative flex min-w-0" style={{ gap: CHIP_GAP }}>
+      {shown.map((chip, index) => (
+        <ChipControl
+          key={chip.id}
+          chip={chip}
+          traits={props.traits}
+          focusTarget={index === effortTarget ? picker.effortFocusRef : undefined}
+          owner={{ "data-chip-row": rowKey, "data-chip-index": index }}
+        />
+      ))}
+      {hidden.length > 0 ? (
+        <MoreChips
+          chips={hidden}
+          traits={props.traits}
+          focusTarget={(node) => {
+            moreRef.current = node;
+            if (effortTarget === -1) picker.effortFocusRef(node);
+          }}
+          owner={{ "data-chip-row": rowKey, "data-chip-index": MORE }}
+        />
+      ) : null}
+      <div
+        ref={measureRef}
+        aria-hidden="true"
+        inert
+        className="pointer-events-none invisible absolute top-0 left-0 flex w-max"
+      >
+        {props.chips.map((chip) => (
+          <span key={chip.id} className={CHIP}>
+            <ChipFace chip={chip} />
+          </span>
+        ))}
+        <span className={CHIP}>
+          <EllipsisIcon aria-hidden="true" className="size-3.5" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Under a hairline: the model's settings as chips, or the saved values of a model now missing. */
+function Settings(props: { children: ReactNode }) {
+  return (
+    <div data-model-picker-effort className="shrink-0 border-(--border-1) border-t p-2">
+      {props.children}
+    </div>
+  );
+}
+
+function TraitsChips(props: { traits: TraitsSelectionInput }) {
+  const gt = useGT();
+  const messages = useMessages();
+  const traits = useTraitsSelection(props.traits);
+  if (traits.modelIsUnavailable) {
+    const saved = traits.descriptors.flatMap((descriptor) => {
+      const value = traits.currentLabel(descriptor);
+      return value ? [`${descriptor.label}: ${value}`] : [];
+    });
+    if (saved.length === 0) return null;
+    return (
+      <Settings>
+        <p className="px-1 text-muted-foreground text-xs">{saved.join(" · ")}</p>
+      </Settings>
+    );
+  }
+  const { chips, locked } = buildChips(traits, props.traits.provider, gt);
+  if (chips.length === 0) return null;
+  return (
+    <Settings>
+      <ChipRow chips={chips} traits={traits} />
+      {locked ? (
+        <p className="px-1 pt-1.5 text-muted-foreground text-xs">
+          {messages(ULTRATHINK_IN_BODY_NOTE)}
+        </p>
+      ) : null}
+    </Settings>
+  );
+}
+
+/**
+ * BlueCode: the docked picker's foot, under the model list: the selected model's effort and
+ * options as one row of chips. A model with neither shows nothing.
+ */
+export function ModelCard(props: { traits: TraitsSelectionInput | null }) {
+  return props.traits ? <TraitsChips traits={props.traits} /> : null;
 }
