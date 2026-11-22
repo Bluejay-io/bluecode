@@ -24,6 +24,7 @@ import type {
   ProjectId,
   PullRequestState,
   ResolvedKeybindingsConfig,
+  ScopedThreadRef,
   ThreadId,
 } from "@t3tools/contracts";
 import { getTerminalLabel } from "@t3tools/shared/terminalLabelsCopy";
@@ -120,6 +121,8 @@ import { surfaceShortcutKey } from "~/lib/surfaceShortcutKey";
 import { useAgentDriving, type AgentDriving } from "~/bluecode/agentBrowserActivity";
 import { AgentBrowserTabPill } from "~/bluecode/AgentBrowserTabPill";
 import { AgentDrivingBadge } from "~/bluecode/AgentDrivingBadge";
+import { AgentStateIndicator } from "~/bluecode/agentState/AgentStateIndicator";
+import { useThreadAgentState } from "~/bluecode/agentState/useThreadAgentState";
 
 export interface RightPanelTabsProps {
   mode: PreviewPanelMode;
@@ -168,8 +171,8 @@ export interface RightPanelTabsProps {
   chatTab?: {
     readonly title: string;
     readonly active: boolean;
-    /** The agent is working while another tab is in front. */
-    readonly working: boolean;
+    /** The chat's thread, whose agent state the tab shows. */
+    readonly threadRef: ScopedThreadRef | null;
     readonly onActivate: () => void;
     readonly onRename?: (() => void) | undefined;
   };
@@ -767,28 +770,22 @@ function sideChatTabState(shell: EnvironmentThreadShell | null) {
   return threadRuntimeIsActive(shell.runtime) ? "running" : null;
 }
 
-// Static dots: a side chat or subagent tab can stay open for a whole run.
+// BlueCode: the agent's state stands in for the tab's icon while it has one.
 function SideChatTabIcon(props: { environmentId: EnvironmentId | null; threadId: ThreadId }) {
-  const shell = useQuietThreadShell(
-    props.environmentId === null ? null : scopeThreadRef(props.environmentId, props.threadId),
-  );
-  const state = sideChatTabState(shell);
+  const threadRef =
+    props.environmentId === null ? null : scopeThreadRef(props.environmentId, props.threadId);
+  const shell = useQuietThreadShell(threadRef);
+  const agentState = useThreadAgentState(threadRef);
+  if (agentState !== "idle") return <AgentStateIndicator state={agentState} />;
   // BlueCode: side chats draw the fork's own icon.
   const Icon = shell !== null && shell.lineage.sideChat !== true ? Bot : SideChatIcon;
-  return (
-    <>
-      <Icon className="size-3 shrink-0" />
-      {state === null ? null : (
-        <span
-          className={cn(
-            "absolute -top-0.5 -right-0.5 size-1.5 rounded-full",
-            state === "running" ? "bg-muted-foreground" : "bg-info",
-          )}
-          aria-hidden
-        />
-      )}
-    </>
-  );
+  return <Icon className="size-3 shrink-0" />;
+}
+
+function ChatTabIcon(props: { threadRef: ScopedThreadRef | null }) {
+  const agentState = useThreadAgentState(props.threadRef);
+  if (agentState === "idle") return <ChatIcon className="size-3.5 shrink-0" />;
+  return <AgentStateIndicator state={agentState} labelled />;
 }
 
 export function resolvePullRequestTabLink(
@@ -1576,12 +1573,12 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                   render={
                     <button
                       type="button"
-                      aria-label={props.chatTab.title}
                       data-active-tab={props.chatTab.active}
                       onClick={props.chatTab.onActivate}
                       onDoubleClick={props.chatTab.onRename}
                       className={cn(
-                        "relative flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md",
+                        // BlueCode: names the thread, like the surface tabs beside it.
+                        "relative flex h-7 max-w-56 min-w-0 shrink-0 cursor-pointer items-center gap-1.5 rounded-md pr-2.5 pl-2 text-xs font-medium",
                         ownsDesktopTitleBar && "[-webkit-app-region:no-drag]",
                         props.chatTab.active
                           ? "bg-accent text-foreground"
@@ -1590,16 +1587,19 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                     />
                   }
                 >
-                  <ChatIcon className="size-3.5 shrink-0" />
-                  {props.chatTab.working ? (
-                    <span
-                      aria-label={gt("Working")}
-                      className="absolute top-1 right-1 size-1.5 rounded-full bg-primary"
-                    />
-                  ) : null}
+                  <span className="flex size-3.5 shrink-0 items-center justify-center">
+                    <ChatTabIcon threadRef={props.chatTab.threadRef} />
+                  </span>
+                  <span className="truncate">{props.chatTab.title}</span>
                 </TooltipTrigger>
                 <TooltipPopup side="bottom">{props.chatTab.title}</TooltipPopup>
               </Tooltip>
+            ) : null}
+            {props.chatTab && props.surfaces.length > 0 ? (
+              <ChevronRight
+                aria-hidden
+                className="mx-0.5 size-3.5 shrink-0 text-muted-foreground/60"
+              />
             ) : null}
             <SortableTabList surfaces={props.surfaces} onMove={props.onMoveSurface}>
               {props.surfaces.map((surface) => {
