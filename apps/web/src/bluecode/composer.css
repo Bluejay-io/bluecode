@@ -172,6 +172,14 @@
     var(--chat-composer-attached-surface) var(--dense-glass-opacity),
     transparent
   );
+  /* As in menus.css: a theme colour's own alpha must not undercut the floor. */
+  @supports (color: rgb(from red r g b)) {
+    background-color: color-mix(
+      in srgb,
+      rgb(from var(--chat-composer-attached-surface) r g b / 1) var(--dense-glass-opacity),
+      transparent
+    );
+  }
 }
 [data-slot="composer-shell"]:has([data-composer-banner-surface="attached"])
   [data-chat-composer-main-surface] {
@@ -180,4 +188,11 @@
     var(--chat-composer-glass-surface) var(--dense-glass-opacity),
     transparent
   );
+  @supports (color: rgb(from red r g b)) {
+    background-color: color-mix(
+      in srgb,
+      rgb(from var(--chat-composer-glass-surface) r g b / 1) var(--dense-glass-opacity),
+      transparent
+    );
+  }
 }

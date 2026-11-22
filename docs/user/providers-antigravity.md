@@ -72,8 +72,9 @@ using the executable you selected.
 ## Models and threads
 
 The model list comes from your Antigravity account, including Claude and GPT models
-when your plan has them. Pick a thinking level beside the model list in the model picker; it
-shows only the levels the selected model supports. A resumed thread keeps its
+when your plan has them. Pick a thinking level from the chips under the model list in the model
+picker on desktop and web (under **⋯** when the row is full), or under **Options** in the thread
+settings on mobile; it shows only the levels the selected model supports. A resumed thread keeps its
 selected model. If access to that model ends, select another available model
 before continuing.
 

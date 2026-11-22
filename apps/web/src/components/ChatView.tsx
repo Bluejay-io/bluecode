@@ -3521,6 +3521,8 @@ export default function ChatView(props: ChatViewProps) {
   // BlueCode: the top-right "…" thread actions.
   const threadActionsButton = activeThread ? (
     <ThreadActionsButton
+      // A menu left open across a thread switch must not act on the thread it opened on.
+      key={activeThreadKey ?? "draft"}
       environmentId={activeThread.environmentId}
       threadRef={isServerThread ? activeThreadRef : null}
       title={activeThread.title}

@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 
 import { appearanceFontStack } from "../appearanceFonts";
 import {
-  getStandardThemeColors,
+  getSedulaThemeColors,
   getThemeColorsForMode,
   getThemeDefinition,
   resolveThemeHalf,
@@ -16,14 +16,15 @@ import {
 import { useClientSettings } from "./useSettings";
 import { useTheme } from "./useTheme";
 
-function resolveActiveThemeColors(
+export function resolveActiveThemeColors(
   theme: ThemePreference,
   halves: ThemeHalves | null,
   appearance: ThemeAppearance,
 ) {
   const definition = getThemeDefinition(resolveThemeHalf(theme, halves, appearance));
+  // BlueCode: with no theme picked the page paints Sedula's palette.
   return definition === null
-    ? getStandardThemeColors(appearance)
+    ? getSedulaThemeColors(appearance)
     : (getThemeColorsForMode(definition, appearance) ?? definition.colors);
 }
 
@@ -33,7 +34,7 @@ export function useHtmlRenderTheme() {
   const colors = useSyncExternalStore(
     subscribeToCustomThemes,
     () => resolveActiveThemeColors(theme, themeHalves, resolvedTheme),
-    () => getStandardThemeColors(resolvedTheme),
+    () => getSedulaThemeColors(resolvedTheme),
   );
   const sans = useClientSettings((settings) => settings.fontFamilySans);
   const mono = useClientSettings((settings) => settings.fontFamilyCode);

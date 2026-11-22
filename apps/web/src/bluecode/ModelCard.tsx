@@ -2,7 +2,15 @@ import { selectableProviderOptionChoices } from "@t3tools/client-runtime/model-t
 import type { ProviderOptionDescriptor } from "@t3tools/contracts";
 import { useGT, useMessages } from "gt-react";
 import { ChevronDownIcon, EllipsisIcon, WorkflowIcon } from "lucide-react";
-import { type ReactNode, use, useLayoutEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  use,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   columnControls,
@@ -55,6 +63,8 @@ type Chip =
       valueLabel: string;
       disabled: boolean;
     };
+
+const takesInput = (chip: Chip) => chip.kind === "toggle" || !chip.disabled;
 
 const CHIP_GAP = 5;
 const CHIP =
@@ -138,7 +148,11 @@ function buildChips(traits: TraitsSelection, provider: string, gt: ReturnType<ty
       control.kind === "boolean" ? toggle(control.descriptor) : choice(control.descriptor),
     );
   }
-  return { chips, locked };
+  // A choice whose values are all spoken for by the prompt has nothing to pick.
+  const settable = chips.filter(
+    (chip) => chip.kind === "toggle" || selectableProviderOptionChoices(chip.descriptor).length > 0,
+  );
+  return { chips: settable, locked };
 }
 
 /** What a chip shows; the measuring row draws the same faces to decide which chips fit. */
@@ -202,6 +216,18 @@ function ChoiceItems(props: { chip: Extract<Chip, { kind: "choice" }>; traits: T
 /** The chip menus share the picker's dense glass and count as the composer's floating layer. */
 const CHIP_MENU = { "data-dense-glass": true, ...composerFloatingLayerProps } as const;
 
+/** The "⋯" chip's index in ChipOwner. */
+const MORE = -1;
+
+/** Marks a chip's trigger and menus, so focus can follow the chip when it moves behind "⋯". */
+type ChipOwner = { "data-chip-row": string; "data-chip-index": number };
+
+/** The chip (or "⋯") that holds focus in its trigger or one of its menus, if it is in this row. */
+function focusedChipIndex(rowKey: string): number | null {
+  const owner = document.activeElement?.closest<HTMLElement>("[data-chip-row]");
+  return owner?.dataset.chipRow === rowKey ? Number(owner.dataset.chipIndex) : null;
+}
+
 /** A menu opened from the keyboard lands on the checked value, not the first. */
 function focusChecked(popup: HTMLElement | null) {
   const checked = popup?.querySelector<HTMLElement>('[role="menuitemradio"][aria-checked="true"]');
@@ -211,11 +237,13 @@ function focusChecked(popup: HTMLElement | null) {
 
 function ChipControl({
   focusTarget,
+  owner,
   ...props
 }: {
   chip: Chip;
   traits: TraitsSelection;
   focusTarget: ((node: HTMLElement | null) => void) | undefined;
+  owner: ChipOwner;
 }) {
   const { chip } = props;
   const popupRef = useRef<HTMLDivElement>(null);
@@ -223,6 +251,7 @@ function ChipControl({
     return (
       <button
         ref={focusTarget}
+        {...owner}
         type="button"
         aria-pressed={chip.pressed}
         className={CHIP}
@@ -244,6 +273,7 @@ function ChipControl({
         render={
           <button
             ref={focusTarget}
+            {...owner}
             type="button"
             aria-label={`${chip.name}: ${chip.valueLabel}`}
             disabled={chip.disabled}
@@ -253,7 +283,7 @@ function ChipControl({
       >
         <ChipFace chip={chip} />
       </MenuTrigger>
-      <MenuPopup ref={popupRef} side="top" align="start" sideOffset={6} {...CHIP_MENU}>
+      <MenuPopup ref={popupRef} side="top" align="start" sideOffset={6} {...CHIP_MENU} {...owner}>
         <ChoiceItems chip={chip} traits={props.traits} />
       </MenuPopup>
     </Menu>
@@ -263,11 +293,13 @@ function ChipControl({
 /** Chips that do not fit the row, as label and value rows, like a settings list. */
 function MoreChips({
   focusTarget,
+  owner,
   ...props
 }: {
   chips: ReadonlyArray<Chip>;
   traits: TraitsSelection;
-  focusTarget: ((node: HTMLElement | null) => void) | undefined;
+  focusTarget: (node: HTMLElement | null) => void;
+  owner: ChipOwner;
 }) {
   const gt = useGT();
   return (
@@ -276,6 +308,7 @@ function MoreChips({
         render={
           <button
             ref={focusTarget}
+            {...owner}
             type="button"
             aria-label={gt("More options")}
             className={CHIP}
@@ -284,7 +317,7 @@ function MoreChips({
       >
         <EllipsisIcon aria-hidden="true" className="size-3.5" />
       </MenuTrigger>
-      <MenuPopup side="top" align="end" sideOffset={6} {...CHIP_MENU}>
+      <MenuPopup side="top" align="end" sideOffset={6} {...CHIP_MENU} {...owner}>
         {props.chips.map((chip) =>
           chip.kind === "toggle" ? (
             <MenuCheckboxItem
@@ -299,9 +332,11 @@ function MoreChips({
             <MenuSub key={chip.id}>
               <MenuSubTrigger disabled={chip.disabled}>
                 <span className="min-w-0 flex-1 truncate">{chip.name}</span>
-                <span className="shrink-0 text-muted-foreground text-xs">{chip.valueLabel}</span>
+                <span className="max-w-1/2 shrink-0 truncate text-muted-foreground text-xs">
+                  {chip.valueLabel}
+                </span>
               </MenuSubTrigger>
-              <MenuSubPopup {...CHIP_MENU}>
+              <MenuSubPopup {...CHIP_MENU} {...owner}>
                 <ChoiceItems chip={chip} traits={props.traits} />
               </MenuSubPopup>
             </MenuSub>
@@ -326,25 +361,47 @@ function measureFit(row: HTMLElement | null, measure: HTMLElement | null) {
  */
 function ChipRow(props: { chips: ReadonlyArray<Chip>; traits: TraitsSelection }) {
   const picker = use(DockedPickerContext);
+  const rowKey = useId();
   const rowRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLElement | null>(null);
   const [fit, setFit] = useState(props.chips.length);
+  // The chip (or MORE) to focus once a new fit has rendered, when the focused one left the row.
+  const refocus = useRef<number | null>(null);
+  const applyFit = (next: number | null) => {
+    if (next === null || next === fit) return;
+    const focused = focusedChipIndex(rowKey);
+    if (focused !== null && focused !== MORE && focused >= next) refocus.current = MORE;
+    // "⋯" goes once every chip fits: focus the first chip that was behind it and takes input.
+    if (focused === MORE && next === (measureRef.current?.childElementCount ?? 0) - 1) {
+      const restored = props.chips.findIndex((chip, index) => index >= fit && takesInput(chip));
+      const target = restored === -1 ? props.chips.findIndex(takesInput) : restored;
+      refocus.current = target === -1 ? null : target;
+    }
+    setFit(next);
+  };
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- reads the chips' rendered widths, which change with every value, before paint
   useLayoutEffect(() => {
-    const next = measureFit(rowRef.current, measureRef.current);
-    if (next !== null) setFit(next);
+    const target = refocus.current;
+    refocus.current = null;
+    // Only when focus fell to the body with the chip it was on, not when it moved on.
+    if (target !== null && document.activeElement === document.body) {
+      const node = target === MORE ? moreRef.current : rowRef.current?.children.item(target);
+      if (node instanceof HTMLElement) node.focus({ preventScroll: true });
+    }
+    applyFit(measureFit(rowRef.current, measureRef.current));
   });
+  const onResize = useEffectEvent(() => applyFit(measureFit(rowRef.current, measureRef.current)));
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- follows the row's width, which a phone-width picker changes
   useLayoutEffect(() => {
     const row = rowRef.current;
     if (!row) return;
-    return observeResize(row, () => {
-      const next = measureFit(row, measureRef.current);
-      if (next !== null) setFit(next);
-    });
+    return observeResize(row, () => onResize());
   }, []);
   const shown = props.chips.slice(0, fit);
   const hidden = props.chips.slice(fit);
+  // composer.effort lands on the first chip that takes input: effort, unless ultrathink locks it.
+  const effortTarget = shown.findIndex(takesInput);
   return (
     <div ref={rowRef} className="relative flex min-w-0" style={{ gap: CHIP_GAP }}>
       {shown.map((chip, index) => (
@@ -352,15 +409,19 @@ function ChipRow(props: { chips: ReadonlyArray<Chip>; traits: TraitsSelection })
           key={chip.id}
           chip={chip}
           traits={props.traits}
-          // composer.effort lands on the first chip: effort when the model has levels.
-          focusTarget={index === 0 ? picker.effortFocusRef : undefined}
+          focusTarget={index === effortTarget ? picker.effortFocusRef : undefined}
+          owner={{ "data-chip-row": rowKey, "data-chip-index": index }}
         />
       ))}
       {hidden.length > 0 ? (
         <MoreChips
           chips={hidden}
           traits={props.traits}
-          focusTarget={shown.length === 0 ? picker.effortFocusRef : undefined}
+          focusTarget={(node) => {
+            moreRef.current = node;
+            if (effortTarget === -1) picker.effortFocusRef(node);
+          }}
+          owner={{ "data-chip-row": rowKey, "data-chip-index": MORE }}
         />
       ) : null}
       <div
@@ -413,7 +474,7 @@ function TraitsChips(props: { traits: TraitsSelectionInput }) {
     <Settings>
       <ChipRow chips={chips} traits={traits} />
       {locked ? (
-        <p className="px-1 pt-1.5 text-muted-foreground/80 text-xs">
+        <p className="px-1 pt-1.5 text-muted-foreground text-xs">
           {messages(ULTRATHINK_IN_BODY_NOTE)}
         </p>
       ) : null}

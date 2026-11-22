@@ -175,6 +175,9 @@ describe("ThemeEditorPanel", () => {
   it("restores the colors from before the picker opened when Escape closes it", async () => {
     await using _view = await renderPanel();
     const hex = page.getByRole("textbox", { name: "Accent hex value" });
+    // BlueCode: the stock accent is gray, which a hue change leaves alone.
+    await userEvent.fill(hex, "#3366cc");
+    await act(async () => (hex.element() as HTMLInputElement).blur());
     const original = (hex.element() as HTMLInputElement).value;
     await userEvent.click(page.getByRole("button", { name: "Choose Accent color" }));
     const hue = page.getByRole("slider", { name: "Accent hue" });

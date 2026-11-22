@@ -15,7 +15,7 @@ import {
   THEME_FILE_VERSION,
   createVividThemeColors,
   getCustomThemes,
-  getStandardThemeColors,
+  getSedulaThemeColors,
   getThemeColorsForMode,
   getThemeModes,
   installCustomTheme,
@@ -261,7 +261,8 @@ type ThemeEditorColors = ThemeColors;
 type ThemeEditorColorsByAppearance = Record<ThemeAppearance, ThemeEditorColors>;
 
 function getThemeEditorDefaults(appearance: ThemeAppearance): ThemeEditorColors {
-  return { ...getStandardThemeColors(appearance) };
+  // BlueCode: a new theme starts from the stock look, which is Sedula's.
+  return { ...getSedulaThemeColors(appearance) };
 }
 
 function getThemeEditorColorsByAppearance(): ThemeEditorColorsByAppearance {
@@ -279,7 +280,7 @@ function getManagedEditorColors(
   appearance: ThemeAppearance,
   colors: ThemeEditorColors,
 ): ThemeEditorColors {
-  const defaults = getStandardThemeColors(appearance);
+  const defaults = getSedulaThemeColors(appearance);
   return createVividThemeColors(
     appearance,
     isThemeEditorColor(colors.canvas) ? colors.canvas : defaults.canvas,

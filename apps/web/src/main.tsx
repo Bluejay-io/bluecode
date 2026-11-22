@@ -5,6 +5,7 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/geist-mono";
 import "./index.css";
 import "./bluecode/theme.css";
+// BlueCode: Sedula's default palette, painted over index.css's stock tokens.
 import "./bluecode/default-palette.css";
 import "./bluecode/menus.css";
 import "./bluecode/buttons.css";

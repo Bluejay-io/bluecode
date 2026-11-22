@@ -120,6 +120,7 @@ export function useThreadActionMenu(input: {
     onError: (error) => failureToast(m(msg("Failed to copy thread ID")), error),
   });
 
+  // BlueCode: takes the menu to show, so the header's in-app menu shares these items and handlers.
   const showMenu = (show: ShowThreadActionMenu) => {
     if (threadRef === null) return;
     void (async () => {

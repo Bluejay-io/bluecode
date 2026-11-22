@@ -12,6 +12,7 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <script>
       (() => {
+        // BlueCode: boot and splash colours follow Sedula's default palette (default-palette.css).
         const LIGHT_BACKGROUND = "#ffffff";
         const DARK_BACKGROUND = "#0a0a0a";
         const CUSTOM_THEMES_STORAGE_KEY = "t3code:themes:v1";
@@ -52,7 +53,8 @@
         // Keep this small boot-time copy in sync with the built-in palettes so
         // the selected theme is visible before the app has mounted.
         const BUILT_IN_THEME_PALETTES = {
-          "t3-code": {
+          // BlueCode: the T3 Code built-in, index.css's own palette.
+          "bluecode-t3-code": {
             light: {
               background: "oklch(0.985 0.0015 290)",
               foreground: "oklch(0.235 0.0038 290)",
@@ -264,7 +266,8 @@
           "ocean",
           "ember",
           "iris",
-          "t3-code",
+          // BlueCode: the built-in T3 Code theme and the Capy themes below.
+          "bluecode-t3-code",
           "absolutely",
           "bearded-oled",
           "catppuccin",
@@ -541,6 +544,7 @@
         margin: 0;
       }
 
+      /* BlueCode: Sedula's default palette, as in the boot script above. */
       body {
         background: #ffffff;
         color: #0a0a0a;
@@ -593,7 +597,8 @@
       }
 
       #boot-error {
-        --boot-error-fg: #262626;
+        /* BlueCode: Sedula's default palette, like the splash. */
+        --boot-error-fg: #0a0a0a;
         --boot-error-bg: #ffffff;
         --boot-error-line: color-mix(in srgb, currentColor 12%, transparent);
         display: flex;
@@ -607,8 +612,8 @@
       }
 
       html.dark #boot-error {
-        --boot-error-fg: #f5f5f5;
-        --boot-error-bg: #000000;
+        --boot-error-fg: #fafafa;
+        --boot-error-bg: #0a0a0a;
       }
 
       html[data-theme-selected="true"] #boot-error {

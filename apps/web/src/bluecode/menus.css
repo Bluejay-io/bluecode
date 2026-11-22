@@ -45,6 +45,14 @@
   background: color-mix(in srgb, var(--popover) var(--dense-glass-opacity), transparent);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  /* A custom theme can give its popover colour its own alpha; drop it so the floor still holds. */
+  @supports (color: rgb(from red r g b)) {
+    background: color-mix(
+      in srgb,
+      rgb(from var(--popover) r g b / 1) var(--dense-glass-opacity),
+      transparent
+    );
+  }
 }
 
 /* The palette's metadata and trailing chevrons fade muted text to 70%, and its search icon to

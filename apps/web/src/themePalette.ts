@@ -8,7 +8,11 @@ import { msg } from "gt-react";
 import "culori/css";
 import { converter, parse } from "culori/fn";
 import { CAPY_THEME_SPECS, capyThemeColors } from "./bluecode/capyThemes";
-import { SEDULA_PAINTED_COLORS, T3_CODE_THEME } from "./bluecode/defaultPalette";
+import {
+  SEDULA_PAINTED_COLORS,
+  SEDULA_THEME_COLORS,
+  T3_CODE_THEME,
+} from "./bluecode/defaultPalette";
 import {
   EMBER_THEME,
   GROVE_THEME,
@@ -370,6 +374,7 @@ function getEnvironmentThemes(): ReadonlyArray<ThemeDefinition> {
   return appAtomRegistry.get(environmentThemeDefinitionsAtom);
 }
 
+// BlueCode: the fork's built-ins (Capy themes and T3 Code) reserve their ids too.
 const CAPY_THEME_IDS: ReadonlySet<string> = new Set([
   ...CAPY_THEME_SPECS.map((spec) => spec.id),
   T3_CODE_THEME.id,
@@ -459,10 +464,18 @@ const STANDARD_WEB_PAINTED_COLORS: Record<ThemeAppearance, Partial<ThemeColors>>
   },
 };
 
-/** The standard theme as index.css paints it, for solves that measure the page. */
+// BlueCode: the stock palette is Sedula's; getStandardThemeColors stays upstream's (T3 Code's).
+const sedulaThemeColors: Partial<Record<ThemeAppearance, ThemeColors>> = {};
+
+/** The colors a page with no theme picked paints: Sedula's (default-palette.css). */
+export function getSedulaThemeColors(appearance: ThemeAppearance): ThemeColors {
+  return (sedulaThemeColors[appearance] ??= decodeThemeColors(SEDULA_THEME_COLORS[appearance]));
+}
+
+/** The standard theme as default-palette.css paints it, for solves that measure the page. */
 export function getStandardPaintedThemeColors(appearance: ThemeAppearance): ThemeColors {
   // BlueCode: the stock palette is Sedula's; index.css's own is the T3 Code theme.
-  return { ...getStandardThemeColors(appearance), ...SEDULA_PAINTED_COLORS[appearance] };
+  return { ...getSedulaThemeColors(appearance), ...SEDULA_PAINTED_COLORS[appearance] };
 }
 
 function getT3CodePaintedThemeColors(appearance: ThemeAppearance): ThemeColors {
