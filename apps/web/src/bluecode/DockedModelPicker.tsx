@@ -15,24 +15,19 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../components/ui/tooltip"
 import { cn } from "../lib/utils";
 import { registerModelPickerContent } from "../modelPickerVisibility";
 
-type PanelFocus = "effort" | "permissions";
-
-/** Where the panel's reasoning section and permission row hand the composer shortcuts focus. */
+/** Where the panel's settings hand the composer.effort shortcut focus. */
 export type ModelCardControls = {
-  /** The effort slider, else the first option row. */
+  /** The effort chip, else the first chip. */
   effortFocusRef: (node: HTMLElement | null) => void;
-  /** The checked permission mode. */
-  permissionsFocusRef: (node: HTMLElement | null) => void;
 };
 
 export const MODEL_CARD_CONTROLS_FALLBACK: ModelCardControls = {
   effortFocusRef: () => {},
-  permissionsFocusRef: () => {},
 };
 
 /**
  * BlueCode: a docked picker is one panel: search, provider tabs, the list, then the selected
- * model's reasoning and the permission modes. The composer shortcuts aim focus into it.
+ * model's settings as chips. composer.effort aims focus into it.
  */
 export function useDockedModelPanel(input: {
   popupRef: RefObject<HTMLElement | null>;
@@ -40,40 +35,29 @@ export function useDockedModelPanel(input: {
   isCoarsePointer: boolean;
 }) {
   const [sectionFilter, setSectionFilter] = useState<string | null>(null);
-  const targets = useRef<Record<PanelFocus, HTMLElement | null>>({
-    effort: null,
-    permissions: null,
-  });
-  // Where the popup's initial focus lands; null is the search.
-  const openFocus = useRef<PanelFocus | null>(null);
+  const effort = useRef<HTMLElement | null>(null);
+  // Whether the popup's initial focus lands on the effort chip instead of the search.
+  const openToEffort = useRef(false);
 
-  /** composer.effort and composer.mode aim the panel before it opens, or move within it. */
-  const openTarget = (target: PanelFocus) => {
-    openFocus.current = target;
-    const node = targets.current[target];
+  /** composer.effort aims the panel before it opens, or moves within it. */
+  const openTarget = () => {
+    openToEffort.current = true;
+    const node = effort.current;
     if (!node?.isConnected) return;
     node.focus({ preventScroll: true });
     node.scrollIntoView({ block: "nearest" });
   };
   const reset = () => {
-    openFocus.current = null;
+    openToEffort.current = false;
     setSectionFilter(null);
   };
   const initialFocus = () => {
     if (input.isCoarsePointer) return input.popupRef.current ?? true;
-    const target = openFocus.current;
-    return (
-      (target ? (targets.current[target] ?? targets.current.effort) : null) ??
-      input.searchInputRef.current ??
-      true
-    );
+    return (openToEffort.current ? effort.current : null) ?? input.searchInputRef.current ?? true;
   };
   const controls: ModelCardControls = {
     effortFocusRef: (node) => {
-      targets.current.effort = node;
-    },
-    permissionsFocusRef: (node) => {
-      targets.current.permissions = node;
+      effort.current = node;
     },
   };
   return { sectionFilter, setSectionFilter, controls, openTarget, reset, initialFocus };
@@ -200,8 +184,8 @@ function typeToSearch(event: KeyboardEvent<HTMLDivElement>, search: HTMLInputEle
 
 /**
  * The panel: the list (search, tabs, rows) takes the room left over and scrolls itself; the
- * model's reasoning and the permission row sit under it at their own height. Once the list is at
- * its minimum, the whole panel scrolls, so the permission row stays reachable on a short window.
+ * model's chips sit under it at their own height. Once the list is at its minimum, the whole
+ * panel scrolls, so the chips stay reachable on a short window.
  */
 export function DockedModelPanel(props: {
   searchInputRef: RefObject<HTMLInputElement | null>;

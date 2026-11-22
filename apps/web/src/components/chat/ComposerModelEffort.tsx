@@ -531,18 +531,11 @@ function OptionRowText(props: { label: string; value: string }) {
  * One select besides reasoning, such as an agent's session mode. It names the current choice and
  * opens the rest beside the column, so any number of options leaves the levels in place.
  */
-function OptionMenuRow({
-  focusTarget,
-  ...props
-}: {
+function OptionMenuRow(props: {
   descriptor: SelectDescriptor;
   traits: TraitsSelection;
   /** Holds the column's tab stop when the model has no levels. */
   tabStop: boolean;
-  /** BlueCode: the docked model card puts the value beside the name, on one line. */
-  inline?: boolean;
-  /** BlueCode: takes the docked card's effort shortcut when the model has no slider. */
-  focusTarget?: ((node: HTMLElement | null) => void) | undefined;
 }) {
   const gt = useGT();
   const { descriptor, traits } = props;
@@ -570,15 +563,11 @@ function OptionMenuRow({
       <MenuTrigger
         render={
           <button
-            ref={focusTarget}
             type="button"
             data-effort-row
             tabIndex={props.tabStop ? 0 : -1}
             aria-label={`${descriptor.label}: ${current}`}
-            className={cn(
-              props.inline ? COLUMN_ROW : OPTION_ROW,
-              "data-popup-open:bg-foreground/[0.09]",
-            )}
+            className={cn(OPTION_ROW, "data-popup-open:bg-foreground/[0.09]")}
             onKeyDown={(event) => {
               if (event.key !== "ArrowRight") return;
               event.preventDefault();
@@ -588,16 +577,7 @@ function OptionMenuRow({
           />
         }
       >
-        {props.inline ? (
-          <>
-            <span className="min-w-0 flex-1 truncate">{descriptor.label}</span>
-            <span className="min-w-0 max-w-1/2 truncate text-muted-foreground text-xs">
-              {current}
-            </span>
-          </>
-        ) : (
-          <OptionRowText label={descriptor.label} value={current} />
-        )}
+        <OptionRowText label={descriptor.label} value={current} />
         <ChevronRightIcon
           aria-hidden="true"
           className="-me-1 size-3.5 shrink-0 text-muted-foreground"
@@ -737,11 +717,9 @@ function SpeedSegment(props: {
   label: string;
   description?: string | undefined;
   onPick: () => void;
-  focusRef?: ((node: HTMLElement | null) => void) | undefined;
 }) {
   const speed = props.label;
   const buttonProps = {
-    ref: props.focusRef,
     type: "button",
     role: "radio",
     "aria-checked": props.checked,
@@ -766,17 +744,11 @@ function SpeedSegment(props: {
   );
 }
 
-function SpeedControl(props: {
-  traits: TraitsSelectionInput;
-  /** BlueCode: the docked card's effort shortcut lands on the chosen speed, else the first. */
-  focusRef?: ((node: HTMLElement | null) => void) | undefined;
-}) {
+function SpeedControl(props: { traits: TraitsSelectionInput }) {
   const traits = useTraitsSelection(props.traits);
   const { speedSelect } = splitSpeed(traits.selectDescriptors, traits.booleanDescriptors);
   if (traits.modelIsUnavailable || !speedSelect) return null;
   const choices = selectableProviderOptionChoices(speedSelect);
-  const focusId =
-    choices.find((option) => option.id === traits.selectValue(speedSelect))?.id ?? choices[0]?.id;
   return (
     <div
       role="radiogroup"
@@ -790,7 +762,6 @@ function SpeedControl(props: {
           label={option.label}
           description={option.description}
           onPick={() => traits.changeSelect(speedSelect, option.id)}
-          focusRef={option.id === focusId ? props.focusRef : undefined}
         />
       ))}
     </div>
@@ -922,6 +893,5 @@ export function ComposerPickerFooter(props: {
   );
 }
 
-// BlueCode: the docked model card (bluecode/ModelCard.tsx) is built from the column's pieces.
-export { columnControls, COLUMN_LABEL, COLUMN_ROW, moveBetweenRows, splitSpeed, SpeedControl };
-export { OptionMenuRow, type TraitsSelection };
+// BlueCode: the docked model card (bluecode/ModelCard.tsx) builds its chips from the same split.
+export { columnControls, splitSpeed, type TraitsSelection };

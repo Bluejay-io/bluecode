@@ -214,4 +214,13 @@ it("opens permissions directly from the context strip and applies a supported mo
     .toHaveAttribute("aria-checked", "true");
   await userEvent.keyboard("{Escape}");
   await expect.element(trigger).toHaveFocus();
+
+  // BlueCode: the model picker holds no permissions, so composer.mode opens the strip's control.
+  expect(trigger.element().getAttribute("data-composer-shortcut")).toBe("composer.mode");
+  await userEvent.click(trigger);
+  await userEvent.click(page.getByRole("menuitemradio", { name: "Full access" }));
+  const fullAccess = screen.getByRole("button", { name: "Permissions: Full access" });
+  markOpenToPermissions(fullAccess.element() as HTMLElement);
+  await userEvent.click(fullAccess);
+  await expect.element(page.getByRole("menuitemradio", { name: "Full access" })).toHaveFocus();
 });

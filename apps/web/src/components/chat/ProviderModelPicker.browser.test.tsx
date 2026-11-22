@@ -99,10 +99,9 @@ it("keeps each registry image when adding a model from another ACP agent", async
   await vi.waitFor(() => expect(imageWidths()).toEqual([11, 17]));
 });
 
-// The reasoning section's shape: the slider takes the effort shortcut, the checked mode the
-// permissions one.
+// The settings section's shape: the selected level takes the effort shortcut.
 function StubSection(props: { levels: ReadonlyArray<string> }) {
-  const { effortFocusRef, permissionsFocusRef } = use(DockedPickerContext);
+  const { effortFocusRef } = use(DockedPickerContext);
   return (
     <>
       {props.levels.map((level, index, all) => (
@@ -116,9 +115,6 @@ function StubSection(props: { levels: ReadonlyArray<string> }) {
           {level}
         </button>
       ))}
-      <button ref={permissionsFocusRef} type="button" role="radio" aria-checked>
-        Supervised
-      </button>
     </>
   );
 }
@@ -233,15 +229,11 @@ it("shows a docked picker as one panel: search and tabs, the list, then the mode
   await expect.element(trigger).toHaveFocus();
   expect(composer.focusAtEnd).toHaveBeenCalledTimes(1);
 
-  // composer.effort opens the panel on the slider; composer.mode, pressed while it is open,
-  // moves to the checked mode. Both mark the trigger and click it.
+  // composer.effort marks the trigger and clicks it: the panel opens on the selected level.
   const triggerElement = trigger.element() as HTMLElement;
   triggerElement.dataset.openToEffort = "true";
   triggerElement.click();
   await expect.element(page.getByRole("radio", { name: "Medium" })).toHaveFocus();
-  triggerElement.dataset.openToPermissions = "true";
-  triggerElement.click();
-  await expect.element(page.getByRole("radio", { name: "Supervised" })).toHaveFocus();
 });
 
 it("lists a model reported twice by one provider once, with contiguous jump shortcuts", async () => {
@@ -352,6 +344,77 @@ it("opens on the active provider when every favorite belongs to a disabled provi
   );
   await screen.getByRole("button", { name: "Choose model" }).click();
   await expect.element(page.getByRole("option", { name: /Codex model/ })).toBeVisible();
+});
+
+it("opens a docked picker at the top, Favorites first, even when the selected model is further down", async () => {
+  const entries = deriveProviderInstanceEntries(
+    ["Codex", "Claude"].map((name) => ({
+      instanceId: ProviderInstanceId.make(name.toLowerCase()),
+      driver: ProviderDriverKind.make(name.toLowerCase()),
+      enabled: true,
+      installed: true,
+      version: null,
+      status: "ready" as const,
+      auth: { status: "authenticated" as const },
+      checkedAt: "2026-01-01T00:00:00.000Z",
+      models: [],
+      slashCommands: [],
+      skills: [],
+    })),
+  );
+  const [codex, claude] = entries;
+  const options = new Map([
+    [
+      codex!.instanceId,
+      Array.from({ length: 12 }, (_, index) => ({
+        slug: `gpt-${index}`,
+        name: `GPT ${index}`,
+      })),
+    ],
+    [claude!.instanceId, [{ slug: "opus", name: "Opus model" }]],
+  ]);
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    favorites: [{ provider: codex!.instanceId, model: "gpt-5" }],
+  });
+  using _settings = {
+    [Symbol.dispose]: () => __setClientSettingsForTests(DEFAULT_CLIENT_SETTINGS),
+  };
+
+  await using screen = await render(
+    <ProviderModelPicker
+      environmentId={null}
+      activeInstanceId={claude!.instanceId}
+      model="opus"
+      lockedProvider={null}
+      instanceEntries={entries}
+      modelOptionsByInstance={options}
+      triggerAriaLabel="Choose model"
+      onInstanceModelChange={() => {}}
+      keybindings={DEFAULT_RESOLVED_KEYBINDINGS}
+      effortColumn={<StubSection levels={[]} />}
+    />,
+  );
+  await screen.getByRole("button", { name: "Choose model" }).click();
+  const headings = () =>
+    Array.from(
+      document.querySelectorAll("[data-model-picker-content] [role=presentation]"),
+      (heading) => heading.textContent,
+    );
+  const favoritesHeading = page.getByRole("presentation").filter({ hasText: /^Favorites$/ });
+  const favoriteRow = page.getByRole("option", { name: /GPT 5/ }).first();
+
+  await expect
+    .poll(() =>
+      page
+        .getByRole("tab")
+        .elements()
+        .map((tab) => tab.ariaLabel ?? tab.textContent),
+    )
+    .toEqual(["All", "Favorites", "Codex", "Claude"]);
+  await vi.waitFor(() => expect(headings()).toEqual(["Favorites", "Codex", "Claude"]));
+  await expect.element(favoritesHeading).toBeInViewport({ ratio: 1 });
+  await expect.element(favoriteRow).toBeInViewport({ ratio: 1 });
 });
 
 it("keeps the touch keyboard down when the picker opens", async () => {

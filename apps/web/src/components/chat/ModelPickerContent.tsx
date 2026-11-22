@@ -269,14 +269,11 @@ function ModelPickerList({
   itemKeys,
   extraData,
   renderItem,
-  initialScrollIndex,
 }: {
   listRef: RefObject<LegendListRef | null>;
   itemKeys: ReadonlyArray<string>;
   extraData: unknown;
   renderItem: (props: { item: string; index: number }) => ReactNode;
-  /** Opens on the selected model's group instead of the top of the list. */
-  initialScrollIndex: number;
 }) {
   const [showTopScrollFade, setShowTopScrollFade] = useState(false);
   const [showBottomScrollFade, setShowBottomScrollFade] = useState(false);
@@ -303,9 +300,6 @@ function ModelPickerList({
           keyExtractor={(modelKey) => modelKey}
           renderItem={renderItem}
           estimatedItemSize={MODEL_LIST_ESTIMATED_ITEM_SIZE}
-          {...(initialScrollIndex > 0
-            ? { initialScrollIndex: { index: initialScrollIndex, viewPosition: 0 } }
-            : {})}
           drawDistance={480}
           recycleItems
           // BlueCode: the list spans the card's padding so group separators reach its edge.
@@ -726,13 +720,6 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
     ),
   ];
 
-  const [initialScrollIndex] = useState(() => {
-    const section = sections.find((candidate) =>
-      candidate.itemKeys.some((key) => modelKeyOfItem(key) === activeModelKey),
-    );
-    return section ? (displayIndexByKey.get(SECTION_HEADER_PREFIX + section.id) ?? 0) : 0;
-  });
-
   const shownInstanceIds = new Set<string>(sections.map((section) => section.id));
   const updateRequiredNotices = instanceEntries.flatMap((entry) => {
     const shown = isSearching
@@ -987,12 +974,11 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
             {props.renderSectionTabs?.(groupSections, activeFilter)}
 
             <ModelPickerList
-              // BlueCode: a new filter starts its list at the top.
+              // BlueCode: every list, and each new filter, starts at the top, so Favorites shows first.
               key={activeFilter ?? ""}
               listRef={modelListRef}
               itemKeys={displayKeys}
               extraData={modelListExtraData}
-              initialScrollIndex={activeFilter === null ? initialScrollIndex : 0}
               renderItem={({ item: key }) => {
                 const section = sectionByHeaderKey.get(key);
                 if (section) {

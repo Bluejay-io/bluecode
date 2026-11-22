@@ -3281,7 +3281,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           composerBlurFrameRef.current = null;
         }
         flushSync(() => setIsComposerFocused(true));
-        const shell = composerFormRef.current?.closest('[data-slot="composer-shell"]');
+        // BlueCode: the stack, so the new-thread strip above the shell is in reach too.
+        const shell =
+          composerFormRef.current?.closest("[data-chat-composer-stack]") ??
+          composerFormRef.current?.closest('[data-slot="composer-shell"]');
         const trigger = Array.from(
           shell?.querySelectorAll<HTMLButtonElement>(
             `button[data-composer-shortcut~="${command}"]:not(:disabled)`,
