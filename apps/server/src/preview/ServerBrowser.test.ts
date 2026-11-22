@@ -3252,7 +3252,12 @@ it.effect("a desktop tab reports the size the desktop draws after a resize", () 
         })
         .pipe(Effect.forkScoped);
       let keptEvent = yield* PubSub.take(events);
-      while (keptEvent.type !== "resized" || keptEvent.tabId !== tabId) {
+      // BlueCode: skip the agent's activity mark, as `resize` above does.
+      while (
+        keptEvent.type !== "resized" ||
+        keptEvent.tabId !== tabId ||
+        Manager.isMetadataOnlyEvent(keptEvent)
+      ) {
         keptEvent = yield* PubSub.take(events);
       }
       yield* TestClock.adjust("1 second");
@@ -3267,7 +3272,12 @@ it.effect("a desktop tab reports the size the desktop draws after a resize", () 
         })
         .pipe(Effect.exit, Effect.forkScoped);
       let undrawnEvent = yield* PubSub.take(events);
-      while (undrawnEvent.type !== "resized" || undrawnEvent.tabId !== tabId) {
+      // BlueCode: skip the agent's activity mark, as `resize` above does.
+      while (
+        undrawnEvent.type !== "resized" ||
+        undrawnEvent.tabId !== tabId ||
+        Manager.isMetadataOnlyEvent(undrawnEvent)
+      ) {
         undrawnEvent = yield* PubSub.take(events);
       }
       yield* TestClock.adjust("1 second");
@@ -3282,7 +3292,12 @@ it.effect("a desktop tab reports the size the desktop draws after a resize", () 
         })
         .pipe(Effect.exit, Effect.forkScoped);
       let retriedEvent = yield* PubSub.take(events);
-      while (retriedEvent.type !== "resized" || retriedEvent.tabId !== tabId) {
+      // BlueCode: skip the agent's activity mark, as `resize` above does.
+      while (
+        retriedEvent.type !== "resized" ||
+        retriedEvent.tabId !== tabId ||
+        Manager.isMetadataOnlyEvent(retriedEvent)
+      ) {
         retriedEvent = yield* PubSub.take(events);
       }
       yield* TestClock.adjust("1 second");
