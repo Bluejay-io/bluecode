@@ -8,8 +8,11 @@
   --popover-hover: oklch(0% 0 0 / 4%);
   --border-1: oklch(0% 0 0 / 8%);
   --border-2: oklch(0% 0 0 / 11%);
-  /* A third text step, mixed toward the frame like the first two. */
-  --muted-foreground-3: color-mix(in oklch, var(--contrast-foreground) 40%, var(--popover));
+  /* The third text step (counts, chevrons, placeholders) is the theme's muted text: any lighter
+     fell under 4.5:1. Size and weight carry the step. */
+  --muted-foreground-3: var(--contrast-muted-foreground);
+  /* Floating layers never drop below 96% fill, whatever the Appearance glass setting. */
+  --dense-glass-opacity: max(96%, var(--glass-opacity));
   --shadow-overlay:
     0 6px 18px oklch(0% 0 0 / 3%), 0 3px 9px oklch(0% 0 0 / 4%), 0 1px 1px oklch(0% 0 0 / 5%);
   --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
@@ -18,14 +21,44 @@
     --popover-hover: oklch(100% 0 0 / 6.5%);
     --border-1: oklch(100% 0 0 / 8%);
     --border-2: oklch(100% 0 0 / 12%);
-    --muted-foreground-3: color-mix(in oklch, var(--contrast-foreground) 45%, var(--popover));
     --shadow-overlay:
       0 3px 8px oklch(0% 0 0 / 13%), 0 2px 5px oklch(0% 0 0 / 13%), 0 1px 1px oklch(0% 0 0 / 13%);
   }
 }
 
-/* Surfaces: a half-pixel edge and a layered overlay shadow. The background stays the popover
-   token, translucent only as far as the Appearance glass setting asks. */
+/* Dense glass, the one surface every floating layer shares: menus, popovers, selects, the palette
+   and dialogs, toasts, the thread details card and composer drawers. The theme's popover colour at
+   --dense-glass-opacity over the glass blur, so text and icons hold their contrast over busy content
+   or a theme's background image at any glass setting. Opt in with `.dropdown-glass`, `.dialog-glass` or
+   `data-dense-glass`. Icons, placeholders and small labels on it take the theme's muted text
+   colour, the quietest step that keeps 4.5:1. */
+:is(
+  .dropdown-glass,
+  .dialog-glass,
+  [data-dense-glass],
+  [data-scroll-to-end],
+  [data-slot="toast-close"]
+) {
+  --contrast-icon-muted: var(--contrast-muted-foreground);
+  --contrast-placeholder: var(--contrast-muted-foreground);
+  --contrast-secondary-label: var(--contrast-muted-foreground);
+  background: color-mix(in srgb, var(--popover) var(--dense-glass-opacity), transparent);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+}
+
+/* The palette's metadata and trailing chevrons fade muted text to 70%, and its search icon to
+   80%, both under 4.5:1. */
+:is(.dropdown-glass, .dialog-glass, [data-dense-glass]) {
+  & .text-muted-foreground\/70 {
+    color: var(--contrast-muted-foreground);
+  }
+  & [data-slot="autocomplete-start-addon"] {
+    opacity: 1;
+  }
+}
+
+/* Surfaces: a half-pixel edge and a layered overlay shadow. */
 :is(
   [data-slot="menu-popup"],
   [data-slot="menu-sub-content"],

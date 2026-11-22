@@ -34,7 +34,8 @@ export interface PullRequestStatePresentation {
 export const PULL_REQUEST_STATE_PRESENTATION = {
   open: {
     label: msg("Open", { $context: "pull request state" }),
-    toneClassName: "text-emerald-600 dark:text-emerald-300/90",
+    // BlueCode: emerald-700 in light; 600 read at 3.5:1.
+    toneClassName: "text-emerald-700 dark:text-emerald-300/90",
     Icon: PullRequestGlyph.pullRequest,
   },
   draft: {

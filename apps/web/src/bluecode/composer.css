@@ -157,3 +157,27 @@
   --chat-composer-outline-top: color-mix(in oklab, var(--border-2) 55%, transparent);
   --chat-composer-outline: color-mix(in oklab, var(--border-1) 55%, transparent);
 }
+
+/* Drawers and notices are floating layers, so they take the dense glass fill and text tokens
+   (menus.css), and so does the card while one is attached: the stack reads as one surface at any
+   glass setting. The drawers' masked bottoms keep the seams from painting it twice. */
+[data-composer-banner-surface] {
+  --contrast-icon-muted: var(--contrast-muted-foreground);
+  --contrast-placeholder: var(--contrast-muted-foreground);
+  --contrast-secondary-label: var(--contrast-muted-foreground);
+}
+[data-composer-banner-surface]::before {
+  background-color: color-mix(
+    in srgb,
+    var(--chat-composer-attached-surface) var(--dense-glass-opacity),
+    transparent
+  );
+}
+[data-slot="composer-shell"]:has([data-composer-banner-surface="attached"])
+  [data-chat-composer-main-surface] {
+  background-color: color-mix(
+    in srgb,
+    var(--chat-composer-glass-surface) var(--dense-glass-opacity),
+    transparent
+  );
+}
