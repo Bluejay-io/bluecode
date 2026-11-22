@@ -213,9 +213,6 @@ function ChoiceItems(props: { chip: Extract<Chip, { kind: "choice" }>; traits: T
   );
 }
 
-/** The chip menus share the picker's dense glass and count as the composer's floating layer. */
-const CHIP_MENU = { "data-dense-glass": true, ...composerFloatingLayerProps } as const;
-
 /** The "⋯" chip's index in ChipOwner. */
 const MORE = -1;
 
@@ -283,7 +280,14 @@ function ChipControl({
       >
         <ChipFace chip={chip} />
       </MenuTrigger>
-      <MenuPopup ref={popupRef} side="top" align="start" sideOffset={6} {...CHIP_MENU} {...owner}>
+      <MenuPopup
+        ref={popupRef}
+        side="top"
+        align="start"
+        sideOffset={6}
+        {...composerFloatingLayerProps}
+        {...owner}
+      >
         <ChoiceItems chip={chip} traits={props.traits} />
       </MenuPopup>
     </Menu>
@@ -317,7 +321,7 @@ function MoreChips({
       >
         <EllipsisIcon aria-hidden="true" className="size-3.5" />
       </MenuTrigger>
-      <MenuPopup side="top" align="end" sideOffset={6} {...CHIP_MENU} {...owner}>
+      <MenuPopup side="top" align="end" sideOffset={6} {...composerFloatingLayerProps} {...owner}>
         {props.chips.map((chip) =>
           chip.kind === "toggle" ? (
             <MenuCheckboxItem
@@ -336,7 +340,7 @@ function MoreChips({
                   {chip.valueLabel}
                 </span>
               </MenuSubTrigger>
-              <MenuSubPopup {...CHIP_MENU} {...owner}>
+              <MenuSubPopup {...composerFloatingLayerProps} {...owner}>
                 <ChoiceItems chip={chip} traits={props.traits} />
               </MenuSubPopup>
             </MenuSub>

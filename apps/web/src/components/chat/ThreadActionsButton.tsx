@@ -99,7 +99,7 @@ export function ThreadActionsButton(props: {
             <T>Thread actions</T>
           </TooltipPopup>
         </Tooltip>
-        <MenuPopup align="end" side="bottom" data-dense-glass>
+        <MenuPopup align="end" side="bottom">
           {menu ? <ThreadActionsMenuItems items={menu.items} onSelect={settle} /> : null}
         </MenuPopup>
       </Menu>

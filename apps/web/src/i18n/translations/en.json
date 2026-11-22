@@ -7486,7 +7486,7 @@
   "9d49e865858d0305": "Adjust the contrast of colors and borders across the interface.",
   "199811de07f00b73": "Reset contrast to default",
   "b5f33a40e3a8d9a0": "Contrast",
-  "a8d9c2eb3f846828": "Higher values make the composer more solid. Menus and dialogs always stay nearly opaque.",
+  "c05b2ac13a3ec7a0": "Higher values make menus, dialogs, and the composer more solid.",
   "a6c98b12b16f01a7": "Reset glass opacity to default",
   "8d7f3714a5b7e094": "Glass opacity",
   "03338c6aec8edacd": "Set how wide messages and the composer can grow on large screens.",

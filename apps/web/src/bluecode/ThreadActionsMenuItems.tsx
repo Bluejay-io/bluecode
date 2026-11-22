@@ -67,7 +67,6 @@ type Item = ContextMenuItem<ThreadActionMenuId>;
 
 /**
  * The thread actions list drawn with the app's menu, row for row as the native menu shows it.
- * Submenus take the popup's dense glass too.
  */
 export function ThreadActionsMenuItems(props: {
   readonly items: ReadonlyArray<Item>;
@@ -86,7 +85,7 @@ export function ThreadActionsMenuItems(props: {
             {Icon ? <Icon /> : null}
             <MenuItemLabel>{item.label}</MenuItemLabel>
           </MenuSubTrigger>
-          <MenuSubPopup data-dense-glass>
+          <MenuSubPopup>
             {isRadio ? (
               <MenuRadioGroup value={checked?.id ?? null}>
                 {children.map((child) => (

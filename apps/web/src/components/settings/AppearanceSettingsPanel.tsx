@@ -218,10 +218,7 @@ export function AppearanceSettingsPanel() {
 
         <SettingsRow
           {...searchableSetting("setting-glass-opacity")}
-          // BlueCode: menus and dialogs hold a 96% floor (bluecode/menus.css).
-          description={gt(
-            "Higher values make the composer more solid. Menus and dialogs always stay nearly opaque.",
-          )}
+          description={gt("Higher values make menus, dialogs, and the composer more solid.")}
           resetAction={
             settings.glassOpacity !== DEFAULT_UNIFIED_SETTINGS.glassOpacity ? (
               <SettingResetButton

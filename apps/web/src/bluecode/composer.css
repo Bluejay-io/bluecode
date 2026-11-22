@@ -158,9 +158,9 @@
   --chat-composer-outline: color-mix(in oklab, var(--border-1) 55%, transparent);
 }
 
-/* Drawers and notices are floating layers, so they take the dense glass fill and text tokens
-   (menus.css), and so does the card while one is attached: the stack reads as one surface at any
-   glass setting. The drawers' masked bottoms keep the seams from painting it twice. */
+/* Drawers and notices take the floating glass text tokens (menus.css). While one is attached the
+   card repaints its fill here too, so the stack reads as one surface at any glass setting; the
+   drawers' masked bottoms keep the seams from painting it twice. */
 [data-composer-banner-surface] {
   --contrast-icon-muted: var(--contrast-muted-foreground);
   --contrast-placeholder: var(--contrast-muted-foreground);
@@ -169,14 +169,14 @@
 [data-composer-banner-surface]::before {
   background-color: color-mix(
     in srgb,
-    var(--chat-composer-attached-surface) var(--dense-glass-opacity),
+    var(--chat-composer-attached-surface) var(--glass-opacity),
     transparent
   );
-  /* As in menus.css: a theme colour's own alpha must not undercut the floor. */
+  /* As in menus.css: only the glass setting thins the fill, not a theme colour's own alpha. */
   @supports (color: rgb(from red r g b)) {
     background-color: color-mix(
       in srgb,
-      rgb(from var(--chat-composer-attached-surface) r g b / 1) var(--dense-glass-opacity),
+      rgb(from var(--chat-composer-attached-surface) r g b / 1) var(--glass-opacity),
       transparent
     );
   }
@@ -185,13 +185,13 @@
   [data-chat-composer-main-surface] {
   background-color: color-mix(
     in srgb,
-    var(--chat-composer-glass-surface) var(--dense-glass-opacity),
+    var(--chat-composer-glass-surface) var(--glass-opacity),
     transparent
   );
   @supports (color: rgb(from red r g b)) {
     background-color: color-mix(
       in srgb,
-      rgb(from var(--chat-composer-glass-surface) r g b / 1) var(--dense-glass-opacity),
+      rgb(from var(--chat-composer-glass-surface) r g b / 1) var(--glass-opacity),
       transparent
     );
   }

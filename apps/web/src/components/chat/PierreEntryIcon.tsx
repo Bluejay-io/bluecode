@@ -4,7 +4,7 @@ import { memo } from "react";
 import { ensurePierreIconSprite, resolvePierreIconForEntry } from "../../pierre-icons";
 import { cn } from "~/lib/utils";
 
-// BlueCode: light colours darkened (and git's pair swapped) to hold 3:1 on a 96% glass popover.
+// BlueCode: light colours darkened (and git's pair swapped) to hold 3:1 on a glass popover.
 const ICON_COLORS: Record<string, readonly [light: string, dark: string]> = {
   astro: ["#a631be", "#d568ea"],
   babel: ["#a98400", "#ffd452"],

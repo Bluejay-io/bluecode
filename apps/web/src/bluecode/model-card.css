@@ -3,3 +3,9 @@
 [data-model-picker-card] {
   --model-card-accent: color-mix(in oklab, var(--primary) 86%, var(--foreground));
 }
+
+/* The shared floating glass (menus.css) on a denser fill: the panel is a tall list of names, and at
+   the menus' fill it read as tinted. The Appearance glass setting still thins it toward 72%. */
+.dropdown-glass[data-model-picker-card] {
+  --glass-surface-opacity: calc(72% + var(--glass-opacity) * 0.28);
+}

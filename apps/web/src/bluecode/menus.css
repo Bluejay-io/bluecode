@@ -11,8 +11,12 @@
   /* The third text step (counts, chevrons, placeholders) is the theme's muted text: any lighter
      fell under 4.5:1. Size and weight carry the step. */
   --muted-foreground-3: var(--contrast-muted-foreground);
-  /* Floating layers never drop below 96% fill, whatever the Appearance glass setting. */
-  --dense-glass-opacity: max(96%, var(--glass-opacity));
+  /* Vibrancy for floating glass: a wide blur turns what is behind into colour, then the backdrop's
+     range is squeezed toward the surface tone so no light or dark patch can undercut the text.
+     Tuned by sampling text contrast over high-contrast content at 40% and 80% glass. The blur
+     scales --glass-blur, so it is 0 at 100% glass. */
+  --glass-vibrancy-blur: calc(var(--glass-blur) * 2.5);
+  --glass-vibrancy: saturate(1.8) contrast(0.3) brightness(1.55);
   --shadow-overlay:
     0 6px 18px oklch(0% 0 0 / 3%), 0 3px 9px oklch(0% 0 0 / 4%), 0 1px 1px oklch(0% 0 0 / 5%);
   --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
@@ -21,35 +25,37 @@
     --popover-hover: oklch(100% 0 0 / 6.5%);
     --border-1: oklch(100% 0 0 / 8%);
     --border-2: oklch(100% 0 0 / 12%);
+    --glass-vibrancy: saturate(1.6) contrast(0.8) brightness(0.55);
     --shadow-overlay:
       0 3px 8px oklch(0% 0 0 / 13%), 0 2px 5px oklch(0% 0 0 / 13%), 0 1px 1px oklch(0% 0 0 / 13%);
   }
 }
 
-/* Dense glass, the one surface every floating layer shares: menus, popovers, selects, the palette
-   and dialogs, toasts, the thread details card and composer drawers. The theme's popover colour at
-   --dense-glass-opacity over the glass blur, so text and icons hold their contrast over busy content
-   or a theme's background image at any glass setting. Opt in with `.dropdown-glass`, `.dialog-glass` or
-   `data-dense-glass`. Icons, placeholders and small labels on it take the theme's muted text
-   colour, the quietest step that keeps 4.5:1. */
-:is(
-  .dropdown-glass,
-  .dialog-glass,
-  [data-dense-glass],
-  [data-scroll-to-end],
-  [data-slot="toast-close"]
-) {
+/* Floating glass, the one surface every floating layer shares: menus, popovers, selects, the
+   palette and dialogs, toasts, the thread details card and the scroll-to-end pill. The fill follows
+   the Appearance glass setting as index.css's glass utilities do, opaque at 100%, and the vibrancy
+   backdrop keeps text legible below that. Icons, placeholders and small labels on it take the
+   theme's muted text colour, the quietest step that keeps 4.5:1. */
+:is(.dropdown-glass, [data-slot="toast-close"]) {
+  --glass-surface: var(--popover);
+  --glass-surface-opacity: calc(18% + var(--glass-opacity) * 0.82);
+}
+:is(.dialog-glass, [data-scroll-to-end]) {
+  --glass-surface: var(--background);
+  --glass-surface-opacity: var(--glass-opacity);
+}
+:is(.dropdown-glass, .dialog-glass, [data-scroll-to-end], [data-slot="toast-close"]) {
   --contrast-icon-muted: var(--contrast-muted-foreground);
   --contrast-placeholder: var(--contrast-muted-foreground);
   --contrast-secondary-label: var(--contrast-muted-foreground);
-  background: color-mix(in srgb, var(--popover) var(--dense-glass-opacity), transparent);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  /* A custom theme can give its popover colour its own alpha; drop it so the floor still holds. */
+  background: color-mix(in srgb, var(--glass-surface) var(--glass-surface-opacity), transparent);
+  -webkit-backdrop-filter: blur(var(--glass-vibrancy-blur)) var(--glass-vibrancy);
+  backdrop-filter: blur(var(--glass-vibrancy-blur)) var(--glass-vibrancy);
+  /* A custom theme can give its surface colour its own alpha; drop it so only the setting thins it. */
   @supports (color: rgb(from red r g b)) {
     background: color-mix(
       in srgb,
-      rgb(from var(--popover) r g b / 1) var(--dense-glass-opacity),
+      rgb(from var(--glass-surface) r g b / 1) var(--glass-surface-opacity),
       transparent
     );
   }
@@ -57,7 +63,7 @@
 
 /* The palette's metadata and trailing chevrons fade muted text to 70%, and its search icon to
    80%, both under 4.5:1. */
-:is(.dropdown-glass, .dialog-glass, [data-dense-glass]) {
+:is(.dropdown-glass, .dialog-glass) {
   & .text-muted-foreground\/70 {
     color: var(--contrast-muted-foreground);
   }
