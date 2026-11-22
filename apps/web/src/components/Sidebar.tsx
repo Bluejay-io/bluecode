@@ -264,6 +264,7 @@ import {
   SidebarChromeHeader,
   useEnvironmentPillLabel,
 } from "./sidebar/SidebarChrome";
+import { returnToChatTab } from "~/bluecode/returnToChatTab";
 import { SidebarEmptyState } from "~/bluecode/SidebarEmptyState";
 import {
   SidebarHeaderActions,
@@ -1478,6 +1479,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     if (isMobile) {
       setOpenMobile(false);
     }
+    // BlueCode: the open thread's row brings its chat back from behind a full-width tab.
+    if (readRouteThreadKey(router) === scopedThreadKey(threadRef)) returnToChatTab(threadRef);
     return router.navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(threadRef),

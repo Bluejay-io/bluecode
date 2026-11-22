@@ -55,14 +55,24 @@ if (composerPanelsHarness) {
   );
 }
 
+// BlueCode: a dev-only gallery of agent state indicators; see bluecode/dev.
+const agentStatesGallery =
+  import.meta.env.DEV && window.location.pathname === "/__bluecode/agent-states";
+if (agentStatesGallery) {
+  void import("./bluecode/dev/AgentStatesGallery").then((module) =>
+    module.mountAgentStatesGallery(),
+  );
+}
+const devHarness = composerPanelsHarness || agentStatesGallery;
+
 export const startup = Promise.all([
   managedAuthShellModule?.then((module) => module.default) ?? null,
   // Chained so settings have usually hydrated; English resolves without a chunk load.
-  composerPanelsHarness ? null : router.load().then(whenLocaleReady),
+  devHarness ? null : router.load().then(whenLocaleReady),
 ])
   .then(([ManagedAuthShell]) => {
     // Route chunk failures resolve router.load() and surface later through the error boundary.
-    if (reloadScheduled || composerPanelsHarness) return;
+    if (reloadScheduled || devHarness) return;
     ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <React.StrictMode>
         {ManagedAuthShell && clerkPublishableKey ? (

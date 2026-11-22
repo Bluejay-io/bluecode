@@ -4407,7 +4407,7 @@ export default function ChatView(props: ChatViewProps) {
                 chatTab: {
                   title: activeThread?.title || gt("Chat"),
                   active: chatShownInPanel,
-                  working: isWorking && !chatShownInPanel,
+                  threadRef: activeThreadRef,
                   onActivate: showChatTab,
                   onRename: isServerThread ? () => setThreadRenameOpen(true) : undefined,
                 },

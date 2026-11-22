@@ -1,0 +1,147 @@
+/* AgentStateIndicator. Busy states (starting, working, waiting) are a core inside a ring; the arc
+   turns while working, moving transform only, paused off screen by observeVisibleAnimation.
+   States that need the user, and an unread finished turn, hold still: a filled disc in the
+   state's colour with an icon cut out of it. */
+
+/* Unread is a message dot: a fixed blue, since some themes make --primary near black. */
+:root {
+  --agent-unread: oklch(62.3% 0.214 259.815);
+}
+.dark {
+  --agent-unread: oklch(70.7% 0.165 254.624);
+}
+
+/* Callers resize with --agent-size; a default here would outrank their utility class. */
+[data-agent-state] {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--agent-size, 0.75rem);
+  height: var(--agent-size, 0.75rem);
+  color: var(--agent-tone, currentColor);
+
+  & > i {
+    display: block;
+    width: 42%;
+    height: 42%;
+    border-radius: 999px;
+    background: currentColor;
+  }
+}
+
+/* Starting and working take the surrounding text colour: motion, not colour, says busy. */
+[data-agent-state="waiting"] {
+  --agent-tone: var(--muted-foreground);
+}
+[data-agent-state="approval"],
+[data-agent-state="limited"],
+[data-agent-state="woke"] {
+  --agent-tone: var(--warning-foreground);
+}
+[data-agent-state="input"] {
+  --agent-tone: oklch(51.1% 0.262 276.966);
+}
+.dark [data-agent-state="input"] {
+  --agent-tone: oklch(78.5% 0.115 274.713);
+}
+[data-agent-state="request"] {
+  --agent-tone: var(--guest-foreground);
+}
+[data-agent-state="failed"] {
+  --agent-tone: var(--error-foreground);
+}
+[data-agent-state="unread"] {
+  --agent-tone: var(--agent-unread);
+}
+
+:is([data-agent-ring], [data-agent-badge]) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+[data-agent-ring] {
+  transform-origin: center;
+
+  & circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+  & [data-track] {
+    stroke-opacity: 0.2;
+  }
+  & [data-arc] {
+    stroke-linecap: round;
+    stroke-dasharray: 28 72;
+    stroke-opacity: 0;
+  }
+}
+
+[data-agent-state="working"] [data-agent-ring] {
+  animation: agent-spin 0.9s linear infinite;
+  animation-play-state: var(--visible-animation-state, paused);
+  will-change: var(--visible-animation-will-change, auto);
+
+  & [data-arc] {
+    stroke-opacity: 1;
+  }
+}
+
+[data-agent-state="starting"] {
+  & [data-agent-ring] {
+    animation: agent-spin 3s linear infinite;
+    animation-play-state: var(--visible-animation-state, paused);
+    will-change: var(--visible-animation-will-change, auto);
+  }
+  & [data-track] {
+    stroke-dasharray: 1.6 2.4;
+    stroke-opacity: 0.7;
+  }
+  & > i {
+    opacity: 0.45;
+  }
+}
+
+[data-agent-state="waiting"] {
+  & [data-arc] {
+    stroke-opacity: 1;
+    stroke-dasharray: 50 50;
+  }
+  & > i {
+    opacity: 0.45;
+  }
+}
+
+/* The icon is cut out in the page colour, so it holds contrast on light and dark discs. */
+[data-agent-badge] {
+  & [data-halo] {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 0.8;
+    stroke-opacity: 0.35;
+  }
+  & [data-disc] {
+    fill: currentColor;
+  }
+  & [data-glyph] {
+    fill: none;
+    stroke: var(--background);
+    stroke-width: 1.15;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  & [data-dot] {
+    fill: var(--background);
+    stroke: none;
+  }
+}
+
+@keyframes agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
