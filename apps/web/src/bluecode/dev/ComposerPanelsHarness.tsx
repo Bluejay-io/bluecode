@@ -230,7 +230,7 @@ function Footer(props: { modeOptions: RuntimeModeOption[]; state: "empty" | "tex
       className="flex min-w-0 flex-nowrap items-center overflow-visible px-2 pb-2"
     >
       <div className="me-2">
-        <ComposerAttachButton addComposerAttachments={async () => false} focusComposer={noop} />
+        <ComposerAttachButton onOpenPicker={noop} />
       </div>
       <div
         data-chat-composer-actions="right"

@@ -17,6 +17,10 @@
       "vite": { "entry": [".github/**/*.test.cjs"] },
       "vitest": { "entry": [".github/**/*.test.cjs"] },
     },
+    "evals": {
+      // The grader loads these answers by path, as the server loads a definitions file.
+      "entry": ["workflow-authoring/fixtures/*.ts"],
+    },
     "scripts": {
       // Knip loads its preprocessor through a CLI option; native verification and
       // worktree setup (from t3.json) run directly. release-desktop.yml bundles the
@@ -112,6 +116,8 @@
       "ignoreIssues": {
         "src/components/ui/*.tsx": ["exports", "nsExports", "duplicates"],
         "src/bluecode/icons/lucide-react.ts": ["exports", "duplicates"],
+        // BlueCode: live rows carry no icons, so nothing renders upstream's provider logo.
+        "src/components/chat/ProviderStartingIcon.tsx": ["files"],
       },
     },
     "apps/marketing": {
