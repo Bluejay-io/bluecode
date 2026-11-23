@@ -129,6 +129,8 @@ export const T3_CLI_COMMANDS: ReadonlyArray<string> = [
   "t3 help",
   "t3 serve",
   "t3 app",
+  // BlueCode: the fork's own import command.
+  "t3 import-t3-code",
   "t3 pair",
   "t3 auth",
   "t3 auth connect-device",
