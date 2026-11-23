@@ -8,7 +8,7 @@ import {
   previewStreamDownloadUrl,
   type PreviewStreamControl,
 } from "@t3tools/client-runtime/preview/server-browser-stream";
-import { BrowserControlButton } from "~/bluecode/browser/BrowserControlButton";
+import { BrowserControlPill } from "~/bluecode/browser/BrowserControlPill";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -109,8 +109,6 @@ import { useBrowserSurfaceStore } from "~/browser/browserSurfaceStore";
 import { usePreviewSession } from "./usePreviewSession";
 import { ZoomIndicator } from "./ZoomIndicator";
 import { AgentBrowserCursor } from "./AgentBrowserCursor";
-import { useAgentDriving } from "~/bluecode/agentBrowserActivity";
-import { AgentDrivingFrame } from "~/bluecode/AgentDrivingBadge";
 import { PreviewFindBar } from "./PreviewFindBar";
 import {
   findActiveBrowserRecordingRuntimeTabId,
@@ -235,8 +233,6 @@ export function PreviewView({
         : findActiveBrowserRecordingRuntimeTabId(threadRef, tabId)
       : null;
   const snapshot = tabId ? (previewState.sessions[tabId] ?? null) : null;
-  // BlueCode: the page an agent drives gets an accent frame.
-  const agentDriving = useAgentDriving(threadRef.environmentId, previewState.sessions);
   const nativeServerTab = useRendersServerTabNatively(threadRef.environmentId, snapshot);
   const isServerTab = snapshot?.runtime === "server" && !nativeServerTab;
   const serverOwnsRendering = snapshot?.runtime === "server";
@@ -1082,12 +1078,6 @@ export function PreviewView({
         }
         trailingActions={
           <>
-            {isServerTab && serverControl.tabId === runtimeTabId ? (
-              <BrowserControlButton
-                control={serverControl.control}
-                onChange={(take) => serverSurfaceRef.current?.setControl(take)}
-              />
-            ) : null}
             {moreMenuActions ? (
               <PreviewMoreMenu
                 enabled={
@@ -1211,8 +1201,15 @@ export function PreviewView({
             controller={controller}
           />
         ) : null}
-        {snapshot && !showEmptyState ? (
-          <AgentDrivingFrame active={agentDriving !== null && agentDriving.tabId === tabId} />
+        {/* BlueCode: who drives a streamed page floats over its bottom edge. */}
+        {isServerTab &&
+        serverControl.tabId === runtimeTabId &&
+        !showEmptyState &&
+        !isUnreachable ? (
+          <BrowserControlPill
+            control={serverControl.control}
+            onChange={(take) => serverSurfaceRef.current?.setControl(take)}
+          />
         ) : null}
         {find && canFindInPage && find.tabId === runtimeTabId ? (
           <PreviewFindBar

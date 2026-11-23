@@ -1,59 +1,101 @@
-/* While an agent drives a browser tab: a ring turns around the provider logo (AgentDrivingBadge,
-   paused off screen by `visible-animate-spin`), and the page gets a static accent frame. */
+/* While an agent drives a browser tab, its chip or panel tab has a light circling the border
+   (AgentOrbit). */
 
-/* One 18px box: the ring fills it and the logo is centred in it. Sized here, not with classes,
-   because the toggle and tab slot size and offset every svg inside them (`[&_svg]:-mx-0.5`). */
-[data-agent-driving-badge] {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 1.125rem;
-  height: 1.125rem;
+/* Only the light's transform animates, stepped to 30fps and paused off screen, in hidden windows
+   and for reduced motion (observeVisibleAnimation), so the page never repaints for it. The mask
+   cuts the 1px border ring out of the rotating layer, leaving the chip see-through on glass. */
+[data-agent-orbit] {
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
 }
-[data-agent-logo] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 0.75rem;
-  height: 0.75rem;
-
-  & :is(svg, img) {
-    width: 0.75rem;
-    height: 0.75rem;
-    margin: 0;
+[data-agent-orbit][data-inside] {
+  inset: 0;
+}
+[data-agent-orbit-light] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* The chip's diagonal is under width + height, so the square covers it at every angle. */
+  width: calc(100% + 2rem);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(transparent 0 68%, var(--primary) 90%, transparent);
+  animation: agent-orbit 3.2s steps(96) infinite;
+  animation-play-state: var(--visible-animation-state, paused);
+  will-change: var(--visible-animation-will-change, auto);
+}
+@keyframes agent-orbit {
+  to {
+    transform: rotate(1turn);
   }
 }
-[data-agent-ring] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  pointer-events: none;
-  transform-origin: center;
-  transform-box: border-box;
-}
-
-[data-agent-frame] {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 200ms ease-out;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklch, var(--primary) 55%, transparent),
-    inset 0 0 24px color-mix(in oklch, var(--primary) 18%, transparent);
-}
-
-[data-agent-frame][data-active] {
-  opacity: 1;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  [data-agent-ring-arc] {
-    stroke-dasharray: none;
+  [data-agent-orbit-light] {
+    display: none;
+  }
+  [data-agent-tab-chip] {
+    border-color: color-mix(in oklch, var(--primary) 55%, var(--border));
+  }
+}
+
+/* Who drives a streamed page (BrowserControlPill): dark in both themes so it reads over any page,
+   like a screen-share bar. */
+[data-browser-control-pill] {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  height: 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  translate: -50% 0;
+  border-radius: 9999px;
+  background: rgb(23 23 23 / 0.9);
+  color: #fff;
+  font-size: var(--text-sm);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 10px 15px -3px rgb(0 0 0 / 0.25);
+  backdrop-filter: blur(12px);
+
+  & [role="status"] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.25rem 0 0.625rem;
+    white-space: nowrap;
+  }
+  & button {
+    height: 2rem;
+    padding: 0 0.875rem;
+    border-radius: 9999px;
+    background: #fff;
+    color: rgb(23 23 23);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  & button:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+  & button:hover {
+    background: rgb(255 255 255 / 0.9);
+  }
+  & button[data-yours] {
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+  }
+  & button[data-yours]:hover {
+    background: rgb(255 255 255 / 0.2);
   }
 }

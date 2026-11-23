@@ -3,12 +3,7 @@ import {
   threadRuntimeIsActive,
   type EnvironmentThreadShell,
 } from "@t3tools/client-runtime/state/shell";
-import {
-  ProviderInstanceId,
-  ThreadId,
-  type EnvironmentId,
-  type PreviewSessionSnapshot,
-} from "@t3tools/contracts";
+import { ThreadId, type EnvironmentId, type PreviewSessionSnapshot } from "@t3tools/contracts";
 
 import { type DesktopPreviewOverlay, useThreadPreviewState } from "~/previewStateStore";
 import { useQuietThreadShell } from "~/state/entities";
@@ -47,15 +42,13 @@ export function agentDrivenPreviewTabId(
 export interface AgentDriving {
   readonly tabId: string;
   readonly environmentId: EnvironmentId;
-  readonly providerInstanceId: ProviderInstanceId;
 }
 
 // DEV only: `?agentDriving` forces the newest browser tab to read as driven, for visual checks
-// without a real agent; `?agentDriving=<provider instance id>` also picks the logo.
-const forcedDriving: { readonly instanceId: string } | null = (() => {
-  if (!import.meta.env.DEV || typeof window === "undefined") return null;
-  const value = new URLSearchParams(window.location.search).get("agentDriving");
-  return value === null ? null : { instanceId: value };
+// without a real agent.
+const forceDriving = (() => {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).has("agentDriving");
 })();
 
 /** A thread's preview sessions all share its id, so the sessions name the thread to watch. */
@@ -65,7 +58,7 @@ export function useAgentDriving(
 ): AgentDriving | null {
   let agentSession: PreviewSessionSnapshot | undefined;
   for (const session of Object.values(sessions)) {
-    if (session.agentActiveAt !== undefined || forcedDriving !== null) agentSession = session;
+    if (session.agentActiveAt !== undefined || forceDriving) agentSession = session;
   }
   const threadRef =
     environmentId === null || agentSession === undefined
@@ -73,22 +66,10 @@ export function useAgentDriving(
       : scopeThreadRef(environmentId, ThreadId.make(agentSession.threadId));
   const shell = useQuietThreadShell(threadRef);
   const { desktopByTabId } = useThreadPreviewState(threadRef);
-  let tabId: string | null = null;
-  let providerInstanceId: ProviderInstanceId | null = null;
-  if (shell !== null) {
-    const current = shell.runtime?.providerInstanceId ?? shell.modelSelection.instanceId;
-    if (forcedDriving !== null && agentSession !== undefined) {
-      tabId = agentSession.tabId;
-      providerInstanceId =
-        forcedDriving.instanceId === ""
-          ? current
-          : ProviderInstanceId.make(forcedDriving.instanceId);
-    } else {
-      tabId = agentDrivenPreviewTabId(sessions, shell, desktopByTabId);
-      providerInstanceId = current;
-    }
-  }
-  return environmentId === null || tabId === null || providerInstanceId === null
-    ? null
-    : { tabId, environmentId, providerInstanceId };
+  if (environmentId === null || shell === null) return null;
+  const tabId =
+    forceDriving && agentSession !== undefined
+      ? agentSession.tabId
+      : agentDrivenPreviewTabId(sessions, shell, desktopByTabId);
+  return tabId === null ? null : { tabId, environmentId };
 }
