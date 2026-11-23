@@ -330,6 +330,7 @@ import {
 import { useAgentDriving } from "~/bluecode/agentBrowserActivity";
 import { useAgentBrowserScreen } from "~/bluecode/agentTakeoverPanel";
 import { AddSurfaceMenu } from "~/bluecode/AddSurfaceMenu";
+import { AgentTabChip } from "~/bluecode/AgentTabChip";
 import { panelToggleOpensMenu } from "~/bluecode/AddSurfaceMenu.logic";
 import {
   PANEL_LAYOUT_STORAGE_KEY,
@@ -1189,11 +1190,14 @@ export default function ChatView(props: ChatViewProps) {
     selectActiveRightPanelSurface(state.byThreadKey, activeThreadRef),
   );
   const activePreviewState = useThreadPreviewState(activeThreadRef);
-  // BlueCode: the right panel toggle shows the agent driving a browser tab behind it.
+  // BlueCode: a button beside thread details opens the browser tab an agent drives behind the chat.
   const agentDriving = useAgentDriving(
     activeThreadRef?.environmentId ?? null,
     activePreviewState.sessions,
   );
+  const agentDrivenSession = agentDriving
+    ? activePreviewState.sessions[agentDriving.tabId]
+    : undefined;
   const activePreviewServerEpoch = activePreviewState.serverEpoch;
   const resolvePreviewRuntimeTabId = activeThreadRef
     ? (tabId: string) => previewRuntimeTabId(activeThreadRef, activePreviewServerEpoch, tabId)
@@ -3639,7 +3643,6 @@ export default function ChatView(props: ChatViewProps) {
     // BlueCode: pressed while the panel shows, the full-width chat tab included.
     rightPanelOpen: panelShown,
     rightPanelShortcutLabel: shortcutLabelForCommand(keybindings, "rightPanel.toggle"),
-    agentDriving,
     // BlueCode: the same surfaces, availability and handlers as the panel's + menu below.
     rightPanelMenu: surfaceMenuOnToggle
       ? (trigger) => (
@@ -3678,6 +3681,10 @@ export default function ChatView(props: ChatViewProps) {
   // no chat header, they join the window's controls in the tab row.
   const chatControls = (
     <div className="flex h-full shrink-0 items-center gap-1 [-webkit-app-region:no-drag]">
+      {/* BlueCode: the agent's tab chip, beside thread details while the panel is shut. */}
+      {agentDriving && agentDrivenSession && !panelShown ? (
+        <AgentTabChip session={agentDrivenSession} driving={agentDriving} noDrag />
+      ) : null}
       <PanelLayoutControls
         {...panelToggleControlProps}
         showTerminalControl={false}

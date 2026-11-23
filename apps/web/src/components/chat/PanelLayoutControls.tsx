@@ -8,8 +8,6 @@ import {
 import { useGT } from "gt-react";
 import { memo, type ReactElement, type ReactNode, useLayoutEffect, useRef } from "react";
 
-import type { AgentDriving } from "~/bluecode/agentBrowserActivity";
-import { AgentDrivingBadge } from "~/bluecode/AgentDrivingBadge";
 import { cn } from "~/lib/utils";
 
 import type { ThreadPanelPresentation } from "../../rightPanelLayout";
@@ -36,8 +34,6 @@ export interface PanelLayoutControlsProps {
   rightPanelOpen: boolean;
   rightPanelShortcutLabel: string | null;
   rightPanelUnavailableLabel?: string;
-  /** BlueCode: the agent driving a browser tab, shown on the toggle while the panel is shut. */
-  agentDriving?: AgentDriving | null;
   /** BlueCode: wraps the right panel toggle as a menu's trigger, replacing its toggle action. */
   rightPanelMenu?: ((trigger: ReactElement) => ReactNode) | undefined;
   onToggleTerminal: () => void;
@@ -60,7 +56,6 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
   rightPanelOpen,
   rightPanelShortcutLabel,
   rightPanelUnavailableLabel,
-  agentDriving = null,
   rightPanelMenu,
   onToggleTerminal,
   onToggleThreadPanel,
@@ -102,19 +97,12 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
       pressed={rightPanelOpen}
       onPressedChange={rightPanelMenu ? undefined : onToggleRightPanel}
       aria-label={gt("Toggle right panel")}
-      aria-description={
-        agentDriving && !rightPanelOpen ? gt("Agent is using a browser tab") : undefined
-      }
       data-right-panel-toggle
       variant="ghost"
       size="sm"
       disabled={!rightPanelAvailable}
     >
-      {agentDriving && !rightPanelOpen ? (
-        <AgentDrivingBadge driving={agentDriving} />
-      ) : (
-        <PanelRightIcon className="size-4" />
-      )}
+      <PanelRightIcon className="size-4" />
     </Toggle>
   );
 

@@ -117,10 +117,10 @@ import { resolvePullRequestState } from "./pullRequest/pullRequestPresentation";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { observeResize } from "~/lib/observeResize";
 import { surfaceShortcutKey } from "~/lib/surfaceShortcutKey";
-// BlueCode: the browser tab an agent drives shimmers.
+// BlueCode: the browser tab an agent drives gets its cursor, a circling light or a chip.
 import { useAgentDriving, type AgentDriving } from "~/bluecode/agentBrowserActivity";
-import { AgentBrowserTabPill } from "~/bluecode/AgentBrowserTabPill";
-import { AgentDrivingBadge } from "~/bluecode/AgentDrivingBadge";
+import { AgentTabChip } from "~/bluecode/AgentTabChip";
+import { AgentDrivingBadge, AgentOrbit } from "~/bluecode/AgentDrivingBadge";
 import { AgentStateIndicator } from "~/bluecode/agentState/AgentStateIndicator";
 import { useThreadAgentState } from "~/bluecode/agentState/useThreadAgentState";
 
@@ -1005,14 +1005,16 @@ function RightPanelTab(
   const sideChatState = sideChatTabState(sideChatShell);
   const content = (
     <>
+      {/* BlueCode: a light circles the tab while an agent drives it. */}
+      {props.agentDriving ? <AgentOrbit inside /> : null}
       <PanelTabCloseButton
         label={gt("Close {title}", { title })}
         onClick={() => onClose(surface)}
         size="lg"
       >
-        {/* BlueCode: the driving agent's logo stands in for the tab's icon. */}
+        {/* BlueCode: the agent's cursor stands in for the tab's icon while it drives the tab. */}
         {props.agentDriving ? (
-          <AgentDrivingBadge driving={props.agentDriving} />
+          <AgentDrivingBadge />
         ) : (
           <SurfaceIcon
             surface={surface}
@@ -1137,6 +1139,7 @@ function RightPanelTab(
           ? "bg-accent text-foreground"
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
         isDragging && "relative z-10",
+        props.agentDriving && "relative", // BlueCode: positions the agent's orbit light
       )}
     >
       {content}
@@ -1655,7 +1658,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
             !props.surfaces.some(
               (surface) => previewTabIdOf(surface, props.previewSessions) === agentTabId,
             ) ? (
-              <AgentBrowserTabPill
+              <AgentTabChip
                 session={props.previewSessions[agentTabId]}
                 driving={agentDriving}
                 noDrag={ownsDesktopTitleBar}
