@@ -125,3 +125,6 @@ it("draws an agent's reasoning as bars and keeps its mode out of the levels", as
     .toBeInTheDocument();
   await expect.element(page.getByRole("menuitemradio")).not.toBeInTheDocument();
 });
+
+// BlueCode: upstream's first-letter typeahead test is left out. The levels are one slider here,
+// so there are no level rows to focus.
