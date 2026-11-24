@@ -14,6 +14,7 @@ import {
   type ContextMenuItem,
   type ScopedThreadRef,
   type ThreadId,
+  type ContextMenuSource,
 } from "@t3tools/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { msg } from "gt-react";
@@ -157,6 +158,7 @@ export function useThreadActionMenu(input: {
         canSnoozeNow: canSnooze(thread, { now: now.toISOString() }),
         isRegeneratingTitle,
         isRunning: !threadRuntimeCanArchive(thread.runtime),
+        hasCompletedRun: thread.latestRun?.completedAt != null,
         supports,
         snoozePresets,
         canShareWithGuest,
@@ -377,8 +379,10 @@ export function useThreadActionMenu(input: {
     })();
   };
 
-  const openMenu = (position: { x: number; y: number }) => {
-    showMenu((items) => readLocalApi()?.contextMenu.show(items, position) ?? Promise.resolve(null));
+  const openMenu = (position: { x: number; y: number }, source?: ContextMenuSource) => {
+    showMenu(
+      (items) => readLocalApi()?.contextMenu.show(items, position, source) ?? Promise.resolve(null),
+    );
   };
 
   const closeMenu = () => {

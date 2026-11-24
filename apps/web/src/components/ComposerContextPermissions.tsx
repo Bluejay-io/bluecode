@@ -1,14 +1,16 @@
 import type { EnvironmentId, RuntimeMode } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
+import { use, useRef } from "react";
 import { T, useGT, useMessages } from "gt-react";
-import { useRef } from "react";
 
 import { shortcutLabelForCommand } from "../keybindings";
 import { useManagedPolicy } from "../state/managedPolicy";
 import { primaryServerKeybindingsAtom } from "../state/server";
+import { HiddenThreadContext } from "./chat/backgroundThread";
 import { ComposerControl } from "./chat/ComposerControl";
 import { ComposerPermissionsSection } from "./chat/ComposerFooterControls";
 import { focusRequestedPermission, useComposerMenuProps } from "./chat/composerEventScope";
+import { useComposerMenuState } from "./chat/useComposerMenuState";
 import {
   resolveCompatibleRuntimeMode,
   resolveRuntimeModeOptions,
@@ -36,12 +38,17 @@ export function ComposerContextPermissions(props: {
   );
   const options = resolveRuntimeModeOptions(modes, useManagedPolicy(props.environmentId), messages);
   const composerMenuProps = useComposerMenuProps();
+  const [open, setOpen] = useComposerMenuState(use(HiddenThreadContext));
   const { icon: Icon } = runtimeModeConfig[mode];
   const label = messages(runtimeModeConfig[mode].label);
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     // BlueCode: the model picker holds no permissions, so composer.mode opens this control.
-    <Menu onOpenChangeComplete={(open) => focusRequestedPermission(open, triggerRef.current)}>
+    <Menu
+      open={open}
+      onOpenChange={setOpen}
+      onOpenChangeComplete={(opened) => focusRequestedPermission(opened, triggerRef.current)}
+    >
       <Tooltip>
         <TooltipTrigger
           render={
