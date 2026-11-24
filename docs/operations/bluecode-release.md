@@ -1,7 +1,7 @@
 # BlueCode releases
 
 BlueCode is a fork of T3 Code published from `Bluejay-io/bluecode`. This page
-covers what differs from upstream's [release process](release.md).
+covers what differs from upstream's [release process](03_release.md).
 
 ## One channel
 
