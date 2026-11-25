@@ -179,7 +179,8 @@ describe("McpAppFrame", () => {
     await expect
       .element(
         screen.getByText(
-          "The Demo app needs a newer T3 Code server on this environment. Update the server to use it.",
+          // BlueCode: the app names itself through APP_BASE_NAME.
+          "The Demo app needs a newer BlueCode server on this environment. Update the server to use it.",
         ),
       )
       .toBeInTheDocument();
