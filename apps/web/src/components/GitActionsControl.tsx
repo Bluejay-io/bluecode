@@ -380,18 +380,13 @@ function GitActionProgressButtonContent({
       role="status"
     >
       <Spinner aria-hidden="true" className="row-start-1 -mx-0.5 shrink-0" />
-      <p
-        className={cn(
-          "row-start-1 min-w-0 self-baseline truncate text-left",
-          THREAD_DETAILS_PANEL_LABEL_CLASS,
-        )}
-      >
+      <p className={cn("row-start-1 min-w-0 truncate text-left", THREAD_DETAILS_PANEL_LABEL_CLASS)}>
         {progress.status}
       </p>
       <GitActionElapsedTime
         startedAtMs={progress.startedAtMs}
         // BlueCode: the details card's trailing values are 12px.
-        className="col-start-3 row-start-1 self-baseline text-xs font-normal tabular-nums text-muted-foreground"
+        className="col-start-3 row-start-1 text-xs font-normal tabular-nums text-muted-foreground"
       />
       <div
         className={cn(
