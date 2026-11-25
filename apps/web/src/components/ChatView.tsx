@@ -3811,6 +3811,13 @@ export default function ChatView(props: ChatViewProps) {
           rightPanelMaximized && !chatShownInPanel ? "true" : "false"
         }
         data-chat-column
+        style={
+          {
+            // BlueCode: the full-width chat column renders no header either.
+            "--chat-header-height":
+              embedded || tabbedFullscreen ? "0px" : "var(--workspace-topbar-height)",
+          } as CSSProperties
+        }
         inert={rightPanelMaximized && !chatShownInPanel}
         onMouseUp={preventMiddleClickPasteOutsideEditable}
       >

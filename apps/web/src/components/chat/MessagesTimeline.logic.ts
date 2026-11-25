@@ -487,24 +487,27 @@ export function resolveTimelineMinimapHasPersistentGutter(
   return resolveTimelineLeftGutter(viewport, content) >= TIMELINE_MINIMAP_PERSISTENT_GUTTER;
 }
 
-const TIMELINE_MINIMAP_HIT_STRIP_LEFT = 12;
+const TIMELINE_MINIMAP_HIT_STRIP_LEFT = 32;
 const TIMELINE_MINIMAP_HIT_STRIP_MAX_WIDTH = 40;
+const TIMELINE_MINIMAP_NAVIGATION_REACH = 14;
 
-export function resolveTimelineMinimapHitStripWidth(
+export function resolveTimelineMinimapHitStrip(
   viewport: TimelineHorizontalBounds,
   content: TimelineHorizontalBounds,
-): number {
-  const sideGutter = resolveTimelineLeftGutter(viewport, content);
-  return Math.max(
-    0,
-    Math.min(
+) {
+  const sideGutter = Math.floor(resolveTimelineLeftGutter(viewport, content));
+  if (sideGutter < TIMELINE_MINIMAP_HIT_STRIP_LEFT + TIMELINE_MINIMAP_NAVIGATION_REACH) {
+    // Keep a hover target in the gutter, to the left of the sidebar restore handle.
+    return { left: 0, width: Math.min(8, sideGutter) };
+  }
+  return {
+    left: TIMELINE_MINIMAP_HIT_STRIP_LEFT,
+    width: Math.min(
       TIMELINE_MINIMAP_HIT_STRIP_MAX_WIDTH,
-      Math.floor(sideGutter) - TIMELINE_MINIMAP_HIT_STRIP_LEFT,
+      sideGutter - TIMELINE_MINIMAP_HIT_STRIP_LEFT,
     ),
-  );
+  };
 }
-
-const TIMELINE_MINIMAP_NAVIGATION_REACH = 14;
 
 export function resolveTimelineMinimapNavigationInteractive(collapsedWidth: number): boolean {
   return collapsedWidth >= TIMELINE_MINIMAP_NAVIGATION_REACH;
@@ -1525,6 +1528,15 @@ function runningSubagentsAtRunTail(entries: ReadonlyArray<TimelineEntry>, runId:
   let running = 0;
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index]!;
+    // The run's own finished reply is the parent parking on the children, not new work.
+    if (
+      entry.kind === "message" &&
+      entry.message.role === "assistant" &&
+      !entry.message.streaming &&
+      entry.message.runId === runId
+    ) {
+      continue;
+    }
     if (entry.kind !== "event") break;
     const { item } = entry.projectedItem;
     if (item.type !== "subagent" || item.runId !== runId) break;
