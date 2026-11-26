@@ -44,24 +44,16 @@ import { workEntryIconName } from "./TimelineWorkEntryRow.logic";
 
 describe("resolveTimelineMinimapHitStrip", () => {
   it.each([
-    { viewport: 1280, content: 768, left: 32, width: 40 },
-    { viewport: 768, content: 672, left: 32, width: 16 },
-    { viewport: 768, content: 704, left: 0, width: 8 },
-    { viewport: 768, content: 720, left: 0, width: 8 },
-    { viewport: 768, content: 756, left: 0, width: 6 },
-    { viewport: 768, content: 768, left: 0, width: 0 },
-  ])(
-    "keeps the minimap inside the gutter at $viewport/$content",
-    ({ viewport, content, left, width }) => {
-      // BlueCode: the gutter is measured from the lane's offset, here a centred lane.
-      expect(
-        resolveTimelineMinimapHitStrip(
-          { left: 0, width: viewport },
-          { left: (viewport - content) / 2, width: content },
-        ),
-      ).toEqual({ left, width });
-    },
-  );
+    { gutter: 256, left: 32, width: 40 },
+    { gutter: 48, left: 32, width: 16 },
+    { gutter: 32, left: 0, width: 8 },
+    { gutter: 24, left: 0, width: 8 },
+    { gutter: 6, left: 0, width: 6 },
+    { gutter: 0, left: 0, width: 0 },
+    { gutter: -4, left: 0, width: 0 },
+  ])("keeps the minimap inside a $gutter px gutter", ({ gutter, left, width }) => {
+    expect(resolveTimelineMinimapHitStrip(gutter)).toEqual({ left, width });
+  });
 });
 
 describe("resolveAssistantMessageCopyState", () => {
@@ -2466,7 +2458,9 @@ describe("deriveMessagesTimelineRows", () => {
         supportsConversationRollback: false,
       });
       return rows.flatMap((row, index) =>
-        row.kind === "viewed-images" ? [{ after: rows[index - 1]?.kind, paths: row.paths }] : [],
+        row.kind === "viewed-images"
+          ? [{ after: rows[index - 1]?.kind, paths: row.images.map(({ path }) => path) }]
+          : [],
       );
     };
     const paths = ["/repo/docs/sidebar.png", "/repo/docs/topbar.png"];
@@ -5263,15 +5257,21 @@ describe("timeline minimap gutter", () => {
 
   it("uses the gutter left of a centred lane", () => {
     const lane = { left: 366, width: 768 };
-    expect(resolveTimelineMinimapHasPersistentGutter(viewport, lane)).toBe(true);
-    expect(resolveTimelineMinimapHitStrip(viewport, lane)).toEqual({ left: 32, width: 40 });
+    expect(resolveTimelineMinimapHasPersistentGutter(lane.left - viewport.left)).toBe(true);
+    expect(resolveTimelineMinimapHitStrip(lane.left - viewport.left)).toEqual({
+      left: 32,
+      width: 40,
+    });
   });
 
   it("falls back to hover when the canvas shifts the lane to the left edge", () => {
     // The details card or preview insets the lane's end; only the 1rem padding is left of it.
     const lane = { left: 116, width: 768 };
-    expect(resolveTimelineMinimapHasPersistentGutter(viewport, lane)).toBe(false);
-    expect(resolveTimelineMinimapHitStrip(viewport, lane)).toEqual({ left: 0, width: 8 });
+    expect(resolveTimelineMinimapHasPersistentGutter(lane.left - viewport.left)).toBe(false);
+    expect(resolveTimelineMinimapHitStrip(lane.left - viewport.left)).toEqual({
+      left: 0,
+      width: 8,
+    });
   });
 });
 

@@ -29,8 +29,9 @@ import {
   toolGroupAction,
   toolGroupSummaryKind,
   contextCompactionTokenCounts,
-  workEntriesViewedImagePaths,
+  workEntriesViewedImages,
   type ToolGroupSummaryKind,
+  type ViewedImage,
   liveThoughtLine,
   workEntryHiddenByToolCallVisibility,
 } from "@t3tools/client-runtime/work-log/presentation";
@@ -464,38 +465,18 @@ export function resolveTimelineMinimapCurrentIndex(input: {
   return precedingIndex;
 }
 
-interface TimelineHorizontalBounds {
-  readonly left: number;
-  readonly width: number;
-}
-
-// The minimap sits at the viewport's left edge; the canvas can inset the lane's end, so the
-// lane is not always centred and only its measured offset says how much room is left of it.
-function resolveTimelineLeftGutter(
-  viewport: TimelineHorizontalBounds,
-  content: TimelineHorizontalBounds,
-): number {
-  const gutter = content.left - viewport.left;
-  if (!Number.isFinite(gutter) || !(viewport.width > 0)) return 0;
-  return Math.max(0, Math.min(viewport.width, gutter));
-}
-
-export function resolveTimelineMinimapHasPersistentGutter(
-  viewport: TimelineHorizontalBounds,
-  content: TimelineHorizontalBounds,
-): boolean {
-  return resolveTimelineLeftGutter(viewport, content) >= TIMELINE_MINIMAP_PERSISTENT_GUTTER;
+export function resolveTimelineMinimapHasPersistentGutter(sideGutter: number): boolean {
+  return sideGutter >= TIMELINE_MINIMAP_PERSISTENT_GUTTER;
 }
 
 const TIMELINE_MINIMAP_HIT_STRIP_LEFT = 32;
 const TIMELINE_MINIMAP_HIT_STRIP_MAX_WIDTH = 40;
 const TIMELINE_MINIMAP_NAVIGATION_REACH = 14;
 
-export function resolveTimelineMinimapHitStrip(
-  viewport: TimelineHorizontalBounds,
-  content: TimelineHorizontalBounds,
-) {
-  const sideGutter = Math.floor(resolveTimelineLeftGutter(viewport, content));
+export function resolveTimelineMinimapHitStrip(measuredSideGutter: number) {
+  const sideGutter = Number.isFinite(measuredSideGutter)
+    ? Math.max(0, Math.floor(measuredSideGutter))
+    : 0;
   if (sideGutter < TIMELINE_MINIMAP_HIT_STRIP_LEFT + TIMELINE_MINIMAP_NAVIGATION_REACH) {
     // Keep a hover target in the gutter, to the left of the sidebar restore handle.
     return { left: 0, width: Math.min(8, sideGutter) };
@@ -603,7 +584,7 @@ type MessagesTimelineRowContent =
       kind: "viewed-images";
       id: string;
       createdAt: string;
-      paths: ReadonlyArray<string>;
+      images: ReadonlyArray<ViewedImage>;
     }
   | {
       kind: "turn-fold";
@@ -730,10 +711,10 @@ function viewedImagesRows(
   createdAt: string,
   groupedEntries: ReadonlyArray<WorkLogEntry>,
 ): Array<Extract<MessagesTimelineRow, { kind: "viewed-images" }>> {
-  const paths = workEntriesViewedImagePaths(groupedEntries);
-  return paths.length === 0
+  const images = workEntriesViewedImages(groupedEntries);
+  return images.length === 0
     ? []
-    : [{ kind: "viewed-images", id: `${groupId}:viewed-images`, createdAt, paths }];
+    : [{ kind: "viewed-images", id: `${groupId}:viewed-images`, createdAt, images }];
 }
 
 export function resolveAssistantMessageCopyState({
@@ -2849,8 +2830,11 @@ function isRowUnchanged(a: MessagesTimelineRow, b: MessagesTimelineRow): boolean
       const bv = b as typeof a;
       return (
         a.createdAt === bv.createdAt &&
-        a.paths.length === bv.paths.length &&
-        a.paths.every((path, index) => path === bv.paths[index])
+        a.images.length === bv.images.length &&
+        a.images.every(
+          (image, index) =>
+            image.path === bv.images[index]?.path && image.pending === bv.images[index]?.pending,
+        )
       );
     }
 

@@ -1,7 +1,7 @@
 import type { ModelSelection, ProviderInstanceId, RuntimeMode } from "@t3tools/contracts";
 import { createModelSelection } from "@t3tools/shared/model";
 import { T, useGT, useMessages } from "gt-react";
-import { type ComponentProps, memo, useId, useRef, useState } from "react";
+import { type ComponentProps, memo, use, useId, useRef, useState } from "react";
 
 import {
   PERMISSION_MODES_LABEL,
@@ -17,6 +17,10 @@ import { resolveModelPickerSelectedModel } from "./ModelPickerContent";
 import { ProviderModelPicker } from "./ProviderModelPicker";
 import { resolveRuntimeModeOption, runtimeModeConfig } from "./runtimeModeConfig";
 import { useComposerMenuState } from "./useComposerMenuState";
+import {
+  RuntimeModeLimitsTargetContext,
+  useProviderRuntimeModeLimits,
+} from "../../state/runtimeModeLimits";
 
 export type RuntimeModeOption = {
   mode: RuntimeMode;
@@ -127,6 +131,8 @@ export function ComposerPermissionsSection(props: {
     props.runtimeModeOptions.find((option) => option.mode === shownMode) ??
     resolveRuntimeModeOption("approval-required", messages);
   const descriptionId = useId();
+  // Mounted only while a picker is open, so this asks the server again each time one opens.
+  useProviderRuntimeModeLimits(use(RuntimeModeLimitsTargetContext), "picker");
   // BlueCode: Capy's menu rows instead of an icon toggle; see bluecode/PermissionModeRows.
   return (
     <div data-composer-permissions className="w-72 max-w-full">

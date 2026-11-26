@@ -90,6 +90,7 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { Textarea } from "~/components/ui/textarea";
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
+import { SharedTooltipTrigger } from "~/components/ui/shared-tooltip";
 import { useOpenInPreferredEditor } from "~/editorPreferences";
 import {
   useGitStackedAction,
@@ -395,19 +396,17 @@ function GitActionProgressButtonContent({
         )}
       >
         <div className="min-h-0 overflow-hidden">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                // BlueCode: the details card's secondary text is 12px.
-                <p className="truncate pt-0.5 text-left text-xs font-normal text-muted-foreground" />
-              }
-            >
-              {progress.output}
-            </TooltipTrigger>
-            <TooltipPopup side="bottom" className="max-w-96 break-words">
-              {progress.output}
-            </TooltipPopup>
-          </Tooltip>
+          <SharedTooltipTrigger
+            render={
+              // BlueCode: the details card's secondary text is 12px.
+              <p className="truncate pt-0.5 text-left text-xs font-normal text-muted-foreground" />
+            }
+            label={progress.output}
+            side="bottom"
+            className="max-w-96 break-words"
+          >
+            {progress.output}
+          </SharedTooltipTrigger>
         </div>
       </div>
     </div>
@@ -434,19 +433,17 @@ function GitActionSuccessButtonContent({ success }: { success: InlineGitActionSu
         )}
       >
         <div className="min-h-0 overflow-hidden">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                // BlueCode: the details card's secondary text is 12px.
-                <p className="truncate pt-0.5 text-left text-xs font-normal text-muted-foreground" />
-              }
-            >
-              {success.description}
-            </TooltipTrigger>
-            <TooltipPopup side="bottom" className="max-w-96 break-words">
-              {success.description}
-            </TooltipPopup>
-          </Tooltip>
+          <SharedTooltipTrigger
+            render={
+              // BlueCode: the details card's secondary text is 12px.
+              <p className="truncate pt-0.5 text-left text-xs font-normal text-muted-foreground" />
+            }
+            label={success.description}
+            side="bottom"
+            className="max-w-96 break-words"
+          >
+            {success.description}
+          </SharedTooltipTrigger>
         </div>
       </div>
     </div>
@@ -671,29 +668,26 @@ export function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                         {option.label}
                       </span>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="warning-outline"
-                              size="micro"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                openSourceControlSettings();
-                              }}
-                            >
-                              <T>Setup Required</T>
-                            </Button>
-                          }
-                        />
-                        <TooltipPopup side="top" align="end">
-                          {readiness.hint ??
-                            gt(
-                              "Open Settings -> Source control & issues to configure this provider.",
-                            )}
-                        </TooltipPopup>
-                      </Tooltip>
+                      <SharedTooltipTrigger
+                        render={
+                          <Button
+                            variant="warning-outline"
+                            size="micro"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              openSourceControlSettings();
+                            }}
+                          >
+                            <T>Setup Required</T>
+                          </Button>
+                        }
+                        label={
+                          readiness.hint ??
+                          gt("Open Settings -> Source control & issues to configure this provider.")
+                        }
+                        align="end"
+                      />
                     </div>
                   );
                 }
@@ -1639,36 +1633,34 @@ function CheckoutGitActionsControl({
               </PopoverPopup>
             </Popover>
           ) : (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <ThreadDetailsControl
-                    data-toolbar-control=""
-                    variant="ghost"
-                    size="xs"
-                    part="primary"
-                    panel
-                    disabled={!canWriteSourceControl || isGitActionRunning || quickAction.disabled}
-                    onClick={runQuickAction}
-                  />
-                }
-              >
-                <GitQuickActionIcon
-                  quickAction={quickAction}
-                  SourceControlIcon={SourceControlIcon}
-                  className={THREAD_DETAILS_PANEL_ICON_CLASS}
+            <SharedTooltipTrigger
+              render={
+                <ThreadDetailsControl
+                  data-toolbar-control=""
+                  variant="ghost"
+                  size="xs"
+                  part="primary"
+                  panel
+                  disabled={!canWriteSourceControl || isGitActionRunning || quickAction.disabled}
+                  onClick={runQuickAction}
                 />
-                <span
-                  className={cn(
-                    "sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5",
-                    cn("not-sr-only ml-0 truncate", THREAD_DETAILS_PANEL_LABEL_CLASS),
-                  )}
-                >
-                  {quickAction.label}
-                </span>
-              </TooltipTrigger>
-              <TooltipPopup side="top">{quickAction.label}</TooltipPopup>
-            </Tooltip>
+              }
+              label={quickAction.label}
+            >
+              <GitQuickActionIcon
+                quickAction={quickAction}
+                SourceControlIcon={SourceControlIcon}
+                className={THREAD_DETAILS_PANEL_ICON_CLASS}
+              />
+              <span
+                className={cn(
+                  "sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5",
+                  cn("not-sr-only ml-0 truncate", THREAD_DETAILS_PANEL_LABEL_CLASS),
+                )}
+              >
+                {quickAction.label}
+              </span>
+            </SharedTooltipTrigger>
           )}
           {!gitActionProgress ? (
             <>
@@ -1680,33 +1672,33 @@ function CheckoutGitActionsControl({
                   }
                 }}
               >
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <MenuTrigger
-                        render={
-                          <ThreadDetailsControl
-                            aria-label={gt("Git action options")}
-                            data-toolbar-control=""
-                            size="sm"
-                            variant="ghost"
-                            part="secondary"
-                            panel
-                          />
-                        }
-                        disabled={isGitActionRunning || !hasGitMenuContent}
-                      />
-                    }
-                  >
-                    <ChevronDownIcon
-                      aria-hidden="true"
-                      className={THREAD_DETAILS_PANEL_CHEVRON_CLASS}
+                <SharedTooltipTrigger
+                  render={
+                    <MenuTrigger
+                      render={
+                        <ThreadDetailsControl
+                          aria-label={gt("Git action options")}
+                          data-toolbar-control=""
+                          size="sm"
+                          variant="ghost"
+                          part="secondary"
+                          panel
+                        />
+                      }
+                      disabled={isGitActionRunning || !hasGitMenuContent}
                     />
-                  </TooltipTrigger>
-                  <TooltipPopup side="top">
-                    <T>Git action options</T>
-                  </TooltipPopup>
-                </Tooltip>
+                  }
+                  label={
+                    <>
+                      <T>Git action options</T>
+                    </>
+                  }
+                >
+                  <ChevronDownIcon
+                    aria-hidden="true"
+                    className={THREAD_DETAILS_PANEL_CHEVRON_CLASS}
+                  />
+                </SharedTooltipTrigger>
                 <MenuPopup align="end" anchor={panelAnchorRef} className="w-(--anchor-width)">
                   {gitItems}
                 </MenuPopup>
@@ -1736,18 +1728,15 @@ function CheckoutGitActionsControl({
                 <T>Changes</T>
               </span>
               {changesBaseLabel ? (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <span className="pointer-events-auto min-w-0 truncate font-normal text-muted-foreground" />
-                    }
-                  >
-                    {changesBaseLabel}
-                  </TooltipTrigger>
-                  <TooltipPopup side="top" className="max-w-96 break-words">
-                    {changesBaseLabel}
-                  </TooltipPopup>
-                </Tooltip>
+                <SharedTooltipTrigger
+                  render={
+                    <span className="pointer-events-auto min-w-0 truncate font-normal text-muted-foreground" />
+                  }
+                  label={changesBaseLabel}
+                  className="max-w-96 break-words"
+                >
+                  {changesBaseLabel}
+                </SharedTooltipTrigger>
               ) : null}
               {/* BlueCode: counts read as row text; bluecode/thread-details.css tones them. */}
               <span className="ml-auto flex shrink-0 items-baseline gap-2 ps-2 tabular-nums">
