@@ -63,10 +63,10 @@ import {
   useSidebar,
   useSidebarVisibility,
 } from "./ui/sidebar";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { registerCommands, registerMenuAction } from "../shortcuts/dispatcher";
 import { resolveThreadRouteRef } from "../threadRoutes";
+import { SharedTooltipTrigger } from "./ui/shared-tooltip";
 
 const MACOS_TRAFFIC_LIGHTS_LEFT_INSET = "var(--desktop-window-controls-inset, 90px)";
 
@@ -400,37 +400,33 @@ function SidebarControl({ showSidebar }: { readonly showSidebar: boolean }) {
           {/* BlueCode: one toggle rides the sidebar out and another rides the card in (theme.css),
               so neither sits over content sliding beneath it. */}
           <span className="flex items-center" data-sidebar-toggle-slot="sidebar">
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <SidebarTrigger
-                    variant={
-                      isSidebarVisible && stageBackdropVariant ? "media-navigation" : "ghost"
-                    }
-                    className={cn(
-                      "pointer-events-auto",
-                      isSidebarVisible && stageBackdropVariant && "relative top-auto translate-y-0",
-                    )}
-                    aria-label={gt("Toggle main sidebar")}
-                  />
-                }
-              />
-              <TooltipPopup side="bottom">{tooltip}</TooltipPopup>
-            </Tooltip>
+            <SharedTooltipTrigger
+              render={
+                <SidebarTrigger
+                  variant={isSidebarVisible && stageBackdropVariant ? "media-navigation" : "ghost"}
+                  className={cn(
+                    "pointer-events-auto",
+                    isSidebarVisible && stageBackdropVariant && "relative top-auto translate-y-0",
+                  )}
+                  aria-label={gt("Toggle main sidebar")}
+                />
+              }
+              label={tooltip}
+              side="bottom"
+            />
           </span>
           <span className="hidden" data-sidebar-toggle-slot="card">
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <SidebarTrigger
-                    variant="ghost"
-                    className="pointer-events-auto"
-                    aria-label={gt("Toggle main sidebar")}
-                  />
-                }
-              />
-              <TooltipPopup side="bottom">{tooltip}</TooltipPopup>
-            </Tooltip>
+            <SharedTooltipTrigger
+              render={
+                <SidebarTrigger
+                  variant="ghost"
+                  className="pointer-events-auto"
+                  aria-label={gt("Toggle main sidebar")}
+                />
+              }
+              label={tooltip}
+              side="bottom"
+            />
           </span>
         </>
       ) : null}

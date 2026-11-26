@@ -22,7 +22,6 @@ import {
   MenuTrigger,
 } from "../ui/menu";
 import { Switch } from "../ui/switch";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import type { ComposerControlSize } from "./ComposerControl";
 import type { RuntimeModeOption } from "./ComposerFooterControls";
 import { composerFloatingLayerProps } from "./composerEventScope";
@@ -34,6 +33,7 @@ import {
   ULTRATHINK_IN_BODY_NOTE,
   useTraitsSelection,
 } from "./TraitsPicker";
+import { SharedTooltipTrigger } from "../ui/shared-tooltip";
 
 type SelectDescriptor = Extract<ProviderOptionDescriptor, { type: "select" }>;
 type BooleanDescriptor = Extract<ProviderOptionDescriptor, { type: "boolean" }>;
@@ -235,12 +235,14 @@ function ColumnRow(props: {
   );
   if (!props.description) return <button {...rowProps}>{content}</button>;
   return (
-    <Tooltip>
-      <TooltipTrigger render={<button {...rowProps} />}>{content}</TooltipTrigger>
-      <TooltipPopup side="right" className="max-w-56">
-        {props.description}
-      </TooltipPopup>
-    </Tooltip>
+    <SharedTooltipTrigger
+      render={<button {...rowProps} />}
+      label={props.description}
+      side="right"
+      className="max-w-56"
+    >
+      {content}
+    </SharedTooltipTrigger>
   );
 }
 
@@ -750,10 +752,9 @@ function SpeedSegment(props: {
   );
   if (!props.description) return <button {...buttonProps}>{content}</button>;
   return (
-    <Tooltip>
-      <TooltipTrigger render={<button {...buttonProps} />}>{content}</TooltipTrigger>
-      <TooltipPopup side="top">{props.description}</TooltipPopup>
-    </Tooltip>
+    <SharedTooltipTrigger render={<button {...buttonProps} />} label={props.description}>
+      {content}
+    </SharedTooltipTrigger>
   );
 }
 
@@ -837,48 +838,50 @@ function PermissionsControl(props: {
             const Icon = option.icon;
             const checked = index === currentIndex;
             return (
-              <Tooltip key={option.mode}>
-                <TooltipTrigger
-                  render={
-                    <button
-                      ref={(button) => {
-                        buttonsRef.current[index] = button;
-                      }}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      aria-label={option.label}
-                      disabled={option.disabledReason !== undefined}
-                      tabIndex={checked ? 0 : -1}
-                      // The mode shortcut lands here; Up and Down treat the control as one row.
-                      {...(checked
-                        ? { "data-effort-row": true, "data-composer-permissions-trigger": true }
-                        : {})}
-                      className={cn(
-                        "flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-sm px-2 text-muted-foreground outline-none transition-[flex-grow,background-color,color] duration-200 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none",
-                        checked &&
-                          cn(
-                            // min-w-fit: on a phone the popover is too narrow to give the label its share.
-                            "min-w-fit grow-[2.6] bg-popover shadow-xs ring-1 ring-inset",
-                            PERMISSION_TONE[option.mode],
-                          ),
-                      )}
-                      onClick={() => pick(index)}
-                    />
-                  }
-                >
-                  <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-                  {checked ? (
-                    <span className="truncate font-medium text-xs">{option.label}</span>
-                  ) : null}
-                </TooltipTrigger>
-                <TooltipPopup side="top" className="max-w-56">
-                  <span className="font-medium">{option.label}</span>
-                  <span className="block text-muted-foreground">
-                    {option.disabledReason ?? option.description}
-                  </span>
-                </TooltipPopup>
-              </Tooltip>
+              <SharedTooltipTrigger
+                key={option.mode}
+                render={
+                  <button
+                    ref={(button) => {
+                      buttonsRef.current[index] = button;
+                    }}
+                    type="button"
+                    role="radio"
+                    aria-checked={checked}
+                    aria-label={option.label}
+                    disabled={option.disabledReason !== undefined}
+                    tabIndex={checked ? 0 : -1}
+                    // The mode shortcut lands here; Up and Down treat the control as one row.
+                    {...(checked
+                      ? { "data-effort-row": true, "data-composer-permissions-trigger": true }
+                      : {})}
+                    className={cn(
+                      "flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-sm px-2 text-muted-foreground outline-none transition-[flex-grow,background-color,color] duration-200 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none",
+                      checked &&
+                        cn(
+                          // min-w-fit: on a phone the popover is too narrow to give the label its share.
+                          "min-w-fit grow-[2.6] bg-popover shadow-xs ring-1 ring-inset",
+                          PERMISSION_TONE[option.mode],
+                        ),
+                    )}
+                    onClick={() => pick(index)}
+                  />
+                }
+                label={
+                  <>
+                    <span className="font-medium">{option.label}</span>
+                    <span className="block text-muted-foreground">
+                      {option.disabledReason ?? option.description}
+                    </span>
+                  </>
+                }
+                className="max-w-56"
+              >
+                <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+                {checked ? (
+                  <span className="truncate font-medium text-xs">{option.label}</span>
+                ) : null}
+              </SharedTooltipTrigger>
             );
           })}
         </div>
