@@ -1,6 +1,6 @@
 {
   "name": "@t3tools/web",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "private": true,
   "type": "module",
   "scripts": {
@@ -78,6 +78,7 @@
     "katex": "^0.18.2",
     "lucide-react": "^0.564.0",
     "lucide-react-upstream": "npm:lucide-react@0.564.0",
+    "parse5": "8.0.1",
     "pdfjs-dist": "6.4.299",
     "pele": "catalog:",
     "property-information": "^7.2.0",
