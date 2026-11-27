@@ -972,7 +972,7 @@ it("a shortcut conditioned on rightPanelOpen sees the thread's open right panel"
   await expect.element(page.getByRole("menuitem", { name: /^Files/ })).not.toBeInTheDocument();
   await expect.element(toggle).toHaveFocus();
   await composer.click();
-  await userEvent.keyboard("{Control>}t{/Control}");
+  await userEvent.keyboard("{Meta>}{Alt>}b{/Alt}{/Meta}");
   await page.getByRole("menuitem", { name: /^Files/ }).click();
   await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
   await composer.click();
@@ -1276,6 +1276,8 @@ it("a new thread on a branch with changes opens them from thread details", async
     // AppRoot brings its own router.
     router: false,
   });
+  // BlueCode: thread details open from their button.
+  await userEvent.click(page.getByRole("button", { name: "Toggle thread details panel" }));
   const changesRow = page.getByRole("button", { name: /^Changes\s*vs main\s*\+150/ });
   // The row already shows the branch's totals, so it has to open them.
   await expect.element(changesRow).toBeEnabled();

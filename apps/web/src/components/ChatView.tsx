@@ -3719,7 +3719,7 @@ export default function ChatView(props: ChatViewProps) {
               browserAvailable: canOperatePreview && browserAvailable,
               terminalAvailable: activeProject !== null && canOperateTerminal,
               filesAvailable: activeProject !== null,
-              diffAvailable: isServerThread && isGitRepo,
+              diffAvailable: isGitRepo,
               pullRequestAvailable: pullRequestSurfaceAvailable,
               pullRequestsAvailable: linkedItemsSurfaceAvailable,
               deviceAvailable: activeThreadRef !== null,
