@@ -4,6 +4,7 @@ import * as NodeFSP from "node:fs/promises";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import * as NodeSqliteClient from "@t3tools/shared/nodeSqliteClient";
 import * as Context from "effect/Context";
+import type * as Digest from "effect/crypto/Digest";
 import type * as SecureRandom from "effect/crypto/SecureRandom";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -535,7 +536,11 @@ const make = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const context = yield* Effect.context<
-    FileSystem.FileSystem | Path.Path | ProcessRunner.ProcessRunner | SecureRandom.SecureRandom
+    | FileSystem.FileSystem
+    | Path.Path
+    | ProcessRunner.ProcessRunner
+    | SecureRandom.SecureRandom
+    | Digest.Digest
   >();
 
   const exists = (target: string) => fs.exists(target).pipe(Effect.orElseSucceed(() => false));
