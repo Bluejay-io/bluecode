@@ -263,7 +263,15 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
       onToggleSplitView();
       return;
     }
-    if (!canMaximizeRightPanel || !activeThreadRef) return;
+    if (!activeThreadRef) return;
+    if (!isPanelShown(panelState)) {
+      // A closed panel opens straight into maximized.
+      requestWorkspaceFocus({ area: "panel" });
+      useRightPanelStore.getState().requestMaximize(activeThreadRef);
+      toggleRightPanel();
+      return;
+    }
+    if (!canMaximizeRightPanel) return;
     if (!rightPanelMaximized) requestWorkspaceFocus({ area: "panel" });
     useRightPanelStore.getState().setMaximized(activeThreadRef, !rightPanelMaximized);
   };
