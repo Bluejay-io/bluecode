@@ -1074,7 +1074,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const highlightedProjectScopeKeyRef = useRef<string | null>(null);
   // Hold dropped rows until server placement is confirmed; block another pickup from replacing the hold.
   const [optimisticDrop, setOptimisticDrop] = useState<SidebarOptimisticDrop | null>(null);
-  const [threadSearchQuery, setThreadSearchQuery] = useState("");
+  // BlueCode: search opens the command palette, so the sidebar has no box to fill this.
+  const [threadSearchQuery] = useState("");
   const [searchHighlightKey, setSearchHighlightKey] = useState<string | null>(null);
   const connectedEnvironmentIds = useConnectedEnvironmentIds();
   const queuePendingFileDrop = useSidebarPendingFileDropStore((s) => s.queuePendingFileDrop);
@@ -1567,10 +1568,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     void router.navigate({ to: "/draft/$draftId", params: { draftId } });
   };
 
-  const clearThreadSearch = () => {
-    setThreadSearchQuery("");
-    setSearchHighlightKey(null);
-  };
   const selectThreadSearchResult = (thread: EnvironmentThreadShell) => {
     const ref = scopeThreadRef(thread.environmentId, thread.id);
     // A row listed for a message match opens find on it, as the palette does.
